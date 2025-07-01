@@ -13,7 +13,7 @@ class KasController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function pemasukanView()
     {
         $kas = Kas::where('is_active', true)->get();
         $transaksi = TransaksiKas::with(['kas', 'createdBy'])
@@ -21,6 +21,14 @@ class KasController extends Controller
             ->paginate(10);
 
         return view('kas.index', compact('kas', 'transaksi'));
+    }
+    public function pengeluaranView()
+    {
+        return view('kas.pengeluaran');
+    }
+    public function transferView()
+    {
+        return view('kas.transfer');
     }
 
     /**
