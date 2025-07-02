@@ -292,10 +292,10 @@
                 </svg>
             </button>
             <div x-show="openMenu === 'master'" class="pl-8 space-y-1 mt-1" x-transition>
-                <a href="#"
+                <a href="{{ route('master-data.jns_simpan') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Jenis
                     Simpanan</a>
-                <a href="#"
+                <a href="{{ route('master-data.jns_akun') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Jenis
                     Akun</a>
                 <a href="#"

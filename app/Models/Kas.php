@@ -16,23 +16,23 @@ class Kas extends Model
     ];
 
     // Relasi dengan transaksi kas
-    public function transaksi()
-    {
-        return $this->hasMany(TransaksiKas::class, 'kas_id');
-    }
+    // public function transaksi()
+    // {
+    //     return $this->hasMany(TransaksiKas::class, 'kas_id');
+    // }
 
-    // Relasi dengan transaksi kas sebagai kas sumber
-    public function transaksiKeluar()
-    {
-        return $this->hasMany(TransaksiKas::class, 'dari_kas_id');
-    }
+    // // Relasi dengan transaksi kas sebagai kas sumber
+    // public function transaksiKeluar()
+    // {
+    //     return $this->hasMany(TransaksiKas::class, 'dari_kas_id');
+    // }
 
-    // Relasi dengan transaksi kas sebagai kas tujuan
-    public function transaksiMasuk()
-    {
-        return $this->hasMany(TransaksiKas::class, 'untuk_kas_id');
-    }
-
+    // // Relasi dengan transaksi kas sebagai kas tujuan
+    // public function transaksiMasuk()
+    // {
+    //     return $this->hasMany(TransaksiKas::class, 'untuk_kas_id');
+    // }
+// 
     // Method untuk mendapatkan saldo kas
     public function getSaldo()
     {

@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Transaksi')
-@section('sub-title', 'Pemasukan Kas Tunai')
+@section('title', 'Jenis Simpanan')
+@section('sub-title', 'Tipe Tipe Simpan')
 
 @section('content')
 <div class="px-1 justify-center flex flex-col">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Data Transaksi</h1>
+        <h1 class="text-2xl font-bold">Data Simpanan</h1>
         <div class="flex place-content-around items-center w-1/2">
             <div class="bg-green-100 p-2 rounded-lg border-2 border-green-400 space-x-2 flex justify-around">
                 <p class="text-sm">Export</p> <img src="{{ asset('img/icons-bootstrap/export/cloud-download.svg') }}"
@@ -33,64 +33,28 @@
             <h2 class="text-lg font-semibold">Riwayat Transaksi</h2>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full">
+            <table class="table-auto w-full border border-gray-300 text-center">
                 <thead class="bg-gray-50">
-                    <tr class="text-sm">
-                        <th class="px-3 py-2 text-left">Kode Transaksi</th>
-                        <th class="px-3 py-2 text-left">Tanggal Transaksi</th>
-                        <th class="px-3 py-2 text-left">Uraian</th>
-                        <th class="px-3 py-2 text-left">Untuk Kas</th>
-                        <th class="px-3 py-2 text-left">Dari Akun</th>
-                        <th class="px-3 py-2 text-left">Oleh</th>
-                        <th class="px-3 py-2 text-center">Jumlah</th>
-                        <th class="px-3 py-2 text-center">User</th>
+                    <tr>
+                        <th class="py-2 border">No</th>
+                        <th class="py-2 border">Jenis Simpan</th>
+                        <th class="py-2 border">Jumlah</th>
+                        <th class="py-2 border">Tampil</th>
+                        <th class="py-2 border">Urut</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y">
-                    <style>
-                    td {
-                        padding: 20px 0px
-                    }
-                    </style>
-                    <tr class="items-center text-center text-[12px]">
-                        <td>001
-                        </td>
-                        <td>20/20/2020
-                        </td>
-                        <td>Lorem Ipsum</td>
-                        <td>Dolor sit amet</td>
-                        <td>dessarrukmana</td>
-                        <td>dessar</td>
-                        <td>90000</td>
-                        <td>admin</td>
-                    </tr>
-                    <tr class="items-center text-center text-[12px]">
-                        <td>001
-                        </td>
-                        <td>20/20/2020
-                        </td>
-                        <td>Lorem Ipsum</td>
-                        <td>Dolor sit amet</td>
-                        <td>dessarrukmana</td>
-                        <td>dessar</td>
-                        <td>90000</td>
-                        <td>admin</td>
-                    </tr>
-                    <tr class="items-center text-center text-[12px]">
-                        <td>001
-                        </td>
-                        <td>20/20/2020
-                        </td>
-                        <td>Lorem Ipsum</td>
-                        <td>Dolor sit amet</td>
-                        <td>dessarrukmana</td>
-                        <td>dessar</td>
-                        <td>90000</td>
-                        <td>admin</td>
-                    </tr>
-
+                @foreach($dataSimpan as $simpan)
+                <tr class="text-sm align-middle">
+                    <td class="py-2 border">
+                        {{ ($dataSimpan->currentPage() - 1) * $dataSimpan->perPage() + $loop->iteration }}
+                    </td>
+                    <td class="py-2 border">{{ $simpan->jns_simpan }}</td>
+                    <td class="py-2 border">{{ $simpan->jumlah }}</td>
+                    <td class="py-2 border">{{ $simpan->tampil ? 'Ya' : 'Tidakz' }}</td>
+                    <td class="py-2 border">{{ $simpan->urut}}</td>
+                </tr>
+                @endforeach
                 </tbody>
-
             </table>
         </div>
     </div>
@@ -112,9 +76,6 @@
             Displaying 1 to 0 of 0 items
         </div>
     </div>
-</div>
-
-<div class="popup">
 
 </div>
 @endsection
