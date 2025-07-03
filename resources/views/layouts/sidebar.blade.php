@@ -301,16 +301,19 @@
                 <a href="#"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
                     Kas</a>
-                <a href="#"
+                <a href="{{ route('master-data.jenis_angsuran') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Lama
                     Angsuran</a>
-                <a href="#"
+                <a href="{{ route('master-data.data_mobil') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
                     Mobil</a>
-                <a href="#"
+                <a href="{{ route('master-data.data_barang') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
                     Barang</a>
-                <a href="#"
+                    <a href="{{ route('master-data.data_anggota') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
+                    Anggota</a>
+                <a href="{{ route('master-data.data_pengguna') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
                     Pengguna</a>
             </div>

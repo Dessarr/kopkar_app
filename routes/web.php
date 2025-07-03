@@ -5,6 +5,11 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\JnsAkunController;
 use App\Http\Controllers\KasController;
 use App\Http\Controllers\JnsSimpanController;
+use App\Http\Controllers\DtaPenggunaController;
+use App\Http\Controllers\DtaBarangController;
+use App\Http\Controllers\DtaMobilController;
+use App\Http\Controllers\JnsAngusuranController;
+use App\Http\Controllers\DtaAnggotaController;
 
 Route::middleware('web')->group(function () {
 Route::get('/', function () {
@@ -75,4 +80,8 @@ Route::get('/member/dashboard',function (){
 
     Route::get('/master-data/jns_akun',[JnsAkunController::class,'index'])->name('master-data.jns_akun');
     Route::get('/master-data/jns_simpan',[JnsSimpanController::class,'index'])->name('master-data.jns_simpan');
-    
+    Route::get('/master-data/data_pengguna',[DtaPenggunaController::class,'index'])->name('master-data.data_pengguna');
+    Route::get('/master-data/data_barang',[DtaBarangController::class,'index'])->name('master-data.data_barang');
+    Route::get('/master-data/data_mobil',[DtaMobilController::class,'index'])->name('master-data.data_mobil');
+    Route::get('/master-data/jenis_angsuran',[JnsAngusuranController::class,'index'])->name('master-data.jenis_angsuran');
+    Route::get('/master-data/data_anggota',[DtaAnggotaController::class,'index'])->name('master-data.data_anggota');
