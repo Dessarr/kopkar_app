@@ -10,6 +10,7 @@ use App\Http\Controllers\DtaBarangController;
 use App\Http\Controllers\DtaMobilController;
 use App\Http\Controllers\JnsAngusuranController;
 use App\Http\Controllers\DtaAnggotaController;
+use App\Http\Controllers\DtaKasController;
 
 Route::middleware('web')->group(function () {
 Route::get('/', function () {
@@ -85,3 +86,5 @@ Route::get('/member/dashboard',function (){
     Route::get('/master-data/data_mobil',[DtaMobilController::class,'index'])->name('master-data.data_mobil');
     Route::get('/master-data/jenis_angsuran',[JnsAngusuranController::class,'index'])->name('master-data.jenis_angsuran');
     Route::get('/master-data/data_anggota',[DtaAnggotaController::class,'index'])->name('master-data.data_anggota');
+    Route::get('/master-data/data_Kas',[DtaKasController::class,'index'])->name('master-data.data_kas');
+    

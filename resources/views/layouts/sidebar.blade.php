@@ -298,7 +298,7 @@
                 <a href="{{ route('master-data.jns_akun') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Jenis
                     Akun</a>
-                <a href="#"
+                <a href="{{ route('master-data.data_kas') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
                     Kas</a>
                 <a href="{{ route('master-data.jenis_angsuran') }}"
