@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\JnsAkunController;
 use App\Http\Controllers\KasController;
 use App\Http\Controllers\JnsSimpanController;
+use App\Http\Controllers\DtaKasController;
 
 Route::middleware('web')->group(function () {
 Route::get('/', function () {
@@ -75,4 +76,5 @@ Route::get('/member/dashboard',function (){
 
     Route::get('/master-data/jns_akun',[JnsAkunController::class,'index'])->name('master-data.jns_akun');
     Route::get('/master-data/jns_simpan',[JnsSimpanController::class,'index'])->name('master-data.jns_simpan');
+    Route::get('/master-data/data_Kas',[DtaKasController::class,'index'])->name('master-data.data_kas');
     
