@@ -28,39 +28,39 @@
     </div>
 
     <!-- Tabel Transaksi -->
-    <div class="bg-white rounded-lg shadow w-full">
-        <div class="p-4 border-b ">
-            <h2 class="text-lg font-semibold ">Riwayat Anggota</h2>
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="p-4 border-b">
+            <h2 class="text-lg font-semibold">Riwayat Transaksi</h2>
         </div>
-        <div class="w-full">
-            <table class="border border-gray-300 text-center scroll-tbody">
-                <thead class="bg-gray-100 sticky top-0">
-                    <tr class="text-sm">
-                        <th class="py-2 border">No</th>
-                        <th class="py-2 border">Nama Anggota</th>
-                        <th class="py-2 border">Identitas</th>
-                        <th class="py-2 border">JK</th>
-                        <th class="py-2 border">Tgl Lahir</th>
-                        <th class="py-2 border">Status</th>
-                        <th class="py-2 border">Agama</th>
-                        <th class="py-2 border">Departement</th>
-                        <th class="py-2 border">Pekerjaan</th>
-                        <th class="py-2 border">Alamat</th>
-                        <th class="py-2 border">Kota</th>
-                        <th class="py-2 border">No Telp</th>
-                        <th class="py-2 border">Tgl Daftar</th>
-                        <th class="py-2 border">Jabatan</th>
-                        <th class="py-2 border">Aktif</th>
-                        <th class="py-2 border">File Pic</th>
-                        <th class="py-2 border">No KTP</th>
-                        <th class="py-2 border">Bank</th>
-                        <th class="py-2 border">Nama Pemilik Rekening</th>
-                        <th class="py-2 border">No Rekening</th>
-                        <th class="py-2 border">ID Tagihan</th>
-                        <th class="py-2 border">Simpanan Wajib</th>
-                        <th class="py-2 border">Simpanan Sukarela</th>
-                        <th class="py-2 border">Simpanan Khusus 2</th>
-                        <th class="py-2 border">ID Cabang</th>
+        <div class="overflow-x-auto">
+            <table class="w-full border border-gray-300 text-center">
+                <thead class="bg-gray-50">
+                    <tr class="text-sm align-middle w-full">
+                        <th class="py-2 px-5 border">No</th>
+                        <th class="p-5 border whitespace-nowrap">Nama Anggota</th>
+                        <th class="p-5 border whitespace-nowrap">Identitas</th>
+                        <th class="p-5 border whitespace-nowrap">JK</th>
+                        <th class="p-5 border whitespace-nowrap">Tgl Lahir</th>
+                        <th class="p-5 border whitespace-nowrap">Status</th>
+                        <th class="p-5 border whitespace-nowrap">Agama</th>
+                        <th class="p-5 border whitespace-nowrap">Departement</th>
+                        <th class="p-5 border whitespace-nowrap">Pekerjaan</th>
+                        <th class="p-5 border whitespace-nowrap">Alamat</th>
+                        <th class="p-5 border whitespace-nowrap">Kota</th>
+                        <th class="p-5 border whitespace-nowrap">No Telp</th>
+                        <th class="p-5 border whitespace-nowrap">Tgl Daftar</th>
+                        <th class="p-5 border whitespace-nowrap">Jabatan</th>
+                        <th class="p-5 border whitespace-nowrap">Aktif</th>
+                        <th class="p-5 border whitespace-nowrap">File Pic</th>
+                        <th class="p-5 border whitespace-nowrap">No KTP</th>
+                        <th class="p-5 border whitespace-nowrap">Bank</th>
+                        <th class="p-5 border whitespace-nowrap">Nama Pemilik Rekening</th>
+                        <th class="p-5 border whitespace-nowrap">No Rekening</th>
+                        <th class="p-5 border whitespace-nowrap">ID Tagihan</th>
+                        <th class="p-5 border whitespace-nowrap">Simpanan Wajib</th>
+                        <th class="p-5 border whitespace-nowrap">Simpanan Sukarela</th>
+                        <th class="p-5 border whitespace-nowrap">Simpanan Khusus 2</th>
+                        <th class="p-5 border whitespace-nowrap">ID Cabang</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -122,7 +122,8 @@
 
 
         <div class="absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-sm text-gray-400">
-            Displaying {{ $dataAnggota->firstItem() }} to {{ $dataAnggota->lastItem() }} of {{ $dataAnggota->total() }} items
+            Displaying {{ $dataAnggota->firstItem() }} to {{ $dataAnggota->lastItem() }} of {{ $dataAnggota->total() }}
+            items
         </div>
 
     </div>
@@ -133,20 +134,24 @@
 </div>
 
 <style>
-    .scroll-tbody {
-        display: block;
-        max-height: 400px; /* atur tinggi sesuai kebutuhan */
-        overflow-x: auto;
-        width: 100%;
-    }
-    .scroll-tbody tr {
-        display: table;
-        width: 100%;
-        table-layout: fixed;
-    }
-    thead, .scroll-tbody tr {
-        width: 100%;
-        table-layout: fixed;
-    }
+.scroll-tbody {
+    display: block;
+    max-height: 400px;
+    /* atur tinggi sesuai kebutuhan */
+    overflow-x: auto;
+    width: 100%;
+}
+
+.scroll-tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+thead,
+.scroll-tbody tr {
+    width: 100%;
+    table-layout: fixed;
+}
 </style>
 @endsection

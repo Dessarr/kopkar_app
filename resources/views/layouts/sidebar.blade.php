@@ -119,8 +119,17 @@
                     Toserda/Lain-lain</a>
             </div>
         </div>
-        <!-- Billing -->
-        <div>
+
+        <!--BILLING NEW 1 Section-->
+        <a href="{{ route('billing.index') }}" class="flex items-center p-3 rounded-lg sidebar-item mb-2">
+            <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m0 0l-6-6m6 6H3" />
+            </svg>
+            <span class="">Billing</span>
+        </a>
+
+        <!-- Billing  OLD-->
+        <!-- <div>
             <button @click="openMenu === 'billing' ? openMenu = '' : openMenu = 'billing'"
                 class="flex items-center w-full p-3 rounded-lg sidebar-item focus:outline-none">
                 <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,7 +156,7 @@
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Sim
                     Khusus 2</a>
             </div>
-        </div>
+        </div> -->
         <!-- Simpanan -->
         <div>
             <button @click="openMenu === 'simpanan' ? openMenu = '' : openMenu = 'simpanan'"
@@ -310,7 +319,7 @@
                 <a href="{{ route('master-data.data_barang') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
                     Barang</a>
-                    <a href="{{ route('master-data.data_anggota') }}"
+                <a href="{{ route('master-data.data_anggota') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
                     Anggota</a>
                 <a href="{{ route('master-data.data_pengguna') }}"
@@ -343,7 +352,7 @@
     </nav>
     <!-- Logout Button -->
     <div class="mt-auto pt-4">
-        <form action="" method="POST">
+        <form action="{{ route('admin.logout') }}" method="POST">
             @csrf
             <button type="submit" class="w-full text-left flex items-center p-3 rounded-lg sidebar-item">
                 <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"
