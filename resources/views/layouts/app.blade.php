@@ -44,7 +44,7 @@
         </aside>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col">
+        <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Top Bar -->
             <div class="bg-[#14AE5C] p-4 flex justify-between items-center mt-6 mx-6 shadow-md rounded-lg">
                 <div class="flex flex-row items-center space-x-4">
@@ -60,7 +60,7 @@
             </div>
 
             <!-- Content Area -->
-            <main class="flex-1 p-6 overflow-y-auto">
+            <main class="flex-1 p-6 overflow-y-auto overflow-x-hidden">
                 @yield('content')
             </main>
         </div>
