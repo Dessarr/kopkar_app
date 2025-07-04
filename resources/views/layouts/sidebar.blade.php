@@ -207,7 +207,7 @@
                 </svg>
             </button>
             <div x-show="openMenu === 'pinjaman'" class="pl-8 space-y-1 mt-1" x-transition>
-                <a href="#"
+                <a href="{{ route('pinjaman.data_pengajuan') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
                     Pengajuan</a>
                 <a href="#"

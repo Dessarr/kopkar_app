@@ -11,6 +11,7 @@ use App\Http\Controllers\DtaMobilController;
 use App\Http\Controllers\JnsAngusuranController;
 use App\Http\Controllers\DtaAnggotaController;
 use App\Http\Controllers\DtaKasController;
+use App\Http\Controllers\DtaPengajuanController;
 
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\AdminController;
@@ -32,6 +33,9 @@ Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.lo
 //Route billing
     Route::get('/billing',[BillingController::class, 'index'])->name('billing.index');
 
+
+    //Route untuk Pinjaman
+    Route::get('/pinjaman/data_pengajuan', [DtaPengajuanController::class, 'index'])->name('pinjaman.data_pengajuan');
 
 //Route untuk Master Data
 
