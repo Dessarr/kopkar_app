@@ -29,6 +29,7 @@
 
     <!-- Tabel Transaksi -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
+
         <div class="p-4 border-b">
             <h2 class="text-lg font-semibold">Riwayat Transaksi</h2>
         </div>
@@ -104,8 +105,8 @@
             <div
                 class="bg-white px-4 py-1 flex flex-row rounded-full justify-center items-center space-x-2 border border-gray-300 shadow-sm">
                 @for ($i = 1; $i <= $dataAnggota->lastPage(); $i++)
-                    @if ($i == 1 || $i == $dataAnggota->lastPage() || ($i >= $dataAnggota->currentPage() - 1 && $i <=
-                        $dataAnggota->
+                    @if ($i == 1 || $i == $dataAnggota->lastPage() || ($i >= $dataAnggota->currentPage() - 1 && $i
+                    <= $dataAnggota->
                         currentPage() + 1))
                         <a href="{{ $dataAnggota->url($i) }}">
                             <div
@@ -122,7 +123,8 @@
 
 
         <div class="absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-sm text-gray-400">
-            Displaying {{ $dataAnggota->firstItem() }} to {{ $dataAnggota->lastItem() }} of {{ $dataAnggota->total() }}
+            Displaying {{ $dataAnggota->firstItem() }} to {{ $dataAnggota->lastItem() }} of
+            {{ $dataAnggota->total() }}
             items
         </div>
 

@@ -61,8 +61,11 @@
 
             <!-- Content Area -->
             <main class="flex-1 p-6 overflow-y-auto overflow-hidden">
-                @yield('content')
-            </main>
+
+                <main class="flex-1 p-6 overflow-y-auto overflow-x-hidden">
+
+                    @yield('content')
+                </main>
         </div>
     </div>
 

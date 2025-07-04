@@ -341,10 +341,10 @@
                 </svg>
             </button>
             <div x-show="openMenu === 'setting'" class="pl-8 space-y-1 mt-1" x-transition>
-                <a href="#"
+                <a href="{{ route('settings.identitas_koperasi') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Identitas
                     Koperasi</a>
-                <a href="#"
+                <a href="{{ route('settings.suku_bunga') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Suku
                     Bunga</a>
             </div>

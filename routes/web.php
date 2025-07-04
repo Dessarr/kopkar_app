@@ -11,9 +11,12 @@ use App\Http\Controllers\DtaMobilController;
 use App\Http\Controllers\JnsAngusuranController;
 use App\Http\Controllers\DtaAnggotaController;
 use App\Http\Controllers\DtaKasController;
+
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TransaksiKasController;
+use App\Http\Controllers\SettingController;
+use App\Http\Controllers\SukuBungaController;
 
 Route::get('/', [AdminController::class, 'showLoginForm'])->name('admin.login');
 Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.login.post');
@@ -40,7 +43,16 @@ Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.lo
     Route::get('/master-data/jenis_angsuran',[JnsAngusuranController::class,'index'])->name('master-data.jenis_angsuran');
     Route::get('/master-data/data_anggota',[DtaAnggotaController::class,'index'])->name('master-data.data_anggota');
     Route::get('/master-data/data_Kas',[DtaKasController::class,'index'])->name('master-data.data_kas');
+
     
+//Route untuk Setting
+
+    Route::get('/settings/identitas_koperasi',[SettingController::class,'index'])->name('settings.identitas_koperasi');
+    Route::post('/settings/identitas_koperasi/update', [SettingController::class, 'update'])->name('settings.identitas_koperasi.update');
+    Route::get('/settings/suku_bunga',[SukuBungaController::class,'index'])->name('settings.suku_bunga');
+    Route::post('/settings/suku_bunga/update', [SukuBungaController::class, 'update'])->name('settings.suku_bunga.update');
+
+
 
 
 
