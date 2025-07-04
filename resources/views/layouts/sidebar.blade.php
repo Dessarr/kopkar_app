@@ -174,7 +174,7 @@
                 </svg>
             </button>
             <div x-show="openMenu === 'simpanan'" class="pl-8 space-y-1 mt-1" x-transition>
-                <a href="#"
+                <a href="{{ route('simpanan.setoran') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Setoran
                     Tunai</a>
                 <a href="#"
@@ -182,10 +182,10 @@
                     Upload</a>
                 <a href="#"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Tagihan</a>
-                <a href="#"
+                <a href="{{ route('simpanan.pengajuan_penarikan') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Pengajuan
                     Penarikan</a>
-                <a href="#"
+                <a href="{{ route('simpanan.penarikan') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Penarikan
                     Tunai</a>
             </div>
