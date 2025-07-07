@@ -39,9 +39,7 @@
                         <th class="py-2 border">No</th>
                         <th class="py-2 border">Kode Transaksi </th>
                         <th class="py-2 border">Tanggal Transaksi</th>
-                        <th class="py-2 border">Uraian</th>
-                        <th class="py-2 border">Untuk Kas</th>
-                        <th class="py-2 border">Dari Akun</th>
+                        <th class="py-2 border">Dari Kas</th>
                         <th class="py-2 border">Jumlah</th>
                         <th class="py-2 border">User</th>
                     </tr>
@@ -56,12 +54,10 @@
                             {{ 'TKD' . str_pad($kas->id, 5, '0', STR_PAD_LEFT) }}
                         </td>
 
-                        <td class="py-2 border">{{ $kas->tgl_catat }}</td>
-                        <td class="py-2 border">{{ $kas->keterangan }}</td>
-                        <td class="py-2 border">{{ $kas->dari_kas_id }}</td>
-                        <td class="py-2 border">{{ $kas->akun }}</td>
-                        <td class="py-2 border">Rp {{ number_format($kas->jumlah, 0, ',', '.') }}</td>
-                        <td class="py-2 border">{{ $kas->user_name }}</td>
+                        <td class="py-2 border">{{ $kas->tgl }}</td>
+                        <td class="py-2 border">{{ $kas->kasAsal->nama ?? '-' }}</td>
+                        <td class="py-2 border">Rp{{ number_format($kas->kredit, 0, ',', '.') }}</td>
+                        <td class="py-2 border">{{ $kas->user}}</td>
                     </tr>
                     @endforeach
 

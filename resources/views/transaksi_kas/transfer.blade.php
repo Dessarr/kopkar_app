@@ -46,7 +46,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($dataKas as $kas)
+                    <!-- @foreach($dataKas as $kas)
                     <tr class="text-sm align-middle">
                         <td class="py-2 border">
                             {{ ($dataKas->currentPage() - 1) * $dataKas->perPage() + $loop->iteration }}
@@ -58,7 +58,7 @@
                         <td class="py-2 border">{{ $kas->untukKas->nama ?? '-' }}</td>
                         <td class="py-2 border">{{ $kas->user_name }}</td>
                     </tr>
-                    @endforeach
+                    @endforeach -->
 
                 </tbody>
             </table>
