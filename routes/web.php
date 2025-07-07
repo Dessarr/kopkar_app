@@ -18,6 +18,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TransaksiKasController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SukuBungaController;
+use App\Http\Controllers\SimpananController;
 
 Route::get('/', [AdminController::class, 'showLoginForm'])->name('admin.login');
 Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.login.post');
@@ -55,6 +56,15 @@ Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.lo
     Route::post('/settings/identitas_koperasi/update', [SettingController::class, 'update'])->name('settings.identitas_koperasi.update');
     Route::get('/settings/suku_bunga',[SukuBungaController::class,'index'])->name('settings.suku_bunga');
     Route::post('/settings/suku_bunga/update', [SukuBungaController::class, 'update'])->name('settings.suku_bunga.update');
+
+//Route untuk Simpanan
+
+    Route::get('/simpanan/setoran-tunai', [SimpananController::class, 'setoranTunai'])->name('simpanan.setoran');
+    Route::post('/simpanan/setoran-tunai/store', [SimpananController::class, 'storeSetoran'])->name('simpanan.setoran.store');
+    Route::get('/simpanan/penarikan-tunai', [SimpananController::class, 'penarikanTunai'])->name('simpanan.penarikan');
+    Route::post('/simpanan/penarikan-tunai/store', [SimpananController::class, 'storePenarikan'])->name('simpanan.penarikan.store');
+    Route::get('/simpanan/get-anggota/{noKtp}', [SimpananController::class, 'getAnggotaByKtp'])->name('simpanan.get-anggota');
+    Route::get('/simpanan/pengajuan-penarikan', [App\Http\Controllers\DtaPengajuanPenarikanController::class, 'index'])->name('simpanan.pengajuan_penarikan');
 
 
 
