@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\data_anggota;
 use App\Models\jns_simpan;
-use App\Models\data_kas;
+use App\Models\DataKas;
 
 class TransaksiSimpanan extends Model
 {
@@ -52,6 +52,6 @@ class TransaksiSimpanan extends Model
 
     public function kas()
     {
-        return $this->belongsTo(data_kas::class, 'kas_id', 'id');
+        return $this->belongsTo(DataKas::class, 'kas_id', 'id');
     }
 } 

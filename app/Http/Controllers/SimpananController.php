@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\TransaksiSimpanan;
 use App\Models\data_anggota;
 use App\Models\jns_simpan;
-use App\Models\data_kas;
+use App\Models\DataKas;
 use Illuminate\Support\Facades\Auth;
 
 class SimpananController extends Controller
@@ -15,7 +15,7 @@ class SimpananController extends Controller
     {
         $dataAnggota = data_anggota::paginate(10);
         $jenisSimpanan = jns_simpan::all();
-        $dataKas = data_kas::all();
+        $dataKas = DataKas::all();
         $transaksiSetoran = TransaksiSimpanan::where('akun', 'setoran')->orderBy('update_data', 'desc')->paginate(10);
         
         return view('simpanan.setoran_tunai', compact('dataAnggota', 'jenisSimpanan', 'dataKas', 'transaksiSetoran'));
@@ -25,7 +25,7 @@ class SimpananController extends Controller
     {
         $dataAnggota = data_anggota::paginate(10);
         $jenisSimpanan = jns_simpan::all();
-        $dataKas = data_kas::all();
+        $dataKas = DataKas::all();
         $transaksiPenarikan = TransaksiSimpanan::where('akun', 'penarikan')->orderBy('update_data', 'desc')->paginate(10);
         
         return view('simpanan.penarikan_tunai', compact('dataAnggota', 'jenisSimpanan', 'dataKas', 'transaksiPenarikan'));
