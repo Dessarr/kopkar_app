@@ -60,7 +60,7 @@
                         <td class="py-2 border">{{ $kas->keterangan }}</td>
                         <td class="py-2 border">{{ $kas->dari_kas_id }}</td>
                         <td class="py-2 border">{{ $kas->akun }}</td>
-                        <td class="py-2 border">{{ $kas->jumlah }}</td>
+                        <td class="py-2 border">Rp {{ number_format($kas->jumlah, 0, ',', '.') }}</td>
                         <td class="py-2 border">{{ $kas->user_name }}</td>
                     </tr>
                     @endforeach

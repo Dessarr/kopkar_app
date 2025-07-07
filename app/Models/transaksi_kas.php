@@ -15,6 +15,20 @@ class transaksi_kas extends Model
         'keterangan',
         'akun',
         'dari_kas_id',
+        'untuk_kas_id',
+        'no_polisi',
+        'update_data',
+        'id_cabang',
         'user_name',
     ];
+
+    public function dariKas()
+    {
+         return $this->belongsTo(DataKas::class, 'dari_kas_id', 'id');
+    }
+
+    public function untukKas()
+    {
+        return $this->belongsTo(DataKas::class, 'untuk_kas_id', 'id');
+    }
 }

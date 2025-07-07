@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class data_kas extends Model
+class DataKas extends Model
 {
     protected $table = 'nama_kas_tbl';
 
     protected $fillable = [
+        'id',
         'nama',
         'aktif',
         'tmpl_simpan',

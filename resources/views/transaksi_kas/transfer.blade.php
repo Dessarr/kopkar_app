@@ -36,13 +36,12 @@
             <table class="table-auto w-full border border-gray-300 text-center">
                 <thead class="bg-gray-100">
                     <tr class="text-sm">
-                        <th class="py-2 border">No</th>
-                        <th class="py-2 border">Kode Transaksi </th>
+                        <th class="py-2 border"> </th>
                         <th class="py-2 border">Tanggal Transaksi</th>
                         <th class="py-2 border">Uraian</th>
-                        <th class="py-2 border">Untuk Kas</th>
-                        <th class="py-2 border">Dari Akun</th>
                         <th class="py-2 border">Jumlah</th>
+                        <th class="py-2 border">Dari Kas</th>
+                        <th class="py-2 border">Untuk Kas</th>
                         <th class="py-2 border">User</th>
                     </tr>
                 </thead>
@@ -52,15 +51,11 @@
                         <td class="py-2 border">
                             {{ ($dataKas->currentPage() - 1) * $dataKas->perPage() + $loop->iteration }}
                         </td>
-                        <td class="py-2 border">
-                            {{ 'TKD' . str_pad($kas->id, 5, '0', STR_PAD_LEFT) }}
-                        </td>
-
                         <td class="py-2 border">{{ $kas->tgl_catat }}</td>
                         <td class="py-2 border">{{ $kas->keterangan }}</td>
-                        <td class="py-2 border">{{ $kas->dari_kas_id }}</td>
-                        <td class="py-2 border">{{ $kas->akun }}</td>
-                        <td class="py-2 border">{{ $kas->jumlah }}</td>
+                        <td class="py-2 border">Rp{{number_format($kas->jumlah, 0, ',', '.')  }}</td>
+                        <td class="py-2 border">{{ $kas->darikas->nama ?? '-' }}</td>
+                        <td class="py-2 border">{{ $kas->untukKas->nama ?? '-' }}</td>
                         <td class="py-2 border">{{ $kas->user_name }}</td>
                     </tr>
                     @endforeach
