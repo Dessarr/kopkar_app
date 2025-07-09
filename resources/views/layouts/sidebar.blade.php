@@ -65,14 +65,14 @@
                 </svg>
             </button>
             <div x-show="openMenu === 'toserda'" class="pl-8 space-y-1 mt-1" x-transition>
-                <a href="#"
+                <a href="{{ route('toserda.penjualan') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">Penjualan</a>
-                <a href="#"
+                <a href="{{ route('toserda.pembelian') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">Pembelian</a>
-                <a href="#"
+                <a href="{{ route('toserda.biaya-usaha') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">Biaya
                     Usaha</a>
-                <a href="#"
+                <a href="{{ route('toserda.lain-lain') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">Toserda/Lain-lain</a>
             </div>
         </div>
@@ -91,9 +91,9 @@
                 </svg>
             </button>
             <div x-show="openMenu === 'angkutan'" class="pl-8 space-y-1 mt-1" x-transition>
-                <a href="#"
+                <a href="{{ route('angkutan.pemasukan') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Pemasukan</a>
-                <a href="#"
+                <a href="{{ route('angkutan.pengeluaran') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Pengeluaran</a>
             </div>
         </div>
@@ -177,10 +177,10 @@
                 <a href="{{ route('simpanan.setoran') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Setoran
                     Tunai</a>
-                <a href="#"
+                <a href="{{ route('simpanan.upload') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Setoran
                     Upload</a>
-                <a href="#"
+                <a href="{{ route('simpanan.tagihan') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Tagihan</a>
                 <a href="{{ route('simpanan.pengajuan_penarikan') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Pengajuan

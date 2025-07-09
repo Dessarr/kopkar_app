@@ -3,59 +3,64 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use App\Models\user_admin;
+use App\Models\Admin;
+use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
-    // Tampilkan form login
     public function showLoginForm()
     {
-        return view('auth.login'); // Pastikan file view-nya berada di resources/views/auth/login.blade.php
+        return view('auth.login');
     }
 
-    // Proses login
     public function login(Request $request)
     {
-        // Validasi input (menggunakan u_name dan pass_word karena menyesuaikan kolom tabel)
-        $request->validate([
+        $credentials = $request->validate([
             'u_name' => 'required',
-            'pass_word' => 'required',
+            'pass_word' => 'required'
         ]);
 
-        // Cari user berdasarkan u_name
-        $admin = user_admin::where('u_name', $request->u_name)->first();
+        // Debug log
+        Log::info('Login attempt for user: ' . $credentials['u_name']);
 
-        // Cek apakah user ditemukan dan password cocok
-        if ($admin && Hash::check($request->pass_word, $admin->pass_word)) {
-            // Simpan ID admin ke session
-            session(['admin_id' => $admin->id]);
-            return redirect()->route('admin.dashboard');
+        // Cari admin berdasarkan u_name
+        $admin = Admin::where('u_name', $credentials['u_name'])->first();
+
+        if ($admin) {
+            Log::info('Admin found with ID: ' . $admin->id);
+            
+            // Debug password check
+            $passwordMatch = Hash::check($credentials['pass_word'], $admin->pass_word);
+            Log::info('Password match: ' . ($passwordMatch ? 'Yes' : 'No'));
+
+            if ($passwordMatch) {
+                Auth::guard('admin')->login($admin);
+                $request->session()->regenerate();
+                Log::info('Login successful for admin: ' . $admin->u_name);
+                return redirect()->intended('admin/dashboard');
+            }
+        } else {
+            Log::info('No admin found with username: ' . $credentials['u_name']);
         }
 
-        // Jika gagal login
         return back()->withErrors([
-            'login_error' => 'Username atau password salah.',
-        ])->withInput();
+            'login' => 'The provided credentials do not match our records.',
+        ])->withInput($request->except('pass_word'));
     }
 
-    // Dashboard admin
     public function adminDashboard()
     {
-        if (!session('admin_id')) {
-            return redirect()->route('auth.login');
-        }
-
-        return view('admin.dashboard'); // Ganti dengan view dashboard admin kamu
+        return view('admin.dashboard');
     }
 
-    // Logout
     public function logout(Request $request)
     {
-        $request->session()->forget('admin_id');
+        Auth::guard('admin')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
-        return redirect()->route('admin.login')->with('message', 'Berhasil logout.');
+        
+        return redirect('/');
     }
 }

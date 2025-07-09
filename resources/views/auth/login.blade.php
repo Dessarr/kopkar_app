@@ -41,7 +41,7 @@
                                 <label for="username"><i
                                         class="fa-solid fa-user text-gray-400 text-lg px-3"></i></label>
                                 <input type="text" name="u_name" id="usernameAdmin" placeholder="Username"
-                                    value="{{ old('username') }}"
+                                    value="{{ old('u_name') }}"
                                     class="w-full px-4 py-3 md:py-4 bg-transparent outline-none" required />
                             </div>
                         </div>
@@ -98,31 +98,43 @@
                     class="w-full md:w-2/3 text-center bg-[#1abc9c] p-4 rounded-lg min-h-[75vh] md:h-3/4 justify-center flex flex-col mx-auto">
                     <h2 class="text-2xl md:text-3xl font-bold text-white mb-2">Sign In to Member</h2>
                     <p class="text-white mb-8">KOPERASI KARYAWAN<br />PT. KAO INDONESIA</p>
-                    <form action="" method="POST" class="px-4 md:px-8" id="loginMemberForm">
+                    <form action="{{ route('member.login.post') }}" method="POST" class="px-4 md:px-8" id="loginMemberForm">
                         @csrf
                         <div class="mb-4">
                             <div
                                 class="flex flex-row items-center bg-white rounded-lg border focus-within:ring-2 focus-within:ring-[#1abc9c]">
                                 <label for="username"><i
                                         class="fa-solid fa-user text-gray-400 text-lg px-3"></i></label>
-                                <input type="text" name="username" id="usernameMember" placeholder="Username"
-                                    value="{{ old('username') }}"
+                                <input type="text" name="nama" id="usernameMember" placeholder="Username"
+                                    value="{{ old('nama') }}"
                                     class="w-full px-4 py-3 md:py-4 bg-transparent outline-none" required />
                             </div>
+                            @error('nama')
+                                <p class="mt-1 text-sm text-white bg-red-500 rounded px-2 py-1">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div class="mb-6">
                             <div
                                 class="flex flex-row items-center bg-white rounded-lg border focus-within:ring-2 focus-within:ring-[#1abc9c]">
                                 <label for="password"><i
                                         class="fa-solid fa-lock text-gray-400 text-lg px-3"></i></label>
-                                <input type="password" name="password" id="passwordMember" placeholder="Password"
+                                <input type="password" name="pass_word" id="passwordMember" placeholder="Password"
                                     class="w-full px-4 py-3 md:py-4 bg-transparent outline-none" required />
                             </div>
+                            @error('pass_word')
+                                <p class="mt-1 text-sm text-white bg-red-500 rounded px-2 py-1">{{ $message }}</p>
+                            @enderror
                         </div>
                         <button type="submit" id="loginMemberButton"
                             class="w-full bg-white text-[#1abc9c] font-bold py-3 rounded-lg transition-all duration-300 ease-in-out hover:bg-[#16a085] hover:text-white">
                             Log In
                         </button>
+
+                        @if ($errors->has('login'))
+                        <div class="mt-4 text-white bg-red-500 rounded-md px-4 py-2">
+                            {{ $errors->first('login') }}
+                        </div>
+                        @endif
                     </form>
                 </div>
             </div>
