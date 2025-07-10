@@ -17,6 +17,16 @@ class Billing extends Model
         'id_anggota',
         'total_tagihan',
         'status',
+
+        'nama',
+        'no_ktp',
+        'id_tagihan',
+        'simpanan_wajib',
+        'simpanan_sukarela',
+        'simpanan_khusus_2',
+        'jns_trans',
+        'id_cabang',
+        'status_bayar'
     ];
 
     public function anggota()

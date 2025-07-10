@@ -1,209 +1,170 @@
 @extends('layouts.app')
 
-@section('title', 'Billing')
-@section('sub-title', 'Tagihan Bulanan')
+@section('title', 'Billing Anggota')
+@section('sub-title', 'Tagihan Bulanan Anggota')
 
 @section('content')
-<div class="px-1 justify-center flex flex-col">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Billing</h1>
-        <form method="GET" action="{{ route('billing.index') }}">
-            <input type="hidden" name="periode" id="selectedPeriode">
 
-            <div class="flex place-content-around items-center w-full gap-4 ">
-                <!-- Tombol Pilih Bulan & Tahun -->
-                <button type="button" onclick="toggleMonthPopup()"
-                    class="cursor-pointer bg-gray-100 p-3 flex items-center rounded-lg border-2 border-gray-300 hover:bg-gray-200">
-                    <img src="{{ asset('img/icons-bootstrap/calendar/calendar4.svg') }}" class="w-5 h-5"
-                        alt="Calendar Icon">
-                    <span id="selectedLabel" class="ml-2 text-sm text-gray-600 whitespace-nowrap">
-                        {{ request('periode') ? \Carbon\Carbon::parse(request('periode') . '-01')->translatedFormat('F Y') : 'Pilih Bulan' }}
-                    </span>
-                </button>
-
-                <!-- Tombol Load -->
-                <button type="submit"
-                    class="px-4 py-3 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 border-2 border-blue-700">
-                    Filter
-                </button>
-            </div>
-
-            <!-- Popup -->
-            <div id="monthPopup"
-                class="fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center transition-opacity duration-200 hidden flex">
-                <div class="bg-white p-6 rounded-lg w-[400px] shadow-lg space-y-4">
-                    <h2 class="text-lg font-semibold text-gray-700 text-center">Pilih Bulan & Tahun</h2>
-
-                    <!-- Grid Bulan -->
-                    <div class="grid grid-cols-3 gap-2 text-sm" id="bulanGrid">
-                        @php
-                        $bulanList = [
-                        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-                        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-                        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
-                        ];
-                        @endphp
-
-                        @foreach($bulanList as $num => $bulan)
-                        <button type="button" class="p-3 rounded bg-gray-100 hover:bg-gray-200 text-center w-full"
-                            onclick="selectMonth(this, '{{ $num }}', '{{ $bulan }}')">
-                            {{ $bulan }}
-                        </button>
-                        @endforeach
-                    </div>
-
-                    <!-- Tahun -->
-                    <div class="flex justify-center">
-                        <select id="yearSelect" class="border border-gray-300 rounded px-2 py-1 text-sm">
-                            @for ($year = 2024; $year <= 2035; $year++) <option value="{{ $year }}">{{ $year }}</option>
-                                @endfor
-                        </select>
-                    </div>
-
-                    <!-- Tombol Aksi -->
-                    <div class="flex justify-end gap-2">
-                        <button type="button" onclick="closeMonthPopup()"
-                            class="px-3 py-1 rounded text-sm text-gray-600 hover:bg-gray-100">Batal</button>
-                        <button type="button" onclick="submitSelectedMonth()"
-                            class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Pilih</button>
-                    </div>
-                </div>
-            </div>
-        </form>
+<div class="container">
+    @if(session('success'))
+    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+        <span class="block sm:inline">{{ session('success') }}</span>
     </div>
-
-    <script>
-    let selectedMonth = null;
-    let selectedMonthName = '';
-    let selectedBtn = null;
-
-    function toggleMonthPopup() {
-        document.getElementById('monthPopup').classList.remove('hidden');
-    }
-
-    function closeMonthPopup() {
-        document.getElementById('monthPopup').classList.add('hidden');
-        selectedMonth = null;
-        selectedMonthName = '';
-        if (selectedBtn) {
-            selectedBtn.classList.remove('bg-blue-200');
-            selectedBtn = null;
-        }
-    }
-
-    function selectMonth(btn, month, name) {
-        selectedMonth = month.toString().padStart(2, '0');
-        selectedMonthName = name;
-
-        if (selectedBtn) {
-            selectedBtn.classList.remove('bg-blue-200');
-        }
-
-        btn.classList.add('bg-blue-200');
-        selectedBtn = btn;
-    }
-
-    function submitSelectedMonth() {
-        const year = document.getElementById('yearSelect').value;
-
-        if (!selectedMonth || !year) {
-            alert('Silakan pilih bulan dan tahun.');
-            return;
-        }
-
-        const periode = `${year}-${selectedMonth}`;
-        const label = `${selectedMonthName} ${year}`;
-
-        document.getElementById('selectedPeriode').value = periode;
-        document.getElementById('selectedLabel').innerText = label;
-
-        closeMonthPopup();
-    }
-    </script>
+    @endif
 
 
     <!-- Tabel Transaksi -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="p-4 border-b">
             <h2 class="text-lg font-semibold">Riwayat Tagihan</h2>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full border border-gray-300 text-center">
-                <thead class="bg-gray-50">
-                    <tr class="text-sm align-middle w-full">
-                        <th class="py-2 px-5 border">No</th>
-                        <th class="p-5 border whitespace-nowrap">Nama Anggota</th>
-                        <th class="p-5 border whitespace-nowrap">KTP</th>
-                        <th class="p-5 border whitespace-nowrap">ID Tagihan</th>
-                        <th class="p-5 border whitespace-nowrap">Simpanan Wajib</th>
-                        <th class="p-5 border whitespace-nowrap">Simpanan Sukarela</th>
-                        <th class="p-5 border whitespace-nowrap">Simpanan Khusus 2</th>
-                        <th class="p-5 border whitespace-nowrap">Billing Total</th>
-
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($dataBilling as $billing)
-                    <tr class="text-sm align-middle">
-                        <td class="py-2 border">
-                            {{ ($dataBilling->currentPage() - 1) * $dataBilling->perPage() + $loop->iteration }}
-                        </td>
-                        <td class="py-2 border">{{ $billing->nama }}</td>
-                        <td class="py-2 border">{{ $billing->no_ktp }}</td>
-                        <td class="py-2 border">{{ $billing->id_tagihan }}</td>
-                        <td class="py-2 border">Rp {{ number_format($billing->simpanan_wajib, 0, ',', '.') }}</td>
-                        <td class="py-2 border">Rp {{ number_format($billing->simpanan_sukarela, 0, ',', '.') }}</td>
-                        <td class="py-2 border">Rp {{ number_format($billing->simpanan_khusus_2, 0, ',', '.') }}</td>
-                        <td class="py-2 border">Rp {{ number_format($billing->total_billing, 0, ',', '.') }}</td>
-
-
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <div class="mt-5 w-full relative px-2 py-2">
-        <div class="mx-auto w-fit">
-            <div
-                class="bg-white px-4 py-1 flex flex-row rounded-full justify-center items-center space-x-2 border border-gray-300 shadow-sm">
-                @for ($i = 1; $i <= $dataBilling->lastPage(); $i++)
-                    @if ($i == 1 || $i == $dataBilling->lastPage() || ($i >= $dataBilling->currentPage() - 1 && $i <=
-                        $dataBilling->
-                        currentPage() + 1))
-                        <a href="{{ $dataBilling->url($i) }}">
-                            <div
-                                class="rounded-md px-2 py-0.5 text-sm border border-gray-300 {{ $dataBilling->currentPage() == $i ? 'bg-gray-100 font-bold' : '' }}">
-                                {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
-                            </div>
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold">Daftar Tagihan Anggota</h2>
+                    <div class="flex space-x-2">
+                        <a href="{{ route('billing.export.excel') }}"
+                            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                            <i class="fas fa-file-excel"></i> Export Excel
                         </a>
-                        @elseif ($i == 2 || $i == $dataBilling->lastPage() - 1)
-                        <div class="rounded-md px-2 py-0.5 text-sm">...</div>
-                        @endif
-                        @endfor
+                        <a href="{{ route('billing.export.pdf') }}"
+                            class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Filter -->
+                <div class="mb-6 p-4 border rounded-lg bg-gray-50">
+                    <form action="{{ route('billing.index') }}" method="GET" class="flex flex-wrap items-end gap-4">
+                        <div class="w-full sm:w-auto">
+                            <label for="filter_bulan" class="block text-sm font-medium text-gray-700">Bulan</label>
+                            <select name="bulan" id="filter_bulan"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
+                                <option value="">Semua</option>
+                                <option value="1" {{ request('bulan') == '1' ? 'selected' : '' }}>Januari</option>
+                                <option value="2" {{ request('bulan') == '2' ? 'selected' : '' }}>Februari</option>
+                                <option value="3" {{ request('bulan') == '3' ? 'selected' : '' }}>Maret</option>
+                                <option value="4" {{ request('bulan') == '4' ? 'selected' : '' }}>April</option>
+                                <option value="5" {{ request('bulan') == '5' ? 'selected' : '' }}>Mei</option>
+                                <option value="6" {{ request('bulan') == '6' ? 'selected' : '' }}>Juni</option>
+                                <option value="7" {{ request('bulan') == '7' ? 'selected' : '' }}>Juli</option>
+                                <option value="8" {{ request('bulan') == '8' ? 'selected' : '' }}>Agustus</option>
+                                <option value="9" {{ request('bulan') == '9' ? 'selected' : '' }}>September</option>
+                                <option value="10" {{ request('bulan') == '10' ? 'selected' : '' }}>Oktober</option>
+                                <option value="11" {{ request('bulan') == '11' ? 'selected' : '' }}>November
+                                </option>
+                                <option value="12" {{ request('bulan') == '12' ? 'selected' : '' }}>Desember
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="w-full sm:w-auto">
+                            <label for="filter_tahun" class="block text-sm font-medium text-gray-700">Tahun</label>
+                            <input type="number" name="tahun" id="filter_tahun"
+                                value="{{ request('tahun', date('Y')) }}"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
+                        </div>
+
+                        <div class="w-full sm:w-auto">
+                            <label for="search" class="block text-sm font-medium text-gray-700">Cari Anggota</label>
+                            <input type="text" name="search" id="search" value="{{ request('search') }}"
+                                placeholder="Nama atau No KTP"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
+                        </div>
+
+                        <div class="flex-shrink-0">
+                            <button type="submit"
+                                class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#14AE5C]/80 focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:ring-opacity-50">
+                                Filter
+                            </button>
+                            <a href="{{ route('billing.index') }}"
+                                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 ml-2">
+                                Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tabel Data -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border border-gray-200">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="px-4 py-2 border-b text-left">No.</th>
+                                <th class="px-4 py-2 border-b text-left">No KTP</th>
+                                <th class="px-4 py-2 border-b text-left">Nama</th>
+                                <th class="px-4 py-2 border-b text-left">Simpanan Wajib</th>
+                                <th class="px-4 py-2 border-b text-left">Simpanan Sukarela</th>
+                                <th class="px-4 py-2 border-b text-left">Toserda (Khusus 2)</th>
+                                <th class="px-4 py-2 border-b text-left">Jenis Transaksi</th>
+                                <th class="px-4 py-2 border-b text-left">Total Tagihan</th>
+                                <th class="px-4 py-2 border-b text-center">Status</th>
+                                <th class="px-4 py-2 border-b text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($dataBilling as $index => $item)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-2 border-b">{{ $index + $dataBilling->firstItem() }}</td>
+                                <td class="px-4 py-2 border-b">{{ $item->no_ktp }}</td>
+                                <td class="px-4 py-2 border-b">{{ $item->nama }}</td>
+                                <td class="px-4 py-2 border-b">Rp
+                                    {{ number_format($item->simpanan_wajib ?? 0, 0, ',', '.') }}</td>
+                                <td class="px-4 py-2 border-b">Rp
+                                    {{ number_format($item->simpanan_sukarela ?? 0, 0, ',', '.') }}</td>
+                                <td class="px-4 py-2 border-b">Rp
+                                    {{ number_format($item->simpanan_khusus_2 ?? 0, 0, ',', '.') }}</td>
+                                <td class="px-4 py-2 border-b">{{ $item->jns_trans ?? 'Toserda' }}</td>
+                                <td class="px-4 py-2 border-b font-bold">Rp
+                                    {{ number_format($item->total_billing, 0, ',', '.') }}</td>
+                                <td class="px-4 py-2 border-b text-center">
+                                    <span
+                                        class="px-2 py-1 rounded-full text-xs 
+                                {{ $item->status_bayar == 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                        {{ $item->status_bayar ?? 'Belum Lunas' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2 border-b text-center">
+                                    @if(($item->status_bayar ?? 'Belum Lunas') != 'Lunas')
+                                    <form action="{{ route('billing.process', $item->id) }}" method="POST"
+                                        class="inline">
+                                        @csrf
+                                        <button type="submit"
+                                            class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">
+                                            Proses
+                                        </button>
+                                    </form>
+                                    @else
+                                    <span class="text-gray-400">Sudah Diproses</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="9" class="px-4 py-4 text-center text-gray-500">Belum ada data billing
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="mt-4">
+                    {{ $dataBilling->links() }}
+                </div>
             </div>
         </div>
+        <div class="popup">
 
-
-        <div class="absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-sm text-gray-400">
-            Displaying {{ $dataBilling->firstItem() }} to {{ $dataBilling->lastItem() }} of {{ $dataBilling->total() }}
-            items
         </div>
 
-    </div>
-</div>
-
-<div class="popup">
-
-</div>
-
-<style>
-.active-month {
-    background-color: #dbeafe;
-    /* Tailwind bg-blue-100 */
-    border: 2px solid #2563eb;
-    /* Tailwind blue-600 */
-    font-weight: bold;
-}
-</style>
-@endsection
+        <style>
+        .active-month {
+            background-color: #dbeafe;
+            /* Tailwind bg-blue-100 */
+            border: 2px solid #2563eb;
+            /* Tailwind blue-600 */
+            font-weight: bold;
+        }
+        </style>
+        @endsection
