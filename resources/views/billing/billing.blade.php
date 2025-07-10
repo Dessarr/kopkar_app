@@ -7,32 +7,120 @@
 <div class="px-1 justify-center flex flex-col">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">Billing</h1>
-        <div class="flex place-content-around items-center w-1/2">
-            <div class="bg-green-100 p-2 rounded-lg border-2 border-green-400 space-x-2 flex justify-around">
-                <p class="text-sm">Export</p> <img src="{{ asset('img/icons-bootstrap/export/cloud-download.svg') }}"
-                    class="h-auto w-[20px]">
-            </div>
-            <div class="bg-gray-100 p-2 flex flex-row space-x-2 item-center rounded-lg border-2 border-gray-300">
-                <i class="fa-solid fa-magnifying-glass  " style="color:gray;"></i>
-                <p class="text-sm text-gray-500  ">Kode Anggota</p>
-            </div>
+        <form method="GET" action="{{ route('billing.index') }}">
+            <input type="hidden" name="periode" id="selectedPeriode">
 
-            <div class="relative">
-                <input type="month" id="popupMonthPicker" name="periode" class="hidden" onchange="this.form.submit()" />
-
-                <div onclick="document.getElementById('popupMonthPicker').showPicker()"
-                    class="cursor-pointer bg-gray-100 p-3 flex flex-row items-center rounded-lg border-2 border-gray-300">
+            <div class="flex place-content-around items-center w-full gap-4 ">
+                <!-- Tombol Pilih Bulan & Tahun -->
+                <button type="button" onclick="toggleMonthPopup()"
+                    class="cursor-pointer bg-gray-100 p-3 flex items-center rounded-lg border-2 border-gray-300 hover:bg-gray-200">
                     <img src="{{ asset('img/icons-bootstrap/calendar/calendar4.svg') }}" class="w-5 h-5"
                         alt="Calendar Icon">
+                    <span id="selectedLabel" class="ml-2 text-sm text-gray-600 whitespace-nowrap">
+                        {{ request('periode') ? \Carbon\Carbon::parse(request('periode') . '-01')->translatedFormat('F Y') : 'Pilih Bulan' }}
+                    </span>
+                </button>
+
+                <!-- Tombol Load -->
+                <button type="submit"
+                    class="px-4 py-3 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 border-2 border-blue-700">
+                    Filter
+                </button>
+            </div>
+
+            <!-- Popup -->
+            <div id="monthPopup"
+                class="fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center transition-opacity duration-200 hidden flex">
+                <div class="bg-white p-6 rounded-lg w-[400px] shadow-lg space-y-4">
+                    <h2 class="text-lg font-semibold text-gray-700 text-center">Pilih Bulan & Tahun</h2>
+
+                    <!-- Grid Bulan -->
+                    <div class="grid grid-cols-3 gap-2 text-sm" id="bulanGrid">
+                        @php
+                        $bulanList = [
+                        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                        ];
+                        @endphp
+
+                        @foreach($bulanList as $num => $bulan)
+                        <button type="button" class="p-3 rounded bg-gray-100 hover:bg-gray-200 text-center w-full"
+                            onclick="selectMonth(this, '{{ $num }}', '{{ $bulan }}')">
+                            {{ $bulan }}
+                        </button>
+                        @endforeach
+                    </div>
+
+                    <!-- Tahun -->
+                    <div class="flex justify-center">
+                        <select id="yearSelect" class="border border-gray-300 rounded px-2 py-1 text-sm">
+                            @for ($year = 2024; $year <= 2035; $year++) <option value="{{ $year }}">{{ $year }}</option>
+                                @endfor
+                        </select>
+                    </div>
+
+                    <!-- Tombol Aksi -->
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeMonthPopup()"
+                            class="px-3 py-1 rounded text-sm text-gray-600 hover:bg-gray-100">Batal</button>
+                        <button type="button" onclick="submitSelectedMonth()"
+                            class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Pilih</button>
+                    </div>
                 </div>
             </div>
-
-
-            <div class="bg-green-100 py-2 px-5 rounded-lg border-2 border-green-400">
-                <i class="fa-solid fa-ellipsis-vertical"></i>
-            </div>
-        </div>
+        </form>
     </div>
+
+    <script>
+    let selectedMonth = null;
+    let selectedMonthName = '';
+    let selectedBtn = null;
+
+    function toggleMonthPopup() {
+        document.getElementById('monthPopup').classList.remove('hidden');
+    }
+
+    function closeMonthPopup() {
+        document.getElementById('monthPopup').classList.add('hidden');
+        selectedMonth = null;
+        selectedMonthName = '';
+        if (selectedBtn) {
+            selectedBtn.classList.remove('bg-blue-200');
+            selectedBtn = null;
+        }
+    }
+
+    function selectMonth(btn, month, name) {
+        selectedMonth = month.toString().padStart(2, '0');
+        selectedMonthName = name;
+
+        if (selectedBtn) {
+            selectedBtn.classList.remove('bg-blue-200');
+        }
+
+        btn.classList.add('bg-blue-200');
+        selectedBtn = btn;
+    }
+
+    function submitSelectedMonth() {
+        const year = document.getElementById('yearSelect').value;
+
+        if (!selectedMonth || !year) {
+            alert('Silakan pilih bulan dan tahun.');
+            return;
+        }
+
+        const periode = `${year}-${selectedMonth}`;
+        const label = `${selectedMonthName} ${year}`;
+
+        document.getElementById('selectedPeriode').value = periode;
+        document.getElementById('selectedLabel').innerText = label;
+
+        closeMonthPopup();
+    }
+    </script>
+
 
     <!-- Tabel Transaksi -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
@@ -110,24 +198,12 @@
 </div>
 
 <style>
-.scroll-tbody {
-    display: block;
-    max-height: 400px;
-    /* atur tinggi sesuai kebutuhan */
-    overflow-x: auto;
-    width: 100%;
-}
-
-.scroll-tbody tr {
-    display: table;
-    width: 100%;
-    table-layout: fixed;
-}
-
-thead,
-.scroll-tbody tr {
-    width: 100%;
-    table-layout: fixed;
+.active-month {
+    background-color: #dbeafe;
+    /* Tailwind bg-blue-100 */
+    border: 2px solid #2563eb;
+    /* Tailwind blue-600 */
+    font-weight: bold;
 }
 </style>
 @endsection

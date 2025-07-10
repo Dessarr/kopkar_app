@@ -2,31 +2,25 @@
 
 namespace App\Models;
 
-use illuminate\database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Model;
 
-class billing extends Model
+class Billing extends Model
 {
-    protected $table = 'tbl_anggota';
+    protected $table = 'billing';
+    protected $primaryKey = 'id_billing';
+    public $incrementing = false; // karena id_billing bukan auto-increment
+    protected $keyType = 'string';
+
     protected $fillable = [
-        'nama',
-        'no_ktp',
-        'id_tagihan',
-        'simpanan_wajib',
-        'simpanan_sukarela',
-        'simpanan_khusus_2',
-        'id_cabang'
+        'id_billing',
+        'bulan_tahun',
+        'id_anggota',
+        'total_tagihan',
+        'status',
     ];
 
-    
-
-    public $timestamps = false;
-
-    // Buat kolom total billing
-    public function getTotalBillingAttribute()
+    public function anggota()
     {
-        return
-            ($this->simpanan_wajib ?? 0) +
-            ($this->simpanan_sukarela ?? 0) +
-            ($this->simpanan_khusus_2 ?? 0);
+        return $this->belongsTo(data_anggota::class, 'id_anggota', 'no_ktp');
     }
-}   
+}

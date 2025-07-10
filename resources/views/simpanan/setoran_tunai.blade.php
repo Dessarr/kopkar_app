@@ -25,135 +25,6 @@
         </div>
     </div>
 
-    <!-- Form Setoran Tunai -->
-    <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
-        <div class="p-4 border-b">
-            <h2 class="text-lg font-semibold">Form Setoran Tunai</h2>
-        </div>
-        <div class="p-6">
-            @if(session('success'))
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                    {{ session('success') }}
-                </div>
-            @endif
-
-            <form action="" method="POST">
-                @csrf
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Transaksi</label>
-                        <input type="date" name="tgl_transaksi" value="{{ date('Y-m-d') }}" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">No KTP</label>
-                        <input type="text" name="no_ktp" id="no_ktp" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                            placeholder="Masukkan No KTP">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Anggota</label>
-                        <select name="anggota_id" id="anggota_id" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <option value="">Pilih Anggota</option>
-                            @foreach($dataAnggota as $anggota)
-                                <option value="{{ $anggota->id }}" data-ktp="{{ $anggota->no_ktp }}">{{ $anggota->nama }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Simpanan</label>
-                        <select name="jenis_id" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <option value="">Pilih Jenis Simpanan</option>
-                            @foreach($jenisSimpanan as $jenis)
-                                <option value="{{ $jenis->id }}">{{ $jenis->nama_simpanan }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
-                        <input type="number" name="jumlah" step="0.01" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                            placeholder="Masukkan jumlah">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
-                        <input type="text" name="keterangan"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                            placeholder="Keterangan (opsional)">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Akun</label>
-                        <input type="text" name="akun" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                            placeholder="Masukkan akun">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">D/K</label>
-                        <select name="dk" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <option value="">Pilih D/K</option>
-                            <option value="D">Debit (D)</option>
-                            <option value="K">Kredit (K)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Kas</label>
-                        <select name="kas_id" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <option value="">Pilih Kas</option>
-                            @foreach($dataKas as $kas)
-                                <option value="{{ $kas->id }}">{{ $kas->nama_kas }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penyetor</label>
-                        <input type="text" name="nama_penyetor" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                            placeholder="Nama penyetor">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">No Identitas</label>
-                        <input type="text" name="no_identitas" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                            placeholder="No identitas">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Alamat</label>
-                        <input type="text" name="alamat" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                            placeholder="Alamat">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">ID Cabang</label>
-                        <input type="text" name="id_cabang" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                            placeholder="ID Cabang">
-                    </div>
-                </div>
-
-                <div class="mt-6 flex justify-end">
-                    <button type="submit" class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
-                        Simpan Setoran
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- Tabel Riwayat Setoran -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
@@ -211,14 +82,15 @@
             </table>
         </div>
     </div>
-    
+
     <!-- Pagination -->
     <div class="mt-5 w-full relative px-2 py-2">
         <div class="mx-auto w-fit">
             <div
                 class="bg-white px-4 py-1 flex flex-row rounded-full justify-center items-center space-x-2 border border-gray-300 shadow-sm">
                 @for ($i = 1; $i <= $transaksiSetoran->lastPage(); $i++)
-                    @if ($i == 1 || $i == $transaksiSetoran->lastPage() || ($i >= $transaksiSetoran->currentPage() - 1 && $i
+                    @if ($i == 1 || $i == $transaksiSetoran->lastPage() || ($i >= $transaksiSetoran->currentPage() - 1
+                    && $i
                     <= $transaksiSetoran->
                         currentPage() + 1))
                         <a href="{{ $transaksiSetoran->url($i) }}">
@@ -242,6 +114,138 @@
     </div>
 </div>
 
+<!-- Form Setoran Tunai -->
+<div class="bg-white rounded-lg shadow overflow-hidden mb-6 mt-5">
+    <div class="p-4 border-b">
+        <h2 class="text-lg font-semibold">Form Setoran Tunai</h2>
+    </div>
+    <div class="p-6">
+        @if(session('success'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            {{ session('success') }}
+        </div>
+        @endif
+
+        <form action="{{ route('simpanan.setoran.store') }}" method="POST">
+            @csrf
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Transaksi</label>
+                    <input type="date" name="tgl_transaksi" value="{{ date('Y-m-d') }}" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">No KTP</label>
+                    <input type="text" name="no_ktp" id="no_ktp" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="Masukkan No KTP">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Anggota</label>
+                    <select name="anggota_id" id="anggota_id" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="">Pilih Anggota</option>
+                        @foreach($dataAnggota as $anggota)
+                        <option value="{{ $anggota->id }}" data-ktp="{{ $anggota->no_ktp }}">{{ $anggota->nama }}
+                        </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Simpanan</label>
+                    <select name="jenis_id" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="">Pilih Jenis Simpanan</option>
+                        @foreach($jenisSimpanan as $jenis)
+                        <option value="{{ $jenis->id }}">{{ $jenis->nama_simpanan }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
+                    <input type="number" name="jumlah" step="0.01" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="Masukkan jumlah">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
+                    <input type="text" name="keterangan"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="Keterangan (opsional)">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Akun</label>
+                    <input type="text" name="akun" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="Masukkan akun">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">D/K</label>
+                    <select name="dk" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="">Pilih D/K</option>
+                        <option value="D">Debit (D)</option>
+                        <option value="K">Kredit (K)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Kas</label>
+                    <select name="kas_id" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="">Pilih Kas</option>
+                        @foreach($dataKas as $kas)
+                        <option value="{{ $kas->id }}">{{ $kas->nama_kas }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penyetor</label>
+                    <input type="text" name="nama_penyetor" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="Nama penyetor">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">No Identitas</label>
+                    <input type="text" name="no_identitas" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="No identitas">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Alamat</label>
+                    <input type="text" name="alamat" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="Alamat">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ID Cabang</label>
+                    <input type="text" name="id_cabang" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="ID Cabang">
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button type="submit"
+                    class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    Simpan Setoran
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-fill anggota when KTP is entered
@@ -251,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ktpInput.addEventListener('input', function() {
         const ktpValue = this.value;
         const options = anggotaSelect.options;
-        
+
         for (let i = 0; i < options.length; i++) {
             if (options[i].dataset.ktp === ktpValue) {
                 anggotaSelect.selectedIndex = i;
@@ -269,4 +273,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-@endsection 
+@endsection

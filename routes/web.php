@@ -12,6 +12,8 @@ use App\Http\Controllers\JnsAngusuranController;
 use App\Http\Controllers\DtaAnggotaController;
 use App\Http\Controllers\DtaKasController;
 use App\Http\Controllers\DtaPengajuanController;
+
+use App\Http\Controllers\DtaPengajuanPenarikanController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TransaksiKasController;
@@ -56,8 +58,13 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/master-data/jenis_angsuran',[JnsAngusuranController::class,'index'])->name('master-data.jenis_angsuran');
     Route::get('/master-data/data_anggota',[DtaAnggotaController::class,'index'])->name('master-data.data_anggota');
     Route::get('/master-data/data_Kas',[DtaKasController::class,'index'])->name('master-data.data_kas');
+    //Route CRUD untuk master Data
+    Route::get('/master-data/data_anggota/add', function(){
+        return view('layouts.form.add_data_anggota');
+    });
+    
+//Route untuk Setting
 
-    //Route untuk Setting
     Route::get('/settings/identitas_koperasi',[SettingController::class,'index'])->name('settings.identitas_koperasi');
     Route::post('/settings/identitas_koperasi/update', [SettingController::class, 'update'])->name('settings.identitas_koperasi.update');
     Route::get('/settings/suku_bunga',[SukuBungaController::class,'index'])->name('settings.suku_bunga');
@@ -82,6 +89,13 @@ Route::middleware(['auth:admin'])->group(function () {
         Route::post('/pengeluaran', [AngkutanController::class, 'storePengeluaran'])->name('angkutan.store.pengeluaran');
         Route::get('/transaksi', [AngkutanController::class, 'getTransaksi'])->name('angkutan.transaksi');
     });
+    Route::get('/simpanan/setoran-tunai', [SimpananController::class, 'setoranTunai'])->name('simpanan.setoran');
+    Route::post('/simpanan/setoran-tunai/store', [SimpananController::class, 'storeSetoran'])->name('simpanan.setoran.store');
+    Route::get('/simpanan/penarikan-tunai', [SimpananController::class, 'penarikanTunai'])->name('simpanan.penarikan');
+    Route::post('/simpanan/penarikan-tunai/store', [SimpananController::class, 'storePenarikan'])->name('simpanan.penarikan.store');
+    Route::get('/simpanan/get-anggota/{noKtp}', [SimpananController::class, 'getAnggotaByKtp'])->name('simpanan.get-anggota');
+    Route::get('/simpanan/pengajuan-penarikan', [DtaPengajuanPenarikanController::class, 'index'])->name('simpanan.pengajuan_penarikan');
+
 
     // Simpanan Routes
     Route::prefix('simpanan')->group(function () {

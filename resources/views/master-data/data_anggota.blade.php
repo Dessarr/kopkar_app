@@ -30,8 +30,14 @@
     <!-- Tabel Transaksi -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
 
-        <div class="p-4 border-b">
-            <h2 class="text-lg font-semibold">Riwayat Transaksi</h2>
+        <div class="p-2 border-2 border-green-200 flex flex-row place-content-between">
+            <div class=" border-2 border-green-200">
+                <h2 class="text-lg font-semibold align-middle">Riwayat Transaksi</h2>
+            </div>
+            <div class=" border-2 border-green-200 bg-green-100 rounded-lg py-0.3 px-2 flex items-center gap-1">
+                <i class="fa-solid fa-plus fa-xs"></i>
+                <a href="/master-data/data_anggota/add" class="text-[12px]">Tambah Data Anggota</a>
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full border border-gray-300 text-center">
@@ -53,7 +59,7 @@
                         <th class="p-5 border whitespace-nowrap">Jabatan</th>
                         <th class="p-5 border whitespace-nowrap">Aktif</th>
                         <th class="p-5 border whitespace-nowrap">File Pic</th>
-                        <th class="p-5 border whitespace-nowrap">No KTP</th>
+                        <th class="p-5 border whitespace-nowrap">ID Koperasi</th>
                         <th class="p-5 border whitespace-nowrap">Bank</th>
                         <th class="p-5 border whitespace-nowrap">Nama Pemilik Rekening</th>
                         <th class="p-5 border whitespace-nowrap">No Rekening</th>

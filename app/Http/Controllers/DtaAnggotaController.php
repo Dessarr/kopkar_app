@@ -11,4 +11,5 @@ class DtaAnggotaController extends Controller
         $dataAnggota = data_anggota::paginate(10);
         return view('master-data.data_anggota', compact('dataAnggota'));
     }
+
 }

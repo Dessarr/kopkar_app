@@ -7,7 +7,7 @@
 <div class="px-1 justify-center flex flex-col">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">Data Pengguna</h1>
-        <div class="flex place-content-around items-center w-1/2">
+        <!-- <div class="flex place-content-around items-center w-1/2">
             <div class="bg-green-100 p-2 rounded-lg border-2 border-green-400 space-x-2 flex justify-around">
                 <p class="text-sm">Export</p> <img src="{{ asset('img/icons-bootstrap/export/cloud-download.svg') }}"
                     class="h-auto w-[20px]">
@@ -24,13 +24,18 @@
             <div class="bg-green-100 py-2 px-5 rounded-lg border-2 border-green-400">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
             </div>
-        </div>
+        </div> -->
     </div>
 
     <!-- Tabel Transaksi -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="p-4 border-b">
-            <h2 class="text-lg font-semibold">Riwayat Transaksi</h2>
+        <div class="p-2 border-2 border-green-200 flex flex-row place-content-between ">
+            <div class=" border-2 border-green-200">
+                <h2 class="text-lg font-semibold align-middle">Riwayat Transaksi</h2>
+            </div>
+            <div class=" border-2 border-green-200 bg-green-100 rounded-lg py-0.3 px-2 flex items-center gap-1">
+                <a href="#" class="text-[12px]">Tambah</a> <i class="fa-solid fa-plus fa-xs"></i>
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="table-auto w-full border border-gray-300 text-center">
@@ -38,7 +43,6 @@
                     <tr class="text-sm">
                         <th class="py-2 border">No</th>
                         <th class="py-2 border">Nama Pengguna</th>
-                        <th class="py-2 border">Password</th>
                         <th class="py-2 border">ID Cabang</th>
                         <th class="py-2 border">Aktif</th>
                         <th class="py-2 border">Level</th>
@@ -51,7 +55,6 @@
                             {{ ($dataPengguna->currentPage() - 1) * $dataPengguna->perPage() + $loop->iteration }}
                         </td>
                         <td class="py-2 border">{{ $pengguna->u_name }}</td>
-                        <td class="py-2 border">{{ $pengguna->pass_word }}</td>
                         <td class="py-2 border">{{ $pengguna->id_cabang }}</td>
                         <td class="py-2 border">{{ $pengguna->aktif ? 'Aktif' : 'Nonaktif' }}</td>
                         <td class="py-2 border">{{ $pengguna->level }}</td>
