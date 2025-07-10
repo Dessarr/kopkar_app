@@ -14,7 +14,9 @@ class billing extends Model
         'simpanan_wajib',
         'simpanan_sukarela',
         'simpanan_khusus_2',
-        'id_cabang'
+        'jns_trans',
+        'id_cabang',
+        'status_bayar'
     ];
 
     

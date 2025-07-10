@@ -43,6 +43,9 @@ Route::middleware(['auth:admin'])->group(function () {
 
     //Route billing
     Route::get('/billing',[BillingController::class, 'index'])->name('billing.index');
+    Route::post('/billing/{id}/process', [BillingController::class, 'processPayment'])->name('billing.process');
+    Route::get('/billing/export/excel', [BillingController::class, 'exportExcel'])->name('billing.export.excel');
+    Route::get('/billing/export/pdf', [BillingController::class, 'exportPdf'])->name('billing.export.pdf');
 
     //Route untuk Pinjaman
     Route::get('/pinjaman/data_pengajuan', [DtaPengajuanController::class, 'index'])->name('pinjaman.data_pengajuan');
@@ -72,6 +75,9 @@ Route::middleware(['auth:admin'])->group(function () {
         Route::post('/penjualan', [ToserdaController::class, 'storePenjualan'])->name('toserda.store.penjualan');
         Route::post('/pembelian', [ToserdaController::class, 'storePembelian'])->name('toserda.store.pembelian');
         Route::post('/biaya-usaha', [ToserdaController::class, 'storeBiayaUsaha'])->name('toserda.store.biaya-usaha');
+        Route::post('/upload', [ToserdaController::class, 'storeUploadToserda'])->name('toserda.upload.store');
+        Route::post('/billing/process', [ToserdaController::class, 'processMonthlyBilling'])->name('toserda.billing.process');
+        Route::get('/template/download', [ToserdaController::class, 'downloadTemplate'])->name('toserda.template.download');
     });
 
     // Angkutan Routes

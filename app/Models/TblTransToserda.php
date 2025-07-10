@@ -32,6 +32,7 @@ class TblTransToserda extends Table_Base
         'keterangan',
         'dk',
         'kas_id',
+        'jns_trans',
         'update_data',
         'user_name',
     ];

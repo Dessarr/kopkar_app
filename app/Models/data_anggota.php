@@ -33,6 +33,7 @@ class data_anggota extends Model
         'simpanan_wajib',
         'simpanan_sukarela',
         'simpanan_khusus_2',
+        'jns_trans',
         'id_cabang'
     ];
     public $timestamps = false;

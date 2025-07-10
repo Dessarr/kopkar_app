@@ -86,6 +86,9 @@ class SimpananController extends Controller
 
     public function storePenarikan(Request $request)
     {
+        try {
+            DB::beginTransaction();
+
         $request->validate([
             'tgl_transaksi' => 'required|date',
             'no_ktp' => 'required|string',
