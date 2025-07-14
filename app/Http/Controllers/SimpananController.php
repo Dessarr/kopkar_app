@@ -125,7 +125,11 @@ class SimpananController extends Controller
 
             DB::commit();
             return redirect()->back()->with('success', 'Penarikan tunai berhasil disimpan');
-        } 
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
 
     public function setoranUpload()
     {

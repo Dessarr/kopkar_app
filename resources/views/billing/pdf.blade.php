@@ -71,13 +71,14 @@
         <thead>
             <tr>
                 <th width="5%">No</th>
-                <th width="15%">No KTP</th>
-                <th width="20%">Nama</th>
-                <th width="15%">Simpanan Wajib</th>
-                <th width="15%">Simpanan Sukarela</th>
-                <th width="15%">Toserda</th>
-                <th width="15%">Total</th>
-                <th width="10%">Status</th>
+                <th width="15%">ID Billing</th>
+                <th width="12%">No KTP</th>
+                <th width="18%">Nama</th>
+                <th width="8%">Bulan</th>
+                <th width="8%">Tahun</th>
+                <th width="14%">Jenis Transaksi</th>
+                <th width="12%">Total Tagihan</th>
+                <th width="8%">Status</th>
             </tr>
         </thead>
         <tbody>
@@ -88,26 +89,27 @@
             @forelse($dataBilling as $item)
             <tr>
                 <td class="text-center">{{ $no++ }}</td>
+                <td>{{ $item->id_billing }}</td>
                 <td>{{ $item->no_ktp }}</td>
                 <td>{{ $item->nama }}</td>
-                <td class="text-right">{{ number_format($item->simpanan_wajib ?? 0, 0, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($item->simpanan_sukarela ?? 0, 0, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($item->simpanan_khusus_2 ?? 0, 0, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($item->total_billing, 0, ',', '.') }}</td>
-                <td class="text-center {{ ($item->status_bayar == 'Lunas') ? 'status-lunas' : 'status-belum' }}">
-                    {{ $item->status_bayar ?? 'Belum Lunas' }}
+                <td class="text-center">{{ $item->bulan }}</td>
+                <td class="text-center">{{ $item->tahun }}</td>
+                <td>{{ $item->jns_trans ?? 'Billing' }}</td>
+                <td class="text-right">{{ number_format($item->total_tagihan ?? $item->total_billing ?? 0, 0, ',', '.') }}</td>
+                <td class="text-center {{ ($item->status_bayar == 'Lunas' || $item->status == 'Y') ? 'status-lunas' : 'status-belum' }}">
+                    {{ ($item->status_bayar == 'Lunas' || $item->status == 'Y') ? 'Lunas' : 'Belum Lunas' }}
                 </td>
             </tr>
-            @php $total += $item->total_billing; @endphp
+            @php $total += $item->total_tagihan ?? $item->total_billing ?? 0; @endphp
             @empty
             <tr>
-                <td colspan="8" class="text-center">Tidak ada data</td>
+                <td colspan="9" class="text-center">Tidak ada data</td>
             </tr>
             @endforelse
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td colspan="6" class="text-right"><strong>Total Keseluruhan</strong></td>
+                <td colspan="7" class="text-right"><strong>Total Keseluruhan</strong></td>
                 <td class="text-right"><strong>{{ number_format($total, 0, ',', '.') }}</strong></td>
                 <td></td>
             </tr>
@@ -115,7 +117,7 @@
     </table>
 
     <div class="footer">
-        <p>Dicetak oleh: {{ Auth::user()->name }}</p>
+        <p>Dicetak oleh: {{ Auth::user()->name ?? 'Admin' }}</p>
     </div>
 </body>
 </html> 

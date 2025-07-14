@@ -44,10 +44,13 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/transaksi_kas/transfer', [TransaksiKasController::class, 'transfer'])->name('kas.transfer');
 
     //Route billing
-    Route::get('/billing',[BillingController::class, 'index'])->name('billing.index');
-    Route::post('/billing/{id}/process', [BillingController::class, 'processPayment'])->name('billing.process');
-    Route::get('/billing/export/excel', [BillingController::class, 'exportExcel'])->name('billing.export.excel');
-    Route::get('/billing/export/pdf', [BillingController::class, 'exportPdf'])->name('billing.export.pdf');
+    Route::prefix('billing')->middleware(['auth:admin'])->group(function () {
+        Route::get('/', [BillingController::class, 'index'])->name('billing.index');
+        Route::post('/process/{id_billing}', [BillingController::class, 'processPayment'])->name('billing.process');
+        Route::get('/export/excel', [BillingController::class, 'exportExcel'])->name('billing.export.excel');
+        Route::get('/export/pdf', [BillingController::class, 'exportPdf'])->name('billing.export.pdf');
+        Route::get('/generate/{bulan}/{tahun}', [BillingController::class, 'generateBillingForPeriod'])->name('billing.generate');
+    });
 
     //Route untuk Pinjaman
     Route::get('/pinjaman/data_pengajuan', [DtaPengajuanController::class, 'index'])->name('pinjaman.data_pengajuan');

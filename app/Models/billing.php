@@ -4,33 +4,55 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Billing extends Model
+class billing extends Model
 {
     protected $table = 'billing';
     protected $primaryKey = 'id_billing';
-    public $incrementing = false; // karena id_billing bukan auto-increment
+    public $incrementing = false;
     protected $keyType = 'string';
-
+    
     protected $fillable = [
         'id_billing',
         'bulan_tahun',
         'id_anggota',
-        'total_tagihan',
-        'status',
-
-        'nama',
         'no_ktp',
-        'id_tagihan',
+        'nama',
+        'bulan',
+        'tahun',
         'simpanan_wajib',
         'simpanan_sukarela',
         'simpanan_khusus_2',
+        'simpanan_pokok',
+        'total_billing',
+        'total_tagihan',
+        'status',
+        'status_bayar',
+        'id_akun',
         'jns_trans',
-        'id_cabang',
-        'status_bayar'
+        'created_at',
+        'updated_at'
     ];
 
+    protected $attributes = [
+        'simpanan_wajib' => 0,
+        'simpanan_sukarela' => 0,
+        'simpanan_khusus_2' => 0,
+        'simpanan_pokok' => 0,
+        'total_billing' => 0,
+        'total_tagihan' => 0,
+        'status' => 'N',
+        'status_bayar' => 'Belum Lunas'
+    ];
+    
+    // Relasi dengan anggota
     public function anggota()
     {
-        return $this->belongsTo(data_anggota::class, 'id_anggota', 'no_ktp');
+        return $this->belongsTo(data_anggota::class, 'no_ktp', 'no_ktp');
+    }
+    
+    // Relasi dengan jenis akun
+    public function jenisAkun()
+    {
+        return $this->belongsTo(jns_akun::class, 'id_akun', 'id');
     }
 }

@@ -34,18 +34,9 @@
                     <label for="bulan" class="block text-sm font-medium text-gray-700">Bulan</label>
                     <select name="bulan" id="bulan" required
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-                        <option value="1">Januari</option>
-                        <option value="2">Februari</option>
-                        <option value="3">Maret</option>
-                        <option value="4">April</option>
-                        <option value="5">Mei</option>
-                        <option value="6">Juni</option>
-                        <option value="7">Juli</option>
-                        <option value="8">Agustus</option>
-                        <option value="9">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">Desember</option>
+                        @foreach($bulanList as $key => $bulan)
+                            <option value="{{ $key }}" {{ date('m') == $key ? 'selected' : '' }}>{{ $bulan }}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -84,18 +75,9 @@
                     <label for="billing_bulan" class="block text-sm font-medium text-gray-700">Bulan</label>
                     <select name="bulan" id="billing_bulan" required
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-                        <option value="1">Januari</option>
-                        <option value="2">Februari</option>
-                        <option value="3">Maret</option>
-                        <option value="4">April</option>
-                        <option value="5">Mei</option>
-                        <option value="6">Juni</option>
-                        <option value="7">Juli</option>
-                        <option value="8">Agustus</option>
-                        <option value="9">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">Desember</option>
+                        @foreach($bulanList as $key => $bulan)
+                            <option value="{{ $key }}" {{ date('m') == $key ? 'selected' : '' }}>{{ $bulan }}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -132,7 +114,10 @@
                     <li><strong>jns_trans</strong> - Jenis transaksi (sesuai tabel jns_akun)</li>
                 </ul>
                 <div class="pt-4">
-                    <a href="{{ route('toserda.template.download') }}" class="text-sm text-blue-600 hover:underline">Download Template Excel</a>
+                    <a href="{{ route('toserda.template.download') }}" 
+                        class="inline-block px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                        Download Template Excel
+                    </a>
                 </div>
             </div>
         </div>
@@ -150,18 +135,9 @@
                     <select name="bulan" id="filter_bulan"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
                         <option value="">Semua</option>
-                        <option value="1" {{ request('bulan') == '1' ? 'selected' : '' }}>Januari</option>
-                        <option value="2" {{ request('bulan') == '2' ? 'selected' : '' }}>Februari</option>
-                        <option value="3" {{ request('bulan') == '3' ? 'selected' : '' }}>Maret</option>
-                        <option value="4" {{ request('bulan') == '4' ? 'selected' : '' }}>April</option>
-                        <option value="5" {{ request('bulan') == '5' ? 'selected' : '' }}>Mei</option>
-                        <option value="6" {{ request('bulan') == '6' ? 'selected' : '' }}>Juni</option>
-                        <option value="7" {{ request('bulan') == '7' ? 'selected' : '' }}>Juli</option>
-                        <option value="8" {{ request('bulan') == '8' ? 'selected' : '' }}>Agustus</option>
-                        <option value="9" {{ request('bulan') == '9' ? 'selected' : '' }}>September</option>
-                        <option value="10" {{ request('bulan') == '10' ? 'selected' : '' }}>Oktober</option>
-                        <option value="11" {{ request('bulan') == '11' ? 'selected' : '' }}>November</option>
-                        <option value="12" {{ request('bulan') == '12' ? 'selected' : '' }}>Desember</option>
+                        @foreach($bulanList as $key => $bulan)
+                            <option value="{{ $key }}" {{ request('bulan') == $key ? 'selected' : '' }}>{{ $bulan }}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -175,6 +151,16 @@
                     <label for="search" class="block text-sm font-medium text-gray-700">Cari Anggota</label>
                     <input type="text" name="search" id="search" value="{{ request('search') }}" placeholder="Nama atau No KTP"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
+                </div>
+
+                <div class="w-full sm:w-auto">
+                    <label for="billing_status" class="block text-sm font-medium text-gray-700">Status Billing</label>
+                    <select name="billing_status" id="billing_status"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
+                        <option value="">Semua</option>
+                        <option value="billed" {{ request('billing_status') == 'billed' ? 'selected' : '' }}>Sudah Billing</option>
+                        <option value="unbilled" {{ request('billing_status') == 'unbilled' ? 'selected' : '' }}>Belum Billing</option>
+                    </select>
                 </div>
 
                 <div class="flex-shrink-0">
@@ -202,6 +188,7 @@
                         <th class="px-4 py-2 border-b text-left">Keterangan</th>
                         <th class="px-4 py-2 border-b text-left">Debit/Kredit</th>
                         <th class="px-4 py-2 border-b text-left">Kas</th>
+                        <th class="px-4 py-2 border-b text-left">Status Billing</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -213,11 +200,18 @@
                         <td class="px-4 py-2 border-b">{{ number_format($tr->jumlah, 0, ',', '.') }}</td>
                         <td class="px-4 py-2 border-b">{{ $tr->keterangan }}</td>
                         <td class="px-4 py-2 border-b">{{ $tr->dk == 'D' ? 'Debit' : 'Kredit' }}</td>
-                        <td class="px-4 py-2 border-b">{{ $tr->kas->nama_kas ?? 'N/A' }}</td>
+                        <td class="px-4 py-2 border-b">{{ $tr->kas->nama ?? 'N/A' }}</td>
+                        <td class="px-4 py-2 border-b">
+                            @if($tr->billing->count() > 0)
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Sudah Billing</span>
+                            @else
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Belum Billing</span>
+                            @endif
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-4 text-center text-gray-500">Belum ada data transaksi</td>
+                        <td colspan="8" class="px-4 py-4 text-center text-gray-500">Belum ada data transaksi</td>
                     </tr>
                     @endforelse
                 </tbody>
