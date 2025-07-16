@@ -89,7 +89,7 @@
             @forelse($dataBilling as $item)
             <tr>
                 <td class="text-center">{{ $no++ }}</td>
-                <td>{{ $item->id_billing }}</td>
+                <td>{{ $item->biliing_code }}</td>
                 <td>{{ $item->no_ktp }}</td>
                 <td>{{ $item->nama }}</td>
                 <td class="text-center">{{ $item->bulan }}</td>

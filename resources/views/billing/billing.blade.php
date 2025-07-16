@@ -102,7 +102,7 @@
                         @forelse($dataBilling as $index => $billing)
                             <tr class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $billing->id_billing ?? 'BIL-' . ($billing->bulan ?? '') . ($billing->tahun ?? '') . '-' . substr(md5($billing->id ?? $index), 0, 5) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $billing->biliing_code ?? 'BIL-' . ($billing->bulan ?? '') . ($billing->tahun ?? '') . '-' . substr(md5($billing->id ?? $index), 0, 5) }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $billing->no_ktp }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $billing->nama }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $billing->bulan }}</td>
@@ -118,7 +118,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     @php
-                                        $billingId = $billing->id_billing ?? $billing->id ?? null;
+                                        $billingId = $billing->biliing_code ?? $billing->id ?? null;
                                     @endphp
                                     @if(($billing->status_bayar != 'Lunas' && $billing->status != 'Y') && $billingId)
                                         <form action="{{ route('billing.process', $billingId) }}" method="POST">

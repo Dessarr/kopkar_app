@@ -23,6 +23,7 @@ use App\Http\Controllers\SimpananController;
 use App\Http\Controllers\ToserdaController;
 use App\Http\Controllers\AngkutanController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\AnggotaController;
 
 // Admin Routes
 Route::get('/', [AdminController::class, 'showLoginForm'])->name('admin.login');
@@ -35,6 +36,15 @@ Route::get('/member/login', [MemberController::class, 'showLoginForm'])->name('m
 Route::post('/member/login', [MemberController::class, 'login'])->name('member.login.post');
 Route::get('/member/dashboard', [MemberController::class, 'memberDashboard'])->name('member.dashboard')->middleware('auth:member');
 Route::post('/member/logout', [MemberController::class, 'logout'])->name('member.logout');
+Route::get('/member/toserda', [MemberController::class, 'toserdaPayment'])->name('member.toserda.payment')->middleware('auth:member');
+Route::post('/member/toserda/process/{billing_code}', [MemberController::class, 'processToserda'])->name('member.toserda.process')->middleware('auth:member');
+
+// Anggota Routes
+Route::middleware(['auth:member'])->group(function () {
+    Route::get('/anggota/bayar-toserda', [AnggotaController::class, 'bayarToserda'])->name('anggota.bayar.toserda');
+    Route::post('/anggota/bayar-toserda/process/{billing_code}', [AnggotaController::class, 'processPayment'])->name('anggota.bayar.toserda.process');
+    Route::get('/anggota/get-transaksi-period', [AnggotaController::class, 'getTransaksiByPeriod'])->name('anggota.get.transaksi.period');
+});
 
 // Protected Routes (Admin Only)
 Route::middleware(['auth:admin'])->group(function () {
@@ -46,7 +56,7 @@ Route::middleware(['auth:admin'])->group(function () {
     //Route billing
     Route::prefix('billing')->middleware(['auth:admin'])->group(function () {
         Route::get('/', [BillingController::class, 'index'])->name('billing.index');
-        Route::post('/process/{id_billing}', [BillingController::class, 'processPayment'])->name('billing.process');
+        Route::post('/process/{billing_code}', [BillingController::class, 'processPayment'])->name('billing.process');
         Route::get('/export/excel', [BillingController::class, 'exportExcel'])->name('billing.export.excel');
         Route::get('/export/pdf', [BillingController::class, 'exportPdf'])->name('billing.export.pdf');
         Route::get('/generate/{bulan}/{tahun}', [BillingController::class, 'generateBillingForPeriod'])->name('billing.generate');

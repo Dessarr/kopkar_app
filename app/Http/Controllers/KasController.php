@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DataKas;
+use App\Models\NamaKasTbl;
 use App\Models\TransaksiKas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +32,7 @@ class KasController extends Controller
      */
     public function create()
     {
-        $listKas = DataKas::where('is_active', true)->get();
+        $listKas = NamaKasTbl::where('is_active', true)->get();
         return view('kas.create', compact('listKas'));
     }
 

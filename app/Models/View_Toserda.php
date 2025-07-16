@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\NamaKasTbl;
 
 class View_Toserda extends Model
 {
@@ -21,7 +22,7 @@ class View_Toserda extends Model
 
     public function kas()
     {
-        return $this->belongsTo(DataKas::class, 'kas_id', 'id');
+        return $this->belongsTo(NamaKasTbl::class, 'kas_id', 'id');
     }
 
     public function jenisAkun()

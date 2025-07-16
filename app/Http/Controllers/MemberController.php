@@ -63,4 +63,71 @@ class MemberController extends Controller
         
         return redirect('/');
     }
+
+    public function toserdaPayment(Request $request)
+    {
+        try {
+            $member = auth()->guard('member')->user();
+            
+            // Get Toserda billing for the member
+            $query = \App\Models\billing::where('no_ktp', $member->no_ktp)
+                ->where('jns_trans', 'Toserda')
+                ->orderBy('tahun', 'desc')
+                ->orderBy('bulan', 'desc');
+                
+            // Filter by status if requested
+            if ($request->has('status') && in_array($request->status, ['Lunas', 'Belum Lunas'])) {
+                $query->where('status_bayar', $request->status);
+            }
+            
+            $billings = $query->paginate(10);
+            
+            // Get transaction history for the member
+            $transactions = \App\Models\TblTransToserda::where('no_ktp', $member->no_ktp)
+                ->where('dk', 'D')
+                ->orderBy('tgl_transaksi', 'desc')
+                ->paginate(10);
+            
+            return view('member.toserda_payment', compact('billings', 'transactions', 'member'));
+        } catch (\Exception $e) {
+            \Log::error('Error in toserdaPayment: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    public function processToserda(Request $request, $biliing_code)
+    {
+        try {
+            $member = auth()->guard('member')->user();
+            
+            // Find the billing record
+            $billing = \App\Models\billing::where('biliing_code', $biliing_code)
+                ->where('no_ktp', $member->no_ktp)
+                ->where('jns_trans', 'Toserda')
+                ->first();
+            
+            if (!$billing) {
+                return redirect()->back()->with('error', 'Tagihan tidak ditemukan');
+            }
+            
+            if ($billing->status_bayar === 'Lunas') {
+                return redirect()->back()->with('error', 'Tagihan ini sudah lunas');
+            }
+            
+            // Process payment (in a real application, this would integrate with a payment gateway)
+            // For now, we'll just mark it as paid
+            $billing->status_bayar = 'Lunas';
+            $billing->status = 'Y';
+            $billing->updated_at = now();
+            $billing->save();
+            
+            // Record the payment in transaction history
+            // This would be expanded in a real application
+            
+            return redirect()->route('member.toserda.payment')->with('success', 'Pembayaran berhasil diproses');
+        } catch (\Exception $e) {
+            \Log::error('Error in processToserda: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
 } 

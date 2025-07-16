@@ -52,7 +52,7 @@
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
                         <option value="">Pilih Kas</option>
                         @foreach($kas as $item)
-                            <option value="{{ $item->id }}">{{ $item->nama }}</option>
+                            <option value="{{ $item->id }}">{{ $item->nama_kas ?? $item->nama }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -189,6 +189,7 @@
                         <th class="px-4 py-2 border-b text-left">Debit/Kredit</th>
                         <th class="px-4 py-2 border-b text-left">Kas</th>
                         <th class="px-4 py-2 border-b text-left">Status Billing</th>
+                        <th class="px-4 py-2 border-b text-left">Status Pembayaran</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -200,18 +201,33 @@
                         <td class="px-4 py-2 border-b">{{ number_format($tr->jumlah, 0, ',', '.') }}</td>
                         <td class="px-4 py-2 border-b">{{ $tr->keterangan }}</td>
                         <td class="px-4 py-2 border-b">{{ $tr->dk == 'D' ? 'Debit' : 'Kredit' }}</td>
-                        <td class="px-4 py-2 border-b">{{ $tr->kas->nama ?? 'N/A' }}</td>
+                        <td class="px-4 py-2 border-b">{{ $tr->kas->nama_kas ?? $tr->kas->nama ?? 'N/A' }}</td>
                         <td class="px-4 py-2 border-b">
-                            @if($tr->billing->count() > 0)
+                            @php
+                                $billing = \App\Models\billing::where('id_transaksi', $tr->id)
+                                    ->where('jns_transaksi', 'toserda')
+                                    ->first();
+                            @endphp
+                            
+                            @if($billing)
                                 <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Sudah Billing</span>
                             @else
                                 <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Belum Billing</span>
                             @endif
                         </td>
+                        <td class="px-4 py-2 border-b">
+                            @if($billing && $billing->status_bayar == 'sudah')
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Sudah Bayar</span>
+                            @elseif($billing)
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Belum Bayar</span>
+                            @else
+                                <span class="px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs">Belum Ditagih</span>
+                            @endif
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-4 text-center text-gray-500">Belum ada data transaksi</td>
+                        <td colspan="9" class="px-4 py-4 text-center text-gray-500">Belum ada data transaksi</td>
                     </tr>
                     @endforelse
                 </tbody>

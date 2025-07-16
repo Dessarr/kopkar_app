@@ -2,76 +2,79 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class TblTransToserda extends Model
 {
+    use HasFactory;
+
     protected $table = 'tbl_trans_toserda';
-    protected $primaryKey = 'id';
+    protected $guarded = ['id'];
+    public $timestamps = false;
 
-    protected $fillable = [
-        'tgl_transaksi',
-        'no_ktp',
-        'anggota_id',
-        'jenis_id',
-        'jumlah',
-        'keterangan',
-        'dk',
-        'kas_id',
-        'jns_trans',
-        'update_data',
-        'user_name',
-    ];
-
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
     protected $casts = [
         'tgl_transaksi' => 'datetime',
-        'jumlah' => 'decimal:2',
-        'update_data' => 'datetime',
     ];
 
-    protected $attributes = [
-        'dk' => 'D',
-        'jns_trans' => 'Toserda'
-    ];
-
+    /**
+     * Get the anggota associated with the transaction.
+     */
     public function anggota()
     {
         return $this->belongsTo(data_anggota::class, 'anggota_id', 'id');
     }
 
-    public function barang()
-    {
-        return $this->belongsTo(data_barang::class, 'jenis_id', 'id');
-    }
-
+    /**
+     * Get the kas associated with the transaction.
+     * First tries nama_kas_tbl, then falls back to data_kas.
+     */
     public function kas()
     {
+        $namaKasRelation = $this->belongsTo(NamaKasTbl::class, 'kas_id', 'id');
+        
+        if ($namaKasRelation->first()) {
+            return $namaKasRelation;
+        }
+        
         return $this->belongsTo(DataKas::class, 'kas_id', 'id');
     }
 
-    public function jenisAkun()
+    /**
+     * Get the barang associated with the transaction.
+     */
+    public function barang()
     {
-        return $this->belongsTo(jns_akun::class, 'id_akun', 'id');
+        return $this->belongsTo(data_barang::class, 'id_barang', 'id');
     }
-
+    
+    /**
+     * Get the billing entries associated with this transaction.
+     */
     public function billing()
     {
-        return $this->hasMany(billing::class, 'no_ktp', 'no_ktp');
+        return $this->hasMany(billing::class, 'id_transaksi', 'id')
+            ->where('jns_transaksi', 'toserda');
     }
-
-    public function scopeForPeriod($query, $bulan, $tahun)
+    
+    /**
+     * Set the tgl_transaksi attribute.
+     *
+     * @param  mixed  $value
+     * @return void
+     */
+    public function setTglTransaksiAttribute($value)
     {
-        return $query->whereMonth('tgl_transaksi', $bulan)
-                    ->whereYear('tgl_transaksi', $tahun);
-    }
-
-    public function scopeDebit($query)
-    {
-        return $query->where('dk', 'D');
-    }
-
-    public function scopeKredit($query)
-    {
-        return $query->where('dk', 'K');
+        if (is_string($value)) {
+            $this->attributes['tgl_transaksi'] = Carbon::parse($value);
+        } else {
+            $this->attributes['tgl_transaksi'] = $value;
+        }
     }
 } 

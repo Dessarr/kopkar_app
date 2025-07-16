@@ -2,57 +2,61 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class billing extends Model
 {
+    use HasFactory;
+
     protected $table = 'billing';
-    protected $primaryKey = 'id_billing';
-    public $incrementing = false;
-    protected $keyType = 'string';
-    
-    protected $fillable = [
-        'id_billing',
-        'bulan_tahun',
-        'id_anggota',
-        'no_ktp',
-        'nama',
-        'bulan',
-        'tahun',
-        'simpanan_wajib',
-        'simpanan_sukarela',
-        'simpanan_khusus_2',
-        'simpanan_pokok',
-        'total_billing',
-        'total_tagihan',
-        'status',
-        'status_bayar',
-        'id_akun',
-        'jns_trans',
-        'created_at',
-        'updated_at'
+    protected $primaryKey = 'id';
+    protected $guarded = ['id'];
+    public $timestamps = true;
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'tgl_bayar' => 'datetime',
+        'jumlah' => 'float',
+        'simpanan_wajib' => 'float',
+        'simpanan_sukarela' => 'float',
+        'simpanan_khusus_2' => 'float',
+        'simpanan_pokok' => 'float',
+        'total_billing' => 'float',
+        'total_tagihan' => 'float',
     ];
 
-    protected $attributes = [
-        'simpanan_wajib' => 0,
-        'simpanan_sukarela' => 0,
-        'simpanan_khusus_2' => 0,
-        'simpanan_pokok' => 0,
-        'total_billing' => 0,
-        'total_tagihan' => 0,
-        'status' => 'N',
-        'status_bayar' => 'Belum Lunas'
-    ];
-    
-    // Relasi dengan anggota
+    /**
+     * Get the anggota associated with the billing.
+     */
     public function anggota()
     {
         return $this->belongsTo(data_anggota::class, 'no_ktp', 'no_ktp');
     }
-    
-    // Relasi dengan jenis akun
-    public function jenisAkun()
+
+    /**
+     * Get the toserda transaction associated with the billing.
+     */
+    public function toserda()
     {
-        return $this->belongsTo(jns_akun::class, 'id_akun', 'id');
+        return $this->belongsTo(TblTransToserda::class, 'id_transaksi', 'id')
+            ->where('jns_transaksi', 'toserda');
+    }
+    
+    /**
+     * Generate a unique billing code.
+     * Format: BILL-YYYYMM-KTP-TYPE
+     */
+    public static function generateBillingCode($bulan, $tahun, $noKtp, $jnsTransaksi)
+    {
+        $prefix = 'BILL';
+        $period = $tahun . str_pad($bulan, 2, '0', STR_PAD_LEFT);
+        $type = strtoupper(substr($jnsTransaksi, 0, 4));
+        
+        return "{$prefix}-{$period}-{$noKtp}-{$type}";
     }
 }

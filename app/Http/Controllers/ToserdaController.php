@@ -3,18 +3,20 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\TblTransToserda;
 use App\Models\data_barang;
 use App\Models\data_anggota;
-use App\Models\DataKas;
-use App\Models\View_Toserda;
-use App\Models\View_LapToserda;
-use App\Models\billing;
 use App\Models\jns_akun;
-use Illuminate\Support\Facades\Auth;
+use App\Models\billing;
+use App\Models\TblTransToserda;
+use App\Models\NamaKasTbl;
+use App\Models\DataKas;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
+use App\Imports\ToserdaImport;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Illuminate\Support\Facades\Auth;
 
 class ToserdaController extends Controller
 {
@@ -33,25 +35,94 @@ class ToserdaController extends Controller
         '12' => 'Desember'
     ];
 
-    public function penjualan()
+    public function penjualan(Request $request)
     {
         try {
             $barang = data_barang::where('stok', '>', 0)->get();
             $anggota = data_anggota::where('aktif', 'Y')->get();
-            $kas = DataKas::all();
-            return view('toserda.penjualan', compact('barang', 'anggota', 'kas'));
+            $kas = NamaKasTbl::all();
+            
+            // Query for transaction history
+            $query = TblTransToserda::with([
+                'anggota' => function($q) { 
+                    $q->select('id', 'no_ktp', 'nama'); 
+                },
+                'barang' => function($q) { 
+                    $q->select('id', 'nm_barang', 'harga_jual', 'harga', 'stok'); 
+                },
+                'kas' => function($q) { 
+                    $q->select('id', 'nama'); 
+                },
+                'billing'
+            ])
+            ->where('dk', 'D') // Only debit transactions (sales)
+            ->orderBy('tgl_transaksi', 'desc');
+            
+            // Filter by date range
+            if ($request->has('tanggal_awal') && $request->tanggal_awal) {
+                $query->whereDate('tgl_transaksi', '>=', $request->tanggal_awal);
+            }
+            
+            if ($request->has('tanggal_akhir') && $request->tanggal_akhir) {
+                $query->whereDate('tgl_transaksi', '<=', $request->tanggal_akhir);
+            }
+            
+            // Filter by search term (member name or KTP)
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('anggota', function($q) use ($search) {
+                        $q->where('nama', 'like', '%' . $search . '%')
+                          ->orWhere('no_ktp', 'like', '%' . $search . '%');
+                    })
+                    ->orWhere('no_ktp', 'like', '%' . $search . '%');
+                });
+            }
+            
+            $transaksi = $query->paginate(10);
+            
+            return view('toserda.penjualan', compact('barang', 'anggota', 'kas', 'transaksi'));
         } catch (\Exception $e) {
             \Log::error('Error in penjualan: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
-    public function pembelian()
+    public function pembelian(Request $request)
     {
         try {
             $barang = data_barang::all();
-            $kas = DataKas::all();
-            return view('toserda.pembelian', compact('barang', 'kas'));
+            $kas = NamaKasTbl::all();
+            
+            // Query for transaction history
+            $query = TblTransToserda::with([
+                'barang' => function($q) { 
+                    $q->select('id', 'nm_barang', 'harga_beli', 'harga', 'stok'); 
+                },
+                'kas' => function($q) { 
+                    $q->select('id', 'nama'); 
+                }
+            ])
+            ->where('dk', 'K') // Only kredit transactions (purchases)
+            ->orderBy('tgl_transaksi', 'desc');
+            
+            // Filter by date range
+            if ($request->has('tanggal_awal') && $request->tanggal_awal) {
+                $query->whereDate('tgl_transaksi', '>=', $request->tanggal_awal);
+            }
+            
+            if ($request->has('tanggal_akhir') && $request->tanggal_akhir) {
+                $query->whereDate('tgl_transaksi', '<=', $request->tanggal_akhir);
+            }
+            
+            // Filter by barang
+            if ($request->has('barang_id') && $request->barang_id) {
+                $query->where('jenis_id', $request->barang_id);
+            }
+            
+            $transaksi = $query->paginate(10);
+            
+            return view('toserda.pembelian', compact('barang', 'kas', 'transaksi'));
         } catch (\Exception $e) {
             \Log::error('Error in pembelian: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
@@ -61,7 +132,7 @@ class ToserdaController extends Controller
     public function biayaUsaha()
     {
         try {
-            $kas = DataKas::all();
+            $kas = NamaKasTbl::all();
             return view('toserda.biaya_usaha', compact('kas'));
         } catch (\Exception $e) {
             \Log::error('Error in biayaUsaha: ' . $e->getMessage());
@@ -71,52 +142,59 @@ class ToserdaController extends Controller
     
     public function lainLain(Request $request)
     {
-        try {
-            // Base query with eager loading of relationships
-            $query = View_Toserda::with(['anggota', 'kas', 'billing']);
+        $bulan = $request->bulan;
+        $tahun = $request->tahun ?? date('Y');
+        $search = $request->search;
+        $billingStatus = $request->billing_status;
+        
+        $query = TblTransToserda::with(['anggota', 'kas']);
             
-            // Filter berdasarkan bulan
-            if ($request->has('bulan') && $request->bulan !== '') {
-                $query->whereMonth('tgl_transaksi', $request->bulan);
+        if ($bulan) {
+            $query->whereMonth('tgl_transaksi', $bulan);
             }
             
-            // Filter berdasarkan tahun
-            if ($request->has('tahun') && $request->tahun !== '') {
-                $query->whereYear('tgl_transaksi', $request->tahun);
+        if ($tahun) {
+            $query->whereYear('tgl_transaksi', $tahun);
             }
             
-            // Filter berdasarkan pencarian
-            if ($request->has('search') && $request->search !== '') {
-                $search = $request->search;
-                $query->where(function($q) use ($search) {
-                    $q->whereHas('anggota', function($q) use ($search) {
-                        $q->where('nama', 'like', '%' . $search . '%');
-                    })
-                    ->orWhere('no_ktp', 'like', '%' . $search . '%');
+        if ($search) {
+            $query->whereHas('anggota', function($q) use ($search) {
+                $q->where('nama', 'like', "%$search%")
+                  ->orWhere('no_ktp', 'like', "%$search%");
                 });
             }
 
-            // Filter berdasarkan status billing
-            if ($request->has('billing_status') && $request->billing_status !== '') {
-                if ($request->billing_status === 'billed') {
+        if ($billingStatus === 'billed') {
                     $query->whereHas('billing');
-                } else if ($request->billing_status === 'unbilled') {
+        } elseif ($billingStatus === 'unbilled') {
                     $query->whereDoesntHave('billing');
                 }
-            }
             
-            $transaksi = $query->orderBy('tgl_transaksi', 'desc')->paginate(10);
+        $transaksi = $query->orderBy('tgl_transaksi', 'desc')->paginate(15);
             
-            // Data untuk dropdown
-            $kas = DataKas::all();
-            $tahunList = range(date('Y') - 5, date('Y') + 2);
-            $bulanList = $this->bulanList;
-            
-            return view('toserda.lain_lain', compact('transaksi', 'kas', 'tahunList', 'bulanList'));
-        } catch (\Exception $e) {
-            \Log::error('Error in lainLain: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
+        // Get kas data from both models and merge them
+        $namaKasTbl = NamaKasTbl::where('aktif', 'Y')->get();
+        $dataKas = DataKas::where('aktif', 'Y')->get();
+        
+        // Use the nama_kas_tbl data as primary
+        $kas = $namaKasTbl;
+        
+        $bulanList = [
+            '01' => 'Januari',
+            '02' => 'Februari',
+            '03' => 'Maret',
+            '04' => 'April',
+            '05' => 'Mei',
+            '06' => 'Juni',
+            '07' => 'Juli',
+            '08' => 'Agustus',
+            '09' => 'September',
+            '10' => 'Oktober',
+            '11' => 'November',
+            '12' => 'Desember'
+        ];
+        
+        return view('toserda.lain_lain', compact('transaksi', 'bulanList', 'kas'));
     }
 
     public function storePenjualan(Request $request)
@@ -128,7 +206,7 @@ class ToserdaController extends Controller
                 'barang_id' => 'required|exists:data_barang,id',
                 'anggota_id' => 'required|exists:data_anggota,id',
                 'jumlah' => 'required|numeric|min:1',
-                'kas_id' => 'required|exists:nama_kas_tbl,id',
+                'kas_id' => 'required|exists:data_kas,id',
                 'keterangan' => 'nullable|string'
             ]);
 
@@ -136,14 +214,15 @@ class ToserdaController extends Controller
             $anggota = data_anggota::findOrFail($request->anggota_id);
             $barang = data_barang::findOrFail($request->barang_id);
             
-            // Check stock
-            if ($barang->stok < $request->jumlah) {
+            // Check stock - handle different field names
+            $stok = $barang->stok ?? $barang->jml_brg ?? 0;
+            
+            if ($stok < $request->jumlah) {
                 return redirect()->back()->with('error', 'Stok tidak mencukupi');
             }
             
             $transaksi = new TblTransToserda();
             $transaksi->tgl_transaksi = now();
-            $transaksi->no_ktp = $anggota->no_ktp;
             $transaksi->anggota_id = $request->anggota_id;
             $transaksi->jenis_id = $request->barang_id;
             $transaksi->jumlah = $request->jumlah;
@@ -153,8 +232,12 @@ class ToserdaController extends Controller
             $transaksi->user_name = Auth::user()->name;
             $transaksi->save();
 
-            // Update stok barang
+            // Update stok barang - handle different field names
+            if (isset($barang->stok)) {
             $barang->stok -= $request->jumlah;
+            } else if (isset($barang->jml_brg)) {
+                $barang->jml_brg -= $request->jumlah;
+            }
             $barang->save();
 
             DB::commit();
@@ -162,6 +245,7 @@ class ToserdaController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
             \Log::error('Error in storePenjualan: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -174,7 +258,7 @@ class ToserdaController extends Controller
             $request->validate([
                 'barang_id' => 'required|exists:data_barang,id',
                 'jumlah' => 'required|numeric|min:1',
-                'kas_id' => 'required|exists:nama_kas_tbl,id',
+                'kas_id' => 'required|exists:data_kas,id',
                 'keterangan' => 'nullable|string'
             ]);
 
@@ -188,9 +272,16 @@ class ToserdaController extends Controller
             $transaksi->user_name = Auth::user()->name;
             $transaksi->save();
 
-            // Update stok barang
+            // Update stok barang - handle different field names
             $barang = data_barang::findOrFail($request->barang_id);
+            if (isset($barang->stok)) {
             $barang->stok += $request->jumlah;
+            } else if (isset($barang->jml_brg)) {
+                $barang->jml_brg += $request->jumlah;
+            } else {
+                // If neither field exists, create stok field
+                $barang->stok = $request->jumlah;
+            }
             $barang->save();
 
             DB::commit();
@@ -198,6 +289,7 @@ class ToserdaController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
             \Log::error('Error in storePembelian: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -210,7 +302,7 @@ class ToserdaController extends Controller
             $request->validate([
                 'keterangan' => 'required|string',
                 'jumlah' => 'required|numeric|min:0',
-                'kas_id' => 'required|exists:nama_kas_tbl,id'
+                'kas_id' => 'required|exists:data_kas,id'
             ]);
 
             $transaksi = new TblTransToserda();
@@ -231,77 +323,162 @@ class ToserdaController extends Controller
         }
     }
     
-    public function storeUploadToserda(Request $request)
-    {
-        try {
-            DB::beginTransaction();
-            
-            $request->validate([
-                'file' => 'required|mimes:xlsx,xls|max:2048',
-                'bulan' => 'required|string',
-                'tahun' => 'required|numeric',
-                'kas_id' => 'required|exists:nama_kas_tbl,id',
-            ]);
-            
-            // Get Toserda account ID
-            $jnsAkun = jns_akun::where('akun', 'like', '%Toserda%')->first();
-            if (!$jnsAkun) {
-                throw new \Exception('Jenis akun Toserda tidak ditemukan');
-            }
-            
-            // Import data
-            $file = $request->file('file');
-            $import = new \App\Imports\ToserdaImport($request->kas_id);
-            Excel::import($import, $file);
-            
-            // Generate billing for the month
-            $billingController = new BillingController();
-            $result = $billingController->generateBillingForPeriod($request->bulan, $request->tahun);
-            
-            DB::commit();
-            return redirect()->back()->with('success', 'Data berhasil diupload dan billing telah digenerate');
-        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-            DB::rollback();
-            $failures = $e->failures();
-            $errorMessages = [];
-            
-            foreach ($failures as $failure) {
-                $errorMessages[] = "Baris ke-" . $failure->row() . ": " . implode(', ', $failure->errors());
-            }
-            
-            return redirect()->back()->with('error', 'Error validasi: ' . implode('<br>', $errorMessages));
-        } catch (\Exception $e) {
-            DB::rollback();
-            \Log::error('Error upload Toserda: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
-            
-            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
-        }
-    }
-    
+    /**
+     * Process monthly billing for Toserda transactions
+     */
     public function processMonthlyBilling(Request $request)
     {
         try {
-            $request->validate([
-                'bulan' => 'required|string',
-                'tahun' => 'required|numeric',
-            ]);
+            $bulan = $request->bulan;
+            $tahun = $request->tahun;
             
-            $billingController = new BillingController();
-            return $billingController->generateBillingForPeriod($request->bulan, $request->tahun);
+            // Get all transactions for the specified month and year that are not yet billed
+            $transactions = TblTransToserda::whereMonth('tgl_transaksi', $bulan)
+                ->whereYear('tgl_transaksi', $tahun)
+                ->whereDoesntHave('billing', function($query) {
+                    $query->where('jns_transaksi', 'toserda');
+                })
+                ->get();
+            
+            if ($transactions->isEmpty()) {
+                return redirect()->back()->with('error', 'Tidak ada transaksi yang perlu diproses untuk periode ini.');
+            }
+            
+            // Group transactions by no_ktp
+            $transactionsByMember = $transactions->groupBy('no_ktp');
+            $billingCount = 0;
+            
+            DB::beginTransaction();
+            
+            foreach ($transactionsByMember as $noKtp => $memberTransactions) {
+                $anggota = data_anggota::where('no_ktp', $noKtp)->first();
+                
+                if (!$anggota) {
+                    continue; // Skip if member not found
+                }
+                
+                // Process each transaction
+                foreach ($memberTransactions as $transaction) {
+                    // Create billing entry
+                    $billing = new billing();
+                    $billing->no_ktp = $noKtp;
+                    $billing->nama = $anggota->nama;
+                    $billing->id_transaksi = $transaction->id;
+                    $billing->jns_transaksi = 'toserda';
+                    $billing->jumlah = $transaction->jumlah;
+                    $billing->keterangan = $transaction->keterangan ?? 'Transaksi Toserda';
+                    $billing->bulan = $bulan;
+                    $billing->tahun = $tahun;
+                    $billing->bulan_tahun = $bulan . '/' . $tahun;
+                    $billing->status_bayar = 'belum';
+                    $billing->billing_code = billing::generateBillingCode($bulan, $tahun, $noKtp, 'toserda');
+                    $billing->save();
+                    
+                    $billingCount++;
+            }
+            }
+            
+            DB::commit();
+            
+            return redirect()->back()->with('success', "Berhasil memproses $billingCount transaksi billing untuk periode $bulan/$tahun.");
         } catch (\Exception $e) {
-            \Log::error('Error in processMonthlyBilling: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
+    /**
+     * Store uploaded Toserda transactions from Excel
+     */
+    public function storeUploadToserda(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls',
+            'bulan' => 'required',
+            'tahun' => 'required',
+            'kas_id' => 'required',
+        ]);
+
+        try {
+            $file = $request->file('file');
+            $bulan = $request->bulan;
+            $tahun = $request->tahun;
+            $kas_id = $request->kas_id;
+            
+            // Check if kas_id exists in any of the possible tables
+            $kasExistsInNamaKasTbl = DB::table('nama_kas_tbl')->where('id', $kas_id)->exists();
+            $kasExistsInDataKas = DB::table('data_kas')->where('id', $kas_id)->exists();
+            
+            if (!$kasExistsInNamaKasTbl && !$kasExistsInDataKas) {
+                return redirect()->back()->with('error', 'ID Kas tidak valid.');
+            }
+            
+            // Import data from Excel with more detailed error handling
+            try {
+                // Create the import instance
+                $import = new ToserdaImport($bulan, $tahun, $kas_id);
+                
+                // Import the file
+                Excel::import($import, $file);
+                
+                $count = $import->getRowCount();
+                $failures = $import->getFailures();
+                
+                if (!empty($failures)) {
+                    $errorMessages = [];
+                    foreach ($failures as $failure) {
+                        $row = $failure->row();
+                        $errors = $failure->errors();
+                        $errorMessages[] = "Baris {$row}: " . implode(', ', $errors);
+                    }
+                    
+                    // Log all failures
+                    \Log::warning('Import validation failures:', $errorMessages);
+                    
+                    // Only show the first few errors to avoid overwhelming the user
+                    $displayErrors = array_slice($errorMessages, 0, 5);
+                    if (count($errorMessages) > 5) {
+                        $displayErrors[] = "... dan " . (count($errorMessages) - 5) . " kesalahan lainnya";
+                    }
+                    
+                    return redirect()->back()->with('error', 'Terjadi kesalahan validasi: ' . implode('<br>', $displayErrors));
+                }
+                
+                return redirect()->back()->with('success', "Berhasil mengupload $count data transaksi Toserda.");
+            } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+                $failures = $e->failures();
+                $errorMessage = 'Terjadi kesalahan validasi: ';
+                
+                foreach ($failures as $failure) {
+                    $errorMessage .= 'Baris ' . $failure->row() . ': ' . implode(', ', $failure->errors()) . '; ';
+                }
+                
+                return redirect()->back()->with('error', $errorMessage);
+            } catch (\Exception $e) {
+                \Log::error('Error in Excel import: ' . $e->getMessage());
+                \Log::error($e->getTraceAsString());
+                return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error in storeUploadToserda: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download Excel template for Toserda transactions
+     */
     public function downloadTemplate()
     {
-        try {
-            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $filePath = storage_path('app/templates/template_toserda.xlsx');
+        
+        if (!file_exists($filePath)) {
+            // Create template if it doesn't exist
+            $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
             
-            // Set judul kolom
+            // Set headers
             $sheet->setCellValue('A1', 'tanggal');
             $sheet->setCellValue('B1', 'no_ktp');
             $sheet->setCellValue('C1', 'nama');
@@ -310,104 +487,26 @@ class ToserdaController extends Controller
             $sheet->setCellValue('F1', 'dk');
             $sheet->setCellValue('G1', 'jns_trans');
             
-            // Format header
-            $headerStyle = [
-                'font' => [
-                    'bold' => true,
-                    'color' => ['rgb' => 'FFFFFF'],
-                ],
-                'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '14AE5C'],
-                ],
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                    ],
-                ],
-            ];
-            
-            $sheet->getStyle('A1:G1')->applyFromArray($headerStyle);
-            
-            // Set column widths
-            $sheet->getColumnDimension('A')->setWidth(15);
-            $sheet->getColumnDimension('B')->setWidth(20);
-            $sheet->getColumnDimension('C')->setWidth(25);
-            $sheet->getColumnDimension('D')->setWidth(15);
-            $sheet->getColumnDimension('E')->setWidth(30);
-            $sheet->getColumnDimension('F')->setWidth(10);
-            $sheet->getColumnDimension('G')->setWidth(15);
-            
-            // Get jns_akun list
-            $jnsAkunList = jns_akun::pluck('jns_trans')->toArray();
-            $jnsAkunString = implode(',', $jnsAkunList);
-            
-            // Default Toserda account
-            $defaultJnsAkun = jns_akun::where('akun', 'like', '%Toserda%')->first();
-            $defaultJnsTrans = $defaultJnsAkun ? $defaultJnsAkun->jns_trans : 'Toserda';
-            
             // Add example data
             $sheet->setCellValue('A2', date('Y-m-d'));
-            $sheet->setCellValue('B2', '3201234567890001');
-            $sheet->setCellValue('C2', 'Contoh Nama');
-            $sheet->setCellValue('D2', '50000');
-            $sheet->setCellValue('E2', 'Pembelian Sembako');
+            $sheet->setCellValue('B2', '1234567890123456');
+            $sheet->setCellValue('C2', 'Nama Anggota');
+            $sheet->setCellValue('D2', '100000');
+            $sheet->setCellValue('E2', 'Belanja Toserda');
             $sheet->setCellValue('F2', 'D');
-            $sheet->setCellValue('G2', $defaultJnsTrans);
+            $sheet->setCellValue('G2', '155');
             
-            // Format date column
-            $sheet->getStyle('A2:A1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
-            
-            // Format no_ktp column as text
-            $sheet->getStyle('B2:B1000')->getNumberFormat()->setFormatCode('@');
-            
-            // Add data validation for dk column
-            $validation = $sheet->getCell('F2')->getDataValidation();
-            $validation->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
-            $validation->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_INFORMATION);
-            $validation->setAllowBlank(false);
-            $validation->setShowInputMessage(true);
-            $validation->setShowErrorMessage(true);
-            $validation->setShowDropDown(true);
-            $validation->setFormula1('"D,K"');
-            $sheet->setDataValidation('F2:F1000', $validation);
-            
-            // Add data validation for jns_trans column
-            if (!empty($jnsAkunString)) {
-                $jnsTransValidation = $sheet->getCell('G2')->getDataValidation();
-                $jnsTransValidation->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
-                $jnsTransValidation->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_INFORMATION);
-                $jnsTransValidation->setAllowBlank(true);
-                $jnsTransValidation->setShowInputMessage(true);
-                $jnsTransValidation->setShowErrorMessage(true);
-                $jnsTransValidation->setShowDropDown(true);
-                $jnsTransValidation->setFormula1('"' . $jnsAkunString . '"');
-                $sheet->setDataValidation('G2:G1000', $jnsTransValidation);
+            // Create directory if it doesn't exist
+            if (!file_exists(storage_path('app/templates'))) {
+                mkdir(storage_path('app/templates'), 0755, true);
             }
             
-            // Create instructions sheet
-            $this->createInstructionsSheet($spreadsheet);
-            
-            // Create jenis akun sheet
-            $this->createJenisAkunSheet($spreadsheet);
-            
-            // Set active sheet to first sheet
-            $spreadsheet->setActiveSheetIndex(0);
-            
-            // Generate Excel file
-            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-            $filename = 'template_toserda_' . date('Ymd') . '.xlsx';
-            
-            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            header('Content-Disposition: attachment;filename="' . $filename . '"');
-            header('Cache-Control: max-age=0');
-            
-            $writer->save('php://output');
-            exit;
-        } catch (\Exception $e) {
-            \Log::error('Error in downloadTemplate: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Error generating template: ' . $e->getMessage());
+            // Save file
+            $writer = new Xlsx($spreadsheet);
+            $writer->save($filePath);
         }
+        
+        return response()->download($filePath, 'template_toserda.xlsx');
     }
     
     private function createInstructionsSheet($spreadsheet)

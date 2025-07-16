@@ -179,7 +179,7 @@ class BillingController extends Controller
             
             // Check if billing simpanan already exists
             $billingSimpananExists = billing::where('bulan_tahun', $bulan_tahun_string)
-                ->whereRaw("id_billing LIKE '%SMPN'")
+                ->whereRaw("billing_code LIKE '%SMPN'")
                 ->exists();
                 
             if (!$billingSimpananExists) {
@@ -225,10 +225,10 @@ class BillingController extends Controller
                     }
                     
                     // Create billing record
-                    $id_billing = "BILL-" . $tahun_input . $bulan_input . "-" . $anggota->no_ktp . "-SMPN";
+                    $biliing_code = "BILL-" . $tahun_input . $bulan_input . "-" . $anggota->no_ktp . "-SMPN";
                     
                     billing::create([
-                        'id_billing' => $id_billing,
+                        'biliing_code' => $biliing_code,
                         'bulan_tahun' => $bulan_tahun_string,
                         'id_anggota' => $anggota->no_ktp,
                         'no_ktp' => $anggota->no_ktp,
@@ -255,7 +255,7 @@ class BillingController extends Controller
             
             // Check if billing toserda already exists
             $billingToserdaExists = billing::where('bulan_tahun', $bulan_tahun_string)
-                ->whereRaw("id_billing LIKE '%TSD'")
+                ->whereRaw("billing_code LIKE '%TSD'")
                 ->exists();
                 
             if (!$billingToserdaExists) {
@@ -279,10 +279,10 @@ class BillingController extends Controller
                     if (!$anggota) continue;
                     
                     // Create billing record
-                    $id_billing = "BILL-" . $tahun_input . $bulan_input . "-" . $transaksi->no_ktp . "-TSD";
+                    $biliing_code = "BILL-" . $tahun_input . $bulan_input . "-" . $transaksi->no_ktp . "-TSD";
                     
                     billing::create([
-                        'id_billing' => $id_billing,
+                        'biliing_code' => $biliing_code,
                         'bulan_tahun' => $bulan_tahun_string,
                         'id_anggota' => $transaksi->no_ktp,
                         'no_ktp' => $transaksi->no_ktp,
@@ -322,16 +322,16 @@ class BillingController extends Controller
         }
     }
     
-    public function processPayment($id_billing)
+    public function processPayment($biliing_code)
     {
         // Proses pembayaran billing
         try {
-            // Try to find by id_billing first
-            $billing = billing::where('id_billing', $id_billing)->first();
+            // Try to find by biliing_code first
+            $billing = billing::where('biliing_code', $biliing_code)->first();
             
             // If not found, try to find by id
             if (!$billing) {
-                $billing = billing::find($id_billing);
+                $billing = billing::find($biliing_code);
             }
             
             if (!$billing) {
@@ -426,7 +426,7 @@ class BillingController extends Controller
         $totalBilling = 0;
         foreach ($dataBilling as $index => $item) {
             $sheet->setCellValue('A' . $row, $index + 1);
-            $sheet->setCellValue('B' . $row, $item->id_billing);
+            $sheet->setCellValue('B' . $row, $item->biliing_code);
             $sheet->setCellValue('C' . $row, $item->no_ktp);
             $sheet->setCellValue('D' . $row, $item->nama);
             $sheet->setCellValue('E' . $row, $item->bulan);

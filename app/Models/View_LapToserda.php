@@ -21,7 +21,7 @@ class View_LapToserda extends Model
 
     public function kas()
     {
-        return $this->belongsTo(DataKas::class, 'kas_id', 'id');
+        return $this->belongsTo(NamaKasTbl::class, 'kas_id', 'id');
     }
 
     public function jenisAkun()

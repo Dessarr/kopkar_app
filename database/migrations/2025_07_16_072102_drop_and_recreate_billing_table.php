@@ -3,31 +3,31 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
     /**
      * Run the migrations.
      */
-    public function up()
+    public function up(): void
     {
-        // Drop the table if it exists
+        // Drop the existing billing table
         Schema::dropIfExists('billing');
 
+        // Create a new billing table with the correct structure
         Schema::create('billing', function (Blueprint $table) {
-            $table->id(); // Use auto-incrementing ID
-            $table->string('biliing_code')->nullable(); // Keep original field but make it nullable
+            $table->id(); // Auto-incrementing primary key
+            $table->string('billing_code')->nullable(); // For custom billing codes if needed
             $table->unsignedBigInteger('id_transaksi')->nullable();
             $table->string('jns_transaksi')->nullable();
             $table->decimal('jumlah', 15, 2)->nullable();
             $table->string('keterangan')->nullable();
-            $table->string('bulan_tahun')->nullable();
-            $table->string('id_anggota')->nullable();
             $table->string('no_ktp');
             $table->string('nama');
             $table->string('bulan', 2);
             $table->string('tahun', 4);
+            $table->string('bulan_tahun')->nullable();
+            $table->string('id_anggota')->nullable();
             $table->decimal('simpanan_wajib', 15, 2)->nullable()->default(0);
             $table->decimal('simpanan_sukarela', 15, 2)->nullable()->default(0);
             $table->decimal('simpanan_khusus_2', 15, 2)->nullable()->default(0);

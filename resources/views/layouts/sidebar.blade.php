@@ -114,7 +114,7 @@
             <div x-show="openMenu === 'anggota'" class="pl-8 space-y-1 mt-1" x-transition>
                 <a href="#"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">SHU</a>
-                <a href="#"
+                <a href="{{ route('anggota.bayar.toserda') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Bayar
                     Toserda/Lain-lain</a>
             </div>
