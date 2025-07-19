@@ -72,12 +72,22 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/master-data/data_barang',[DtaBarangController::class,'index'])->name('master-data.data_barang');
     Route::get('/master-data/data_mobil',[DtaMobilController::class,'index'])->name('master-data.data_mobil');
     Route::get('/master-data/jenis_angsuran',[JnsAngusuranController::class,'index'])->name('master-data.jenis_angsuran');
+    
+    // Route untuk Data Anggota
     Route::get('/master-data/data_anggota',[DtaAnggotaController::class,'index'])->name('master-data.data_anggota');
+    Route::get('/master-data/data_anggota/export',[DtaAnggotaController::class,'export'])->name('master-data.data_anggota.export');
+    Route::get('/master-data/data_anggota/create', [DtaAnggotaController::class, 'create'])->name('master-data.data_anggota.create');
+    Route::get('/master-data/data_anggota/{id}', [DtaAnggotaController::class, 'show'])->name('master-data.data_anggota.show');
+    Route::get('/master-data/data_anggota/{id}/edit', [DtaAnggotaController::class, 'edit'])->name('master-data.data_anggota.edit');
+    Route::put('/master-data/data_anggota/{id}', [DtaAnggotaController::class, 'update'])->name('master-data.data_anggota.update');
+    Route::delete('/master-data/data_anggota/{id}', [DtaAnggotaController::class, 'destroy'])->name('master-data.data_anggota.destroy');
+    Route::post('/master-data/data_anggota', [DtaAnggotaController::class, 'store'])->name('master-data.data_anggota.store');
+    
     Route::get('/master-data/data_Kas',[DtaKasController::class,'index'])->name('master-data.data_kas');
     //Route CRUD untuk master Data
-    Route::get('/master-data/data_anggota/add', function(){
-        return view('layouts.form.add_data_anggota');
-    });
+    // Route::get('/master-data/data_anggota/add', function(){
+    //     return view('layouts.form.add_data_anggota');
+    // });
     
 //Route untuk Setting
 

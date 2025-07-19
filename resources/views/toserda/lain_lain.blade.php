@@ -21,7 +21,8 @@
         <!-- Upload File Excel -->
         <div class="md:col-span-1 bg-white rounded-lg shadow-lg p-6">
             <h2 class="text-lg font-semibold mb-4">Upload Data Toserda</h2>
-            <form action="{{ route('toserda.upload.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+            <form action="{{ route('toserda.upload.store') }}" method="POST" enctype="multipart/form-data"
+                class="space-y-4">
                 @csrf
                 <div>
                     <label for="file" class="block text-sm font-medium text-gray-700">File Excel</label>
@@ -35,7 +36,7 @@
                     <select name="bulan" id="bulan" required
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
                         @foreach($bulanList as $key => $bulan)
-                            <option value="{{ $key }}" {{ date('m') == $key ? 'selected' : '' }}>{{ $bulan }}</option>
+                        <option value="{{ $key }}" {{ date('m') == $key ? 'selected' : '' }}>{{ $bulan }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -52,7 +53,7 @@
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
                         <option value="">Pilih Kas</option>
                         @foreach($kas as $item)
-                            <option value="{{ $item->id }}">{{ $item->nama_kas ?? $item->nama }}</option>
+                        <option value="{{ $item->id }}">{{ $item->nama_kas ?? $item->nama }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -76,7 +77,7 @@
                     <select name="bulan" id="billing_bulan" required
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
                         @foreach($bulanList as $key => $bulan)
-                            <option value="{{ $key }}" {{ date('m') == $key ? 'selected' : '' }}>{{ $bulan }}</option>
+                        <option value="{{ $key }}" {{ date('m') == $key ? 'selected' : '' }}>{{ $bulan }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -114,7 +115,7 @@
                     <li><strong>jns_trans</strong> - Jenis transaksi (sesuai tabel jns_akun)</li>
                 </ul>
                 <div class="pt-4">
-                    <a href="{{ route('toserda.template.download') }}" 
+                    <a href="{{ route('toserda.template.download') }}"
                         class="inline-block px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                         Download Template Excel
                     </a>
@@ -126,7 +127,7 @@
     <!-- Tabel Transaksi -->
     <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
         <h2 class="text-lg font-semibold mb-4">Data Transaksi Toserda</h2>
-        
+
         <!-- Filter -->
         <div class="mb-6 p-4 border rounded-lg bg-gray-50">
             <form action="{{ route('toserda.lain-lain') }}" method="GET" class="flex flex-wrap items-end gap-4">
@@ -136,7 +137,8 @@
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
                         <option value="">Semua</option>
                         @foreach($bulanList as $key => $bulan)
-                            <option value="{{ $key }}" {{ request('bulan') == $key ? 'selected' : '' }}>{{ $bulan }}</option>
+                        <option value="{{ $key }}" {{ request('bulan') == $key ? 'selected' : '' }}>{{ $bulan }}
+                        </option>
                         @endforeach
                     </select>
                 </div>
@@ -149,7 +151,8 @@
 
                 <div class="w-full sm:w-auto">
                     <label for="search" class="block text-sm font-medium text-gray-700">Cari Anggota</label>
-                    <input type="text" name="search" id="search" value="{{ request('search') }}" placeholder="Nama atau No KTP"
+                    <input type="text" name="search" id="search" value="{{ request('search') }}"
+                        placeholder="Nama atau No KTP"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
                 </div>
 
@@ -158,8 +161,10 @@
                     <select name="billing_status" id="billing_status"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
                         <option value="">Semua</option>
-                        <option value="billed" {{ request('billing_status') == 'billed' ? 'selected' : '' }}>Sudah Billing</option>
-                        <option value="unbilled" {{ request('billing_status') == 'unbilled' ? 'selected' : '' }}>Belum Billing</option>
+                        <option value="billed" {{ request('billing_status') == 'billed' ? 'selected' : '' }}>Sudah
+                            Billing</option>
+                        <option value="unbilled" {{ request('billing_status') == 'unbilled' ? 'selected' : '' }}>Belum
+                            Billing</option>
                     </select>
                 </div>
 
@@ -204,24 +209,27 @@
                         <td class="px-4 py-2 border-b">{{ $tr->kas->nama_kas ?? $tr->kas->nama ?? 'N/A' }}</td>
                         <td class="px-4 py-2 border-b">
                             @php
-                                $billing = \App\Models\billing::where('id_transaksi', $tr->id)
-                                    ->where('jns_transaksi', 'toserda')
-                                    ->first();
+                            $billing = \App\Models\billing::where('id_transaksi', $tr->id)
+                            ->where('jns_transaksi', 'toserda')
+                            ->first();
                             @endphp
-                            
+
                             @if($billing)
-                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Sudah Billing</span>
+                            <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs text-nowrap">Sudah
+                                Billing</span>
                             @else
-                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Belum Billing</span>
+                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs text-nowrap">Belum
+                                Billing</span>
                             @endif
                         </td>
                         <td class="px-4 py-2 border-b">
                             @if($billing && $billing->status_bayar == 'sudah')
-                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Sudah Bayar</span>
+                            <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Sudah Bayar</span>
                             @elseif($billing)
-                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Belum Bayar</span>
+                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Belum
+                                Bayar</span>
                             @else
-                                <span class="px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs">Belum Ditagih</span>
+                            <span class="px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs">Belum Ditagih</span>
                             @endif
                         </td>
                     </tr>
@@ -240,4 +248,4 @@
         </div>
     </div>
 </div>
-@endsection 
+@endsection

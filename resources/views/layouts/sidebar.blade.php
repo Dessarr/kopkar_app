@@ -221,6 +221,57 @@
                     Lunas</a>
             </div>
         </div>
+
+        <!-- Master Data -->
+        <div>
+            <button @click="openMenu === 'master-data' ? openMenu = '' : openMenu = 'master-data'"
+                class="flex items-center w-full p-3 rounded-lg sidebar-item focus:outline-none">
+                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Master Data
+                <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path :class="{'rotate-180': openMenu === 'master-data'}" class="transition-transform"
+                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+            <div x-show="openMenu === 'master-data'" class="pl-8 space-y-1 mt-1" x-transition>
+                <a href="{{ route('master-data.jns_akun') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">
+                    Jenis Akun
+                </a>
+                <a href="{{ route('master-data.jns_simpan') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">
+                    Jenis Simpanan
+                </a>
+                <a href="{{ route('master-data.data_pengguna') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">
+                    Data Pengguna
+                </a>
+                <a href="{{ route('master-data.data_barang') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">
+                    Data Barang
+                </a>
+                <a href="{{ route('master-data.data_mobil') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">
+                    Data Mobil
+                </a>
+                <a href="{{ route('master-data.jenis_angsuran') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">
+                    Jenis Angsuran
+                </a>
+                <a href="{{ route('master-data.data_anggota') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">
+                    Data Anggota
+                </a>
+                <a href="{{ route('master-data.data_kas') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">
+                    Data Kas
+                </a>
+            </div>
+        </div>
+
         <!-- Laporan -->
         <div>
             <button @click="openMenu === 'laporan' ? openMenu = '' : openMenu = 'laporan'"
@@ -284,47 +335,6 @@
                     Kas</a>
                 <a href="#"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">SHU</a>
-            </div>
-        </div>
-        <!-- Master Data -->
-        <div>
-            <button @click="openMenu === 'master' ? openMenu = '' : openMenu = 'master'"
-                class="flex items-center w-full p-3 rounded-lg sidebar-item focus:outline-none">
-                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
-                Master Data
-                <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path :class="{'rotate-180': openMenu === 'master'}" class="transition-transform"
-                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
-            <div x-show="openMenu === 'master'" class="pl-8 space-y-1 mt-1" x-transition>
-                <a href="{{ route('master-data.jns_simpan') }}"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Jenis
-                    Simpanan</a>
-                <a href="{{ route('master-data.jns_akun') }}"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Jenis
-                    Akun</a>
-                <a href="{{ route('master-data.data_kas') }}"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
-                    Kas</a>
-                <a href="{{ route('master-data.jenis_angsuran') }}"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Lama
-                    Angsuran</a>
-                <a href="{{ route('master-data.data_mobil') }}"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
-                    Mobil</a>
-                <a href="{{ route('master-data.data_barang') }}"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
-                    Barang</a>
-                <a href="{{ route('master-data.data_anggota') }}"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
-                    Anggota</a>
-                <a href="{{ route('master-data.data_pengguna') }}"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
-                    Pengguna</a>
             </div>
         </div>
         <!-- Setting -->

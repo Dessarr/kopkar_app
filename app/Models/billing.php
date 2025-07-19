@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class billing extends Model
 {
+
     use HasFactory;
 
     protected $table = 'billing';

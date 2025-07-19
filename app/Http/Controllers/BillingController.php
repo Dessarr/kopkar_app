@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\PDF;
+use Illuminate\Support\Facades\Log;
 
 class BillingController extends Controller
 {
@@ -38,7 +39,7 @@ class BillingController extends Controller
             $tahun = $request->input('tahun', date('Y'));
             
             // Debug input values
-            \Log::info('Filtering billing with:', [
+            Log::info('Filtering billing with:', [
                 'bulan' => $bulan,
                 'tahun' => $tahun,
                 'bulan_tahun' => $this->bulanList[$bulan] . ' ' . $tahun
@@ -68,7 +69,7 @@ class BillingController extends Controller
             }
             
             // Debug the generated SQL query
-            \Log::info('Generated SQL:', [
+            Log::info('Generated SQL:', [
                 'sql' => $query->toSql(),
                 'bindings' => $query->getBindings()
             ]);
@@ -77,7 +78,7 @@ class BillingController extends Controller
             $billingExists = $query->count() > 0;
             
             // Debug billing existence
-            \Log::info('Billing exists check:', [
+            Log::info('Billing exists check:', [
                 'exists' => $billingExists
             ]);
             
@@ -86,7 +87,7 @@ class BillingController extends Controller
                 $result = $this->generateFullBilling($bulan, $tahun);
                 
                 // Debug generation result
-                \Log::info('Generation result:', $result);
+                Log::info('Generation result:', $result);
                 
                 if ($result['status'] === 'error') {
                     // Return empty paginator instead of empty collection
@@ -117,7 +118,7 @@ class BillingController extends Controller
             $dataBilling = $query->paginate(10);
             
             // Debug final result count
-            \Log::info('Final result count:', [
+            Log::info('Final result count:', [
                 'total' => $dataBilling->total()
             ]);
             
@@ -133,9 +134,9 @@ class BillingController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            // Log the error
-            \Log::error('Error in billing index: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
+            //Log the error
+            Log::error('Error in billing index: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
             
             // Return empty paginator instead of empty collection
             return view('billing.billing', [
@@ -163,7 +164,7 @@ class BillingController extends Controller
         if ($tahun_input < $tahun_sekarang || ($tahun_input == $tahun_sekarang && $bulan_input < $bulan_sekarang)) {
             return [
                 'status' => 'error',
-                'message' => 'Tidak bisa memproses tagihan masa lalu'
+                'message' => 'Tidak ada data billing untuk bulan dan tahun ini.'
             ];
         }
         
@@ -172,7 +173,7 @@ class BillingController extends Controller
         
         try {
             DB::beginTransaction();
-            
+             
             // ============================
             // 1. GENERATE BILLING SIMPANAN
             // ============================
@@ -197,7 +198,7 @@ class BillingController extends Controller
                 
                 // Debug: Print member data
                 foreach ($anggotaAktif as $anggota) {
-                    \Log::info("Member data for {$anggota->nama}:", [
+                    Log::info("Member data for {$anggota->nama}:", [
                         'simpanan_wajib' => $anggota->simpanan_wajib,
                         'simpanan_sukarela' => $anggota->simpanan_sukarela,
                         'simpanan_khusus_2' => $anggota->simpanan_khusus_2
@@ -225,10 +226,10 @@ class BillingController extends Controller
                     }
                     
                     // Create billing record
-                    $biliing_code = "BILL-" . $tahun_input . $bulan_input . "-" . $anggota->no_ktp . "-SMPN";
+                    $billing_code = "BILL-" . $tahun_input . $bulan_input . "-" . $anggota->no_ktp . "-SMPN";
                     
                     billing::create([
-                        'biliing_code' => $biliing_code,
+                        'billing_code' => $billing_code,
                         'bulan_tahun' => $bulan_tahun_string,
                         'id_anggota' => $anggota->no_ktp,
                         'no_ktp' => $anggota->no_ktp,
@@ -279,10 +280,10 @@ class BillingController extends Controller
                     if (!$anggota) continue;
                     
                     // Create billing record
-                    $biliing_code = "BILL-" . $tahun_input . $bulan_input . "-" . $transaksi->no_ktp . "-TSD";
+                    $billing_code = "BILL-" . $tahun_input . $bulan_input . "-" . $transaksi->no_ktp . "-TSD";
                     
                     billing::create([
-                        'biliing_code' => $biliing_code,
+                        'billing_code' => $billing_code,
                         'bulan_tahun' => $bulan_tahun_string,
                         'id_anggota' => $transaksi->no_ktp,
                         'no_ktp' => $transaksi->no_ktp,
@@ -312,8 +313,8 @@ class BillingController extends Controller
             
         } catch (\Exception $e) {
             DB::rollback();
-            \Log::error('Error generating billing: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
+            Log::error('Error generating billing: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
             
             return [
                 'status' => 'error',
@@ -322,16 +323,16 @@ class BillingController extends Controller
         }
     }
     
-    public function processPayment($biliing_code)
+    public function processPayment($billing_code)
     {
         // Proses pembayaran billing
         try {
-            // Try to find by biliing_code first
-            $billing = billing::where('biliing_code', $biliing_code)->first();
+            // Try to find by billing_code first
+            $billing = billing::where('billing_code', $billing_code)->first();
             
             // If not found, try to find by id
             if (!$billing) {
-                $billing = billing::find($biliing_code);
+                $billing = billing::find($billing_code);
             }
             
             if (!$billing) {
@@ -426,7 +427,7 @@ class BillingController extends Controller
         $totalBilling = 0;
         foreach ($dataBilling as $index => $item) {
             $sheet->setCellValue('A' . $row, $index + 1);
-            $sheet->setCellValue('B' . $row, $item->biliing_code);
+            $sheet->setCellValue('B' . $row, $item->billing_code);
             $sheet->setCellValue('C' . $row, $item->no_ktp);
             $sheet->setCellValue('D' . $row, $item->nama);
             $sheet->setCellValue('E' . $row, $item->bulan);

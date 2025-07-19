@@ -27,8 +27,6 @@
         color: #ffffff;
     }
 
-
-
     .active {
         background-color: rgb(18, 188, 98);
         border-left: 4px solid #ffffff;
@@ -49,9 +47,7 @@
             <div class="bg-[#14AE5C] p-4 flex justify-between items-center mt-6 mx-6 shadow-md rounded-lg">
                 <div class="flex flex-row items-center space-x-4">
                     <h1 class="text-2xl font-bold text-white">@yield('title', 'dashboard')</h1>
-                    <h2 class="text-gray-200 flex text-center align-middle justify-center">@yield('sub-title','Menu
-                        Utama')
-                    </h2>
+                    <h2 class="text-gray-200 flex text-center align-middle justify-center">@yield('sub-title','Menu Utama')</h2>
                 </div>
                 <div class="flex items-center text-white">
                     <span id="date" class="mr-4"></span>
@@ -61,11 +57,8 @@
 
             <!-- Content Area -->
             <main class="flex-1 p-6 overflow-y-auto overflow-hidden">
-
-                <main class="flex-1 p-6 overflow-y-auto overflow-x-hidden">
-
-                    @yield('content')
-                </main>
+                @yield('content')
+            </main>
         </div>
     </div>
 
@@ -93,6 +86,8 @@
     updateTime();
     setInterval(updateTime, 1000);
     </script>
+
+    @stack('scripts')
 </body>
 
 </html>
