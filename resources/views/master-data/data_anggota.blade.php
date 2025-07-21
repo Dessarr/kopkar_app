@@ -31,59 +31,14 @@
         <h1 class="text-2xl font-bold">Data Anggota Koperasi</h1>
     </div>
 
-    <!-- Tab Navigasi -->
-    <div class="mb-4 flex gap-2">
-        <a href="{{ route('master-data.data_anggota') }}">
-            <button id="tab-aktif" type="button"
-                class="tab-btn rounded-t-lg font-semibold px-6 py-2 border-b-2 transition-all duration-200 {{ (isset($tab) ? $tab == 'aktif' : true) ? 'active' : '' }}">Anggota
-                Aktif</button>
-        </a>
-        <a href="{{ route('master-data.data_anggota.nonaktif') }}">
-            <button id="tab-nonaktif" type="button"
-                class="tab-btn rounded-t-lg font-semibold px-6 py-2 border-b-2 transition-all duration-200 {{ (isset($tab) && $tab == 'nonaktif') ? 'active' : '' }}">Anggota
-                Tidak Aktif</button>
-        </a>
-    </div>
-    <style>
-    .tab-btn {
-        background: #f3f4f6;
-        color: #374151;
-        border: 1px solid #e5e7eb;
-        border-bottom: 2px solid transparent;
-        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-        cursor: pointer;
-    }
-
-    .tab-btn.active,
-    .tab-btn:focus {
-        background: #10b981;
-        color: #fff;
-        border-bottom: 2px solid #10b981;
-        border-top: 2px solid #10b981;
-        border-left: 2px solid #10b981;
-        border-right: 2px solid #10b981;
-        outline: none;
-        z-index: 10;
-    }
-
-    .tab-btn:hover:not(.active) {
-        background: #d1fae5;
-        color: #047857;
-        border-bottom: 2px solid #10b981;
-    }
-    </style>
-    <script>
-    // Tidak perlu JS showTab, karena sudah pakai route berbeda
-    </script>
-
-    <!-- Tabel Data Anggota Aktif -->
+    <!-- Tabel Data Anggota -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
         @if(session('success'))
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
             {{ session('success') }}
         </div>
         @endif
-        <!-- ... existing search/export ... -->
+
         <div class="p-4 border-b">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div class="flex items-center gap-2">
@@ -111,6 +66,7 @@
                 </div>
             </div>
         </div>
+
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead>
@@ -134,9 +90,9 @@
                             {{ ($dataAnggota->currentPage() - 1) * $dataAnggota->perPage() + $loop->iteration }}
                         </td>
                         <td class="px-4 py-3 text-center">
-                            @if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic))
-                            <img src="{{ asset('storage/anggota/' . $anggota->file_pic) }}"
-                                alt="Foto {{ $anggota->nama }}" class="w-12 h-12 rounded-full mx-auto object-cover">
+                            @if($anggota->file_pic)
+                            <img src="{{ Storage::url('anggota/'.$anggota->file_pic) }}" alt="Foto {{ $anggota->nama }}"
+                                class="w-12 h-12 rounded-full mx-auto object-cover">
                             @else
                             <div class="w-12 h-12 rounded-full bg-gray-100 mx-auto flex items-center justify-center">
                                 <svg class="w-7 h-7 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
@@ -194,30 +150,28 @@
             </table>
         </div>
     </div>
-    <!-- Pagination Aktif di luar table -->
+
+    <!-- Pagination -->
     <div class="mt-5 flex items-center justify-between px-4">
         <div class="flex justify-center flex-1">
             <div class="bg-white px-4 py-2 flex items-center gap-2 rounded-lg border shadow-sm">
                 @for ($i = 1; $i <= $dataAnggota->lastPage(); $i++)
-                    @if ($i == 1 || $i == $dataAnggota->lastPage() || ($i >= $dataAnggota->currentPage() - 1 && $i <= $dataAnggota->currentPage() + 1))
+                    @if ($i == 1 || $i == $dataAnggota->lastPage() || ($i >= $dataAnggota->currentPage() - 1 && $i <=
+                        $dataAnggota->currentPage() + 1))
                         <a href="{{ $dataAnggota->url($i) }}"
                             class="px-3 py-1 text-sm rounded-md {{ $dataAnggota->currentPage() == $i ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50' }}">
                             {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
                         </a>
-                    @elseif ($i == 2 || $i == $dataAnggota->lastPage() - 1)
+                        @elseif ($i == 2 || $i == $dataAnggota->lastPage() - 1)
                         <span class="px-2 text-gray-400">...</span>
-                    @endif
-                @endfor
+                        @endif
+                        @endfor
             </div>
         </div>
         <div class="text-sm text-gray-500">
-            Showing {{ $dataAnggota->firstItem() }} to {{ $dataAnggota->lastItem() }} of {{ $dataAnggota->total() }} entries
+            Showing {{ $dataAnggota->firstItem() }} to {{ $dataAnggota->lastItem() }} of {{ $dataAnggota->total() }}
+            entries
         </div>
     </div>
 </div>
-
-<script>
-// Default tab
-// showTab('aktif'); // This line is removed as per the edit hint
-</script>
 @endsection

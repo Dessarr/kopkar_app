@@ -34,10 +34,12 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">ID Koperasi</label>
-                        <div class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-500">
-                            <span class="text-sm">Akan dibuat otomatis</span>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">Format: YYYYMM0001 (contoh: 2025070001)</p>
+                        <input type="text" name="no_ktp" value="{{ old('no_ktp') }}" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('no_ktp') border-red-500 @enderror"
+                            placeholder="Masukkan ID Koperasi">
+                        @error('no_ktp')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <div>

@@ -23,13 +23,8 @@ class DtaAnggotaController extends Controller
             });
         }
 
-        // Tampilkan anggota aktif
-        $dataAnggota = $query->where('aktif', 'Y')->orderBy('nama')->paginate(10);
-
-        // Tampilkan anggota tidak aktif jika diminta
-        $dataAnggotaNonAktif = data_anggota::where('aktif', 'N')->orderBy('nama')->paginate(10, ['*'], 'nonaktif');
-
-        return view('master-data.data_anggota', compact('dataAnggota', 'dataAnggotaNonAktif'));
+        $dataAnggota = $query->orderBy('nama')->paginate(10);
+        return view('master-data.data_anggota', compact('dataAnggota'));
     }
 
     public function show($id)
@@ -58,6 +53,7 @@ class DtaAnggotaController extends Controller
             'kota' => 'required|string|max:255',
             'notelp' => 'required|string|max:20',
             'file_pic' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'no_ktp' => 'required|string|max:20|unique:tbl_anggota',
             'bank' => 'required|string|max:255',
             'nama_pemilik_rekening' => 'required|string|max:255',
             'no_rekening' => 'required|string|max:255',
@@ -71,25 +67,6 @@ class DtaAnggotaController extends Controller
         $validated['simpanan_sukarela'] = (int) str_replace([',', '.'], '', $request->simpanan_sukarela);
         $validated['simpanan_khusus_2'] = (int) str_replace([',', '.'], '', $request->simpanan_khusus_2);
 
-        // Generate ID Koperasi otomatis
-        $currentYear = date('Y');
-        $currentMonth = date('m');
-        $yearMonth = $currentYear . $currentMonth;
-        
-        // Cari nomor urut terakhir untuk bulan ini
-        $lastAnggota = data_anggota::where('no_ktp', 'like', $yearMonth . '%')
-            ->orderBy('no_ktp', 'desc')
-            ->first();
-        
-        if ($lastAnggota) {
-            $lastNumber = (int) substr($lastAnggota->no_ktp, -4);
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        
-        $validated['no_ktp'] = $yearMonth . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
-
         // Set nilai yang tidak diinput
         $validated['identitas'] = $validated['nama'];
         $validated['tgl_daftar'] = date('Y-m-d');
@@ -102,14 +79,8 @@ class DtaAnggotaController extends Controller
 
         if($request->hasFile('file_pic')) {
             $file = $request->file('file_pic');
-            $extension = $file->getClientOriginalExtension();
-            $filename = $validated['no_ktp'] . ' - photo.' . $extension;
-            
-            // Pastikan direktori ada
-            Storage::disk('public')->makeDirectory('anggota');
-            
-            // Simpan file
-            Storage::disk('public')->putFileAs('anggota', $file, $filename);
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->storeAs('public/anggota', $filename);
             $validated['file_pic'] = $filename;
         }
 
@@ -142,17 +113,14 @@ class DtaAnggotaController extends Controller
             'kota' => 'required|string|max:255',
             'notelp' => 'required|string|max:20',
             'file_pic' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'no_ktp' => 'required|string|max:20|unique:tbl_anggota,no_ktp,'.$id,
             'bank' => 'required|string|max:255',
             'nama_pemilik_rekening' => 'required|string|max:255',
             'no_rekening' => 'required|string|max:255',
             'simpanan_wajib' => 'required|string',
             'simpanan_sukarela' => 'required|string',
-            'simpanan_khusus_2' => 'required|string',
-            'aktif' => 'required|in:1,0',
+            'simpanan_khusus_2' => 'required|string'
         ]);
-
-        // Konversi nilai aktif menjadi 'Y' atau 'N'
-        $validated['aktif'] = $request->aktif == '1' ? 'Y' : 'N';
 
         // Clean and convert simpanan values - remove thousand separators and convert to integer
         $validated['simpanan_wajib'] = (int) str_replace([',', '.'], '', $request->simpanan_wajib);
@@ -164,19 +132,13 @@ class DtaAnggotaController extends Controller
 
         if($request->hasFile('file_pic')) {
             // Hapus file lama jika ada
-            if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic)) {
-                Storage::disk('public')->delete('anggota/' . $anggota->file_pic);
+            if($anggota->file_pic) {
+                Storage::delete('public/anggota/' . $anggota->file_pic);
             }
             
             $file = $request->file('file_pic');
-            $extension = $file->getClientOriginalExtension();
-            $filename = $anggota->no_ktp . ' - photo.' . $extension;
-            
-            // Pastikan direktori ada
-            Storage::disk('public')->makeDirectory('anggota');
-            
-            // Simpan file
-            Storage::disk('public')->putFileAs('anggota', $file, $filename);
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->storeAs('public/anggota', $filename);
             $validated['file_pic'] = $filename;
         }
 
@@ -191,8 +153,8 @@ class DtaAnggotaController extends Controller
         $anggota = data_anggota::findOrFail($id);
         
         // Hapus file foto jika ada
-        if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic)) {
-            Storage::disk('public')->delete('anggota/' . $anggota->file_pic);
+        if($anggota->file_pic) {
+            Storage::delete('public/anggota/' . $anggota->file_pic);
         }
         
         $anggota->delete();
@@ -206,21 +168,5 @@ class DtaAnggotaController extends Controller
         $fileName = 'data_anggota_' . date('Y-m-d') . '.xlsx';
         
         return Excel::download(new AnggotaExport, $fileName);
-    }
-
-    public function nonaktif(Request $request)
-    {
-        $query = data_anggota::query();
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('nama', 'like', '%' . $search . '%')
-                  ->orWhere('no_ktp', 'like', '%' . $search . '%')
-                  ->orWhere('departement', 'like', '%' . $search . '%');
-            });
-        }
-        $dataAnggotaNonAktif = $query->where('aktif', 'N')->orderBy('nama')->paginate(10, ['*'], 'nonaktif');
-        $tab = 'nonaktif';
-        return view('master-data.data_anggota_nonaktif', compact('dataAnggotaNonAktif', 'tab'));
     }
 }

@@ -75,7 +75,6 @@ Route::middleware(['auth:admin'])->group(function () {
     
     // Route untuk Data Anggota
     Route::get('/master-data/data_anggota',[DtaAnggotaController::class,'index'])->name('master-data.data_anggota');
-    Route::get('/master-data/data_anggota/nonaktif', [DtaAnggotaController::class,  'nonaktif'])->name('master-data.data_anggota.nonaktif');
     Route::get('/master-data/data_anggota/export',[DtaAnggotaController::class,'export'])->name('master-data.data_anggota.export');
     Route::get('/master-data/data_anggota/create', [DtaAnggotaController::class, 'create'])->name('master-data.data_anggota.create');
     Route::get('/master-data/data_anggota/{id}', [DtaAnggotaController::class, 'show'])->name('master-data.data_anggota.show');
