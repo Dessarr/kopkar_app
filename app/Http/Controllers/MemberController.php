@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Log;  
 use App\Models\Member;
 
 class MemberController extends Controller
@@ -18,15 +18,15 @@ class MemberController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'nama' => 'required',
+            'no_ktp' => 'required',
             'pass_word' => 'required'
         ]);
 
         // Debug log
-        Log::info('Login attempt for member: ' . $credentials['nama']);
+        Log::info('Login attempt for member: ' . $credentials['no_ktp']);
 
-        // Cari member berdasarkan nama
-        $member = Member::where('nama', $credentials['nama'])->first();
+        // Cari member berdasarkan no_ktp
+        $member = Member::where('no_ktp', $credentials['no_ktp'])->first();
 
         if ($member) {
             Log::info('Member found with ID: ' . $member->id);
@@ -42,7 +42,7 @@ class MemberController extends Controller
                 return redirect()->intended('member/dashboard');
             }
         } else {
-            Log::info('No member found with name: ' . $credentials['nama']);
+            Log::info('No member found with name: ' . $credentials['no_ktp']);
         }
 
         return back()->withErrors([
@@ -52,7 +52,8 @@ class MemberController extends Controller
 
     public function memberDashboard()
     {
-        return view('member.dashboard');
+        $anggota = auth()->guard('member')->user();
+        return view('member.dashboard', compact('anggota'));
     }
 
     public function logout(Request $request)
@@ -90,7 +91,7 @@ class MemberController extends Controller
             
             return view('member.toserda_payment', compact('billings', 'transactions', 'member'));
         } catch (\Exception $e) {
-            \Log::error('Error in toserdaPayment: ' . $e->getMessage());
+            Log::error('Error in toserdaPayment: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -126,7 +127,7 @@ class MemberController extends Controller
             
             return redirect()->route('member.toserda.payment')->with('success', 'Pembayaran berhasil diproses');
         } catch (\Exception $e) {
-            \Log::error('Error in processToserda: ' . $e->getMessage());
+            Log::error('Error in processToserda: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
