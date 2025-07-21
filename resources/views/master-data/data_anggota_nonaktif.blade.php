@@ -8,42 +8,21 @@
 .expandable-row {
     transition: all 0.3s ease-in-out;
 }
+
 .expandable-row:hover {
     padding-top: 1rem;
     padding-bottom: 1rem;
     background-color: rgb(249 250 251);
 }
+
 .expandable-content {
     transition: all 0.3s ease-in-out;
     max-height: 1.5rem;
     overflow: hidden;
 }
+
 .expandable-row:hover .expandable-content {
     max-height: 100px;
-}
-.tab-btn {
-    background: #f3f4f6;
-    color: #374151;
-    border: 1px solid #e5e7eb;
-    border-bottom: 2px solid transparent;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-    cursor: pointer;
-}
-.tab-btn.active,
-.tab-btn:focus {
-    background: #10b981;
-    color: #fff;
-    border-bottom: 2px solid #10b981;
-    border-top: 2px solid #10b981;
-    border-left: 2px solid #10b981;
-    border-right: 2px solid #10b981;
-    outline: none;
-    z-index: 10;
-}
-.tab-btn:hover:not(.active) {
-    background: #d1fae5;
-    color: #047857;
-    border-bottom: 2px solid #10b981;
 }
 </style>
 <div class="px-1 justify-center flex flex-col">
@@ -53,18 +32,58 @@
     <!-- Tab Navigasi -->
     <div class="mb-4 flex gap-2">
         <a href="{{ route('master-data.data_anggota') }}">
-            <button id="tab-aktif" type="button" class="tab-btn rounded-t-lg font-semibold px-6 py-2 border-b-2 transition-all duration-200">Anggota Aktif</button>
+            <button id="tab-aktif" type="button"
+                class="tab-btn rounded-t-lg font-semibold px-6 py-2 border-b-2 transition-all duration-200">Anggota
+                Aktif</button>
         </a>
         <a href="{{ route('master-data.data_anggota.nonaktif') }}">
-            <button id="tab-nonaktif" type="button" class="tab-btn rounded-t-lg font-semibold px-6 py-2 border-b-2 transition-all duration-200 active">Anggota Tidak Aktif</button>
+            <button id="tab-nonaktif" type="button"
+                class="tab-btn rounded-t-lg font-semibold px-6 py-2 border-b-2 transition-all duration-200 active">Anggota
+                Tidak Aktif</button>
         </a>
     </div>
+    <style>
+    .tab-btn {
+        background: #f3f4f6;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+        border-bottom: 2px solid transparent;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+        cursor: pointer;
+    }
+
+    .tab-btn.active,
+    .tab-btn:focus {
+        background: #10b981;
+        color: #fff;
+        border-bottom: 2px solid #10b981;
+        border-top: 2px solid #10b981;
+        border-left: 2px solid #10b981;
+        border-right: 2px solid #10b981;
+        outline: none;
+        z-index: 10;
+    }
+
+    .tab-btn:hover:not(.active) {
+        background: #d1fae5;
+        color: #047857;
+        border-bottom: 2px solid #10b981;
+    }
+    </style>
+    <script>
+    // Tidak perlu JS showTab, karena sudah pakai route berbeda
+    </script>
+    <!-- Tabel Data Anggota Tidak Aktif -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
+        @if(session('success'))
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
+            {{ session('success') }}
+        </div>
+        @endif
         <div class="p-4 border-b">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div class="flex items-center gap-2">
-                    <span class="font-semibold text-red-600">Anggota Tidak Aktif</span>
-                </div>
+
+                <h2 class="text-lg font-bold text-red-600">Data Anggota Tidak Aktif</h2>
                 <div class="flex flex-col md:flex-row md:items-center gap-2 md:ml-auto">
                     <form action="{{ route('master-data.data_anggota.nonaktif') }}" method="GET" class="mb-2 md:mb-0">
                         <div class="flex items-center bg-gray-100 p-2 rounded-lg border-2 border-gray-300">
@@ -106,7 +125,8 @@
                             @else
                             <div class="w-12 h-12 rounded-full bg-gray-100 mx-auto flex items-center justify-center">
                                 <svg class="w-7 h-7 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                    <path
+                                        d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                                 </svg>
                             </div>
                             @endif
@@ -164,20 +184,22 @@
         <div class="flex justify-center flex-1">
             <div class="bg-white px-4 py-2 flex items-center gap-2 rounded-lg border shadow-sm">
                 @for ($i = 1; $i <= $dataAnggotaNonAktif->lastPage(); $i++)
-                    @if ($i == 1 || $i == $dataAnggotaNonAktif->lastPage() || ($i >= $dataAnggotaNonAktif->currentPage() - 1 && $i <= $dataAnggotaNonAktif->currentPage() + 1))
+                    @if ($i == 1 || $i == $dataAnggotaNonAktif->lastPage() || ($i >= $dataAnggotaNonAktif->currentPage()
+                    - 1 && $i <= $dataAnggotaNonAktif->currentPage() + 1))
                         <a href="{{ $dataAnggotaNonAktif->url($i) }}"
                             class="px-3 py-1 text-sm rounded-md {{ $dataAnggotaNonAktif->currentPage() == $i ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50' }}">
                             {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
                         </a>
-                    @elseif ($i == 2 || $i == $dataAnggotaNonAktif->lastPage() - 1)
+                        @elseif ($i == 2 || $i == $dataAnggotaNonAktif->lastPage() - 1)
                         <span class="px-2 text-gray-400">...</span>
-                    @endif
-                @endfor
+                        @endif
+                        @endfor
             </div>
         </div>
         <div class="text-sm text-gray-500">
-            Showing {{ $dataAnggotaNonAktif->firstItem() }} to {{ $dataAnggotaNonAktif->lastItem() }} of {{ $dataAnggotaNonAktif->total() }} entries
+            Showing {{ $dataAnggotaNonAktif->firstItem() }} to {{ $dataAnggotaNonAktif->lastItem() }} of
+            {{ $dataAnggotaNonAktif->total() }} entries
         </div>
     </div>
 </div>
-@endsection 
+@endsection

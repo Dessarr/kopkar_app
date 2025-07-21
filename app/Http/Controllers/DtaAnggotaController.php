@@ -40,7 +40,21 @@ class DtaAnggotaController extends Controller
 
     public function create()
     {
-        return view('layouts.form.add_data_anggota');
+        // Hitung ID Koperasi otomatis berikutnya
+        $currentYear = date('Y');
+        $currentMonth = date('m');
+        $yearMonth = $currentYear . $currentMonth;
+        $lastAnggota = data_anggota::where('no_ktp', 'like', $yearMonth . '%')
+            ->orderBy('no_ktp', 'desc')
+            ->first();
+        if ($lastAnggota) {
+            $lastNumber = (int) substr($lastAnggota->no_ktp, -4);
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+        $no_ktp_auto = $yearMonth . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        return view('layouts.form.add_data_anggota', compact('no_ktp_auto'));
     }
 
     public function store(Request $request)

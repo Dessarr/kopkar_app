@@ -29,15 +29,13 @@
                         @error('nama')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
-                        <input type="hidden" name="identitas" value="">
                     </div>
-
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">ID Koperasi</label>
-                        <div class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-500">
-                            <span class="text-sm">Akan dibuat otomatis</span>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ID Koperasi (Otomatis)</label>
+                        <div class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700">
+                            <span class="text-sm font-medium">{{ $no_ktp_auto ?? '-' }}</span>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">Format: YYYYMM0001 (contoh: 2025070001)</p>
+                        <p class="text-xs text-gray-500 mt-1">ID Koperasi akan dibuat otomatis saat simpan</p>
                     </div>
 
                     <div>
