@@ -33,13 +33,11 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">No. KTP</label>
-                        <input type="text" name="no_ktp" value="{{ old('no_ktp', $anggota->no_ktp) }}" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('no_ktp') border-red-500 @enderror"
-                            placeholder="Masukkan nomor KTP">
-                        @error('no_ktp')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                        @enderror
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ID Koperasi</label>
+                        <div class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700">
+                            <span class="text-sm font-medium">{{ $anggota->no_ktp }}</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">ID Koperasi tidak dapat diubah</p>
                     </div>
 
                     <div>
@@ -281,12 +279,35 @@
                         @error('file_pic')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
-                        @if($anggota->file_pic)
+                        @if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic))
                         <div class="mt-2">
                             <img src="{{ asset('storage/anggota/' . $anggota->file_pic) }}" alt="Foto Anggota"
                                 class="w-32 h-32 object-cover rounded">
                         </div>
+                        @elseif($anggota->file_pic)
+                        <div class="mt-2">
+                            <div class="w-32 h-32 bg-gray-100 rounded flex items-center justify-center">
+                                <svg class="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                </svg>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Foto tidak ditemukan</p>
+                        </div>
                         @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Aktif -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-4">Status Keanggotaan</h2>
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Status Aktif</label>
+                        <select name="aktif" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="1" {{ old('aktif', $anggota->aktif) == 1 ? 'selected' : '' }}>Aktif</option>
+                            <option value="0" {{ old('aktif', $anggota->aktif) == 0 ? 'selected' : '' }}>Tidak Aktif</option>
+                        </select>
                     </div>
                 </div>
             </div>

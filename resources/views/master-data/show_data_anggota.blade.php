@@ -16,13 +16,15 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Foto Profil -->
                 <div class="col-span-2 flex justify-center">
-                    @if($anggota->file_pic)
-                        <img src="{{ Storage::url('anggota/'.$anggota->file_pic) }}" 
+                    @if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic))
+                        <img src="{{ asset('storage/anggota/' . $anggota->file_pic) }}" 
                              alt="Foto {{ $anggota->nama }}" 
                              class="w-48 h-48 object-cover rounded-full border-4 border-green-500">
                     @else
                         <div class="w-48 h-48 rounded-full border-4 border-green-500 flex items-center justify-center bg-gray-100">
-                            <span class="text-gray-400 text-xl">No Image</span>
+                            <svg class="w-16 h-16 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                            </svg>
                         </div>
                     @endif
                 </div>
@@ -98,8 +100,8 @@
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Status Aktif</p>
-                            <span class="px-2 py-1 rounded-full text-xs {{ $anggota->aktif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                {{ $anggota->aktif ? 'Aktif' : 'Nonaktif' }}
+                            <span class="px-2 py-1 rounded-full text-xs {{ $anggota->aktif == 'Y' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                {{ $anggota->aktif == 'Y' ? 'Aktif' : 'Tidak Aktif' }}
                             </span>
                         </div>
                     </div>
