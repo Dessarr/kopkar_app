@@ -26,7 +26,7 @@ use App\Http\Controllers\MemberController;
 use App\Http\Controllers\AnggotaController;
 
 // Admin Routes
-Route::get('/', [AdminController::class, 'showLoginForm'])->name('admin.login');
+Route::get('/', [AdminController::class, 'showLoginForm'])->name('admin.login.form');
 Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.login.post');
 Route::get('/admin/dashboard', [AdminController::class, 'adminDashboard'])->name('admin.dashboard')->middleware('auth:admin');
 Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.logout');
