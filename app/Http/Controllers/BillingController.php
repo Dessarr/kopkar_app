@@ -45,7 +45,21 @@ class BillingController extends Controller
                 'bulan_tahun' => $this->bulanList[$bulan] . ' ' . $tahun
             ]);
             
-            // Base query
+            // Always generate billing for the selected month and year
+            $result = $this->generateFullBilling($bulan, $tahun);
+            
+            if ($result['status'] === 'error') {
+                return view('billing.billing', [
+                    'error' => $result['message'],
+                    'dataBilling' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10),
+                    'bulan' => $bulan,
+                    'tahun' => $tahun,
+                    'tahunList' => range(date('Y') - 5, date('Y') + 2),
+                    'bulanList' => $this->bulanList
+                ]);
+            }
+            
+            // Base query for the newly generated billing data
             $query = billing::query();
 
             // Pencarian berdasarkan nama atau no KTP
@@ -57,70 +71,8 @@ class BillingController extends Controller
                 });
             }
             
-            // Filter berdasarkan bulan dan tahun
-            if ($bulan && $tahun) {
-                $query->where(function($q) use ($bulan, $tahun) {
-                    $q->where(function($q2) use ($bulan, $tahun) {
-                        $q2->where('bulan', $bulan)
-                           ->where('tahun', $tahun);
-                    })
-                    ->orWhere('bulan_tahun', 'like', '%' . $this->bulanList[$bulan] . ' ' . $tahun . '%');
-                });
-            }
-            
-            // Debug the generated SQL query
-            Log::info('Generated SQL:', [
-                'sql' => $query->toSql(),
-                'bindings' => $query->getBindings()
-            ]);
-            
-            // Cek apakah billing untuk bulan dan tahun ini sudah ada
-            $billingExists = $query->count() > 0;
-            
-            // Debug billing existence
-            Log::info('Billing exists check:', [
-                'exists' => $billingExists
-            ]);
-            
-            // Jika belum ada, generate billing baru
-            if (!$billingExists) {
-                $result = $this->generateFullBilling($bulan, $tahun);
-                
-                // Debug generation result
-                Log::info('Generation result:', $result);
-                
-                if ($result['status'] === 'error') {
-                    // Return empty paginator instead of empty collection
-                    return view('billing.billing', [
-                        'error' => $result['message'],
-                        'dataBilling' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10),
-                        'bulan' => $bulan,
-                        'tahun' => $tahun,
-                        'tahunList' => range(date('Y') - 5, date('Y') + 2),
-                        'bulanList' => $this->bulanList
-                    ]);
-                }
-                
-                // Refresh query setelah generate
-                $query = billing::query();
-                if ($bulan && $tahun) {
-                    $query->where(function($q) use ($bulan, $tahun) {
-                        $q->where(function($q2) use ($bulan, $tahun) {
-                            $q2->where('bulan', $bulan)
-                               ->where('tahun', $tahun);
-                        })
-                        ->orWhere('bulan_tahun', 'like', '%' . $this->bulanList[$bulan] . ' ' . $tahun . '%');
-                    });
-                }
-            }
-            
             // Ambil data billing dengan pagination
             $dataBilling = $query->paginate(10);
-            
-            // Debug final result count
-            Log::info('Final result count:', [
-                'total' => $dataBilling->total()
-            ]);
             
             // Data untuk dropdown tahun (5 tahun ke belakang sampai 2 tahun ke depan)
             $tahunList = range(date('Y') - 5, date('Y') + 2);
@@ -164,7 +116,7 @@ class BillingController extends Controller
         if ($tahun_input < $tahun_sekarang || ($tahun_input == $tahun_sekarang && $bulan_input < $bulan_sekarang)) {
             return [
                 'status' => 'error',
-                'message' => 'Tidak ada data billing untuk bulan dan tahun ini.'
+                'message' => 'Tidak dapat generate billing untuk bulan yang sudah lewat.'
             ];
         }
         
@@ -172,48 +124,39 @@ class BillingController extends Controller
         $bulan_tahun_string = $this->bulanList[$bulan_input] . ' ' . $tahun_input;
         
         try {
+            // 1. Hapus semua billing yang ada secara terpisah dari transaction utama
+            billing::query()->delete();
+            
+            // Mulai transaction untuk generate data baru
             DB::beginTransaction();
              
-            // ============================
-            // 1. GENERATE BILLING SIMPANAN
-            // ============================
+            // 2. Generate billing untuk semua anggota yang belum memiliki billing_process untuk bulan ini
+            // Get active members
+            $anggotaAktif = data_anggota::where('aktif', 'Y')->get();
             
-            // Check if billing simpanan already exists
-            $billingSimpananExists = billing::where('bulan_tahun', $bulan_tahun_string)
-                ->whereRaw("billing_code LIKE '%SMPN'")
+            // Get simpanan settings from jns_simpan table
+            $simpanan_pokok = jns_simpan::where('jns_simpan', 'Simpanan Pokok')->value('jumlah') ?? 100000;
+            $simpanan_wajib = jns_simpan::where('jns_simpan', 'Simpanan Wajib')->value('jumlah') ?? 50000;
+            
+            // Get simpanan account ID
+            $akunSimpanan = jns_akun::where('akun', 'like', '%Simpanan%')->first();
+            $id_akun_simpanan = $akunSimpanan ? $akunSimpanan->id : 151; // Default to 151 if not found
+            
+            // Prepare data for bulk insert - SIMPANAN
+            $billingData = [];
+            
+            foreach ($anggotaAktif as $anggota) {
+                // Skip if this member already has a billing_process record for this month
+                $alreadyProcessed = \App\Models\BillingProcess::where('no_ktp', $anggota->no_ktp)
+                    ->where('bulan', $bulan_input)
+                    ->where('tahun', $tahun_input)
+                    ->where('jns_trans', 'Simpanan')
                 ->exists();
                 
-            if (!$billingSimpananExists) {
-                // Get active members
-                $anggotaAktif = data_anggota::where('aktif', 'Y')
-                    ->select([
-                        'no_ktp',
-                        'nama',
-                        'tgl_daftar',
-                        'simpanan_wajib',
-                        'simpanan_sukarela',
-                        'simpanan_khusus_2'
-                    ])
-                    ->get();
-                
-                // Debug: Print member data
-                foreach ($anggotaAktif as $anggota) {
-                    Log::info("Member data for {$anggota->nama}:", [
-                        'simpanan_wajib' => $anggota->simpanan_wajib,
-                        'simpanan_sukarela' => $anggota->simpanan_sukarela,
-                        'simpanan_khusus_2' => $anggota->simpanan_khusus_2
-                    ]);
+                if ($alreadyProcessed) {
+                    continue; // Skip this member for simpanan billing
                 }
                 
-                // Get simpanan pokok amount
-                $jnsSimpanPokok = jns_simpan::where('jns_simpan', 'Pokok')->first();
-                $simpanan_pokok = $jnsSimpanPokok ? $jnsSimpanPokok->jumlah : 100000; // Default to 100k if not found
-                
-                // Get simpanan account ID
-                $akunSimpanan = jns_akun::where('akun', 'like', '%Simpanan%')->first();
-                $id_akun_simpanan = $akunSimpanan ? $akunSimpanan->id : 1; // Default to 1 if not found
-                
-                foreach ($anggotaAktif as $anggota) {
                     // Each member's monthly billing should be their individual savings amounts
                     $total_simpanan = $anggota->simpanan_wajib + 
                                     $anggota->simpanan_sukarela + 
@@ -221,14 +164,16 @@ class BillingController extends Controller
                     
                     // Add simpanan pokok if this is the member's registration month
                     $tgl_daftar = Carbon::parse($anggota->tgl_daftar);
-                    if ($bulan_input == $tgl_daftar->format('m') && $tahun_input == $tgl_daftar->format('Y')) {
-                        $total_simpanan += $simpanan_pokok;
-                    }
-                    
-                    // Create billing record
+                $tambah_simpanan_pokok = ($bulan_input == $tgl_daftar->format('m') && $tahun_input == $tgl_daftar->format('Y')) 
+                    ? $simpanan_pokok : 0;
+                
+                $total_simpanan += $tambah_simpanan_pokok;
+                
+                // Generate billing code
                     $billing_code = "BILL-" . $tahun_input . $bulan_input . "-" . $anggota->no_ktp . "-SMPN";
                     
-                    billing::create([
+                // Prepare data for bulk insert
+                $billingData[] = [
                         'billing_code' => $billing_code,
                         'bulan_tahun' => $bulan_tahun_string,
                         'id_anggota' => $anggota->no_ktp,
@@ -236,30 +181,29 @@ class BillingController extends Controller
                         'nama' => $anggota->nama,
                         'bulan' => $bulan_input,
                         'tahun' => $tahun_input,
-                        'simpanan_wajib' => $anggota->simpanan_wajib,
-                        'simpanan_sukarela' => $anggota->simpanan_sukarela,
-                        'simpanan_khusus_2' => $anggota->simpanan_khusus_2,
-                        'simpanan_pokok' => ($bulan_input == $tgl_daftar->format('m') && $tahun_input == $tgl_daftar->format('Y')) ? $simpanan_pokok : 0,
+                    'simpanan_wajib' => $anggota->simpanan_wajib ?? $simpanan_wajib,
+                    'simpanan_sukarela' => $anggota->simpanan_sukarela ?? 0,
+                    'simpanan_khusus_2' => $anggota->simpanan_khusus_2 ?? 0,
+                    'simpanan_pokok' => $tambah_simpanan_pokok,
                         'total_billing' => $total_simpanan,
                         'total_tagihan' => $total_simpanan,
                         'id_akun' => $id_akun_simpanan,
                         'status' => 'N',
                         'status_bayar' => 'Belum Lunas',
-                        'jns_trans' => 'Simpanan'
-                    ]);
+                    'jns_trans' => 'Simpanan',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+            
+            // Perform bulk insert in chunks to improve performance - SIMPANAN
+            if (!empty($billingData)) {
+                foreach (array_chunk($billingData, 100) as $chunk) {
+                    billing::insert($chunk);
                 }
             }
             
-            // ========================
-            // 2. GENERATE BILLING TOSERDA
-            // ========================
-            
-            // Check if billing toserda already exists
-            $billingToserdaExists = billing::where('bulan_tahun', $bulan_tahun_string)
-                ->whereRaw("billing_code LIKE '%TSD'")
-                ->exists();
-                
-            if (!$billingToserdaExists) {
+            // Generate TOSERDA billing
                 // Get toserda account ID
                 $akunToserda = jns_akun::where('akun', 'like', '%Toserda%')->first();
                 $id_akun_toserda = $akunToserda ? $akunToserda->id : 155; // Default to 155 if not found
@@ -274,15 +218,30 @@ class BillingController extends Controller
                     ->groupBy('no_ktp')
                     ->get();
                 
+            // Prepare data for bulk insert - TOSERDA
+            $billingToserdaData = [];
+                
                 foreach ($transaksiToserda as $transaksi) {
                     // Get member data
                     $anggota = data_anggota::where('no_ktp', $transaksi->no_ktp)->first();
                     if (!$anggota) continue;
                     
-                    // Create billing record
+                // Skip if this member already has a billing_process record for toserda this month
+                $alreadyProcessed = \App\Models\BillingProcess::where('no_ktp', $anggota->no_ktp)
+                    ->where('bulan', $bulan_input)
+                    ->where('tahun', $tahun_input)
+                    ->where('jns_trans', 'Toserda')
+                    ->exists();
+                
+                if ($alreadyProcessed) {
+                    continue; // Skip this member for toserda billing
+                }
+                
+                // Generate billing code
                     $billing_code = "BILL-" . $tahun_input . $bulan_input . "-" . $transaksi->no_ktp . "-TSD";
                     
-                    billing::create([
+                // Prepare data for bulk insert
+                $billingToserdaData[] = [
                         'billing_code' => $billing_code,
                         'bulan_tahun' => $bulan_tahun_string,
                         'id_anggota' => $transaksi->no_ktp,
@@ -299,8 +258,16 @@ class BillingController extends Controller
                         'id_akun' => $id_akun_toserda,
                         'status' => 'N',
                         'status_bayar' => 'Belum Lunas',
-                        'jns_trans' => 'Toserda'
-                    ]);
+                    'jns_trans' => 'Toserda',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+            
+            // Perform bulk insert in chunks to improve performance - TOSERDA
+            if (!empty($billingToserdaData)) {
+                foreach (array_chunk($billingToserdaData, 100) as $chunk) {
+                    billing::insert($chunk);
                 }
             }
             
@@ -308,7 +275,7 @@ class BillingController extends Controller
             
             return [
                 'status' => 'success',
-                'message' => 'Billing berhasil digenerate'
+                'message' => 'Billing berhasil digenerate untuk periode ' . $this->bulanList[$bulan_input] . ' ' . $tahun_input
             ];
             
         } catch (\Exception $e) {
@@ -327,6 +294,7 @@ class BillingController extends Controller
     {
         // Proses pembayaran billing
         try {
+            // Find billing record first to avoid starting a transaction if not found
             // Try to find by billing_code first
             $billing = billing::where('billing_code', $billing_code)->first();
             
@@ -339,13 +307,84 @@ class BillingController extends Controller
                 return redirect()->back()->with('error', 'Data billing tidak ditemukan');
             }
             
-            // Update status menjadi 'Lunas'
-            $billing->status_bayar = 'Lunas';
-            $billing->status = 'Y';
-            $billing->save();
+            // Now begin the transaction
+            DB::beginTransaction();
+            
+            // Create record in billing_process table
+            $billingProcess = new \App\Models\BillingProcess();
+            $billingProcess->fill($billing->toArray());
+            $billingProcess->status_bayar = 'Lunas';
+            $billingProcess->status = 'Y';
+            $billingProcess->tgl_bayar = now();
+            $billingProcess->processed_by = auth()->id();
+            $billingProcess->save();
+            
+            // Delete from billing table
+            $billing->delete();
+            
+            DB::commit();
             
             return redirect()->back()->with('success', 'Pembayaran berhasil diproses');
         } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            Log::error('Error in processPayment: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Cancel a processed payment and move it back to billing table
+     */
+    public function cancelPayment($billing_process_id)
+    {
+        try {
+            // Find the processed billing first before starting transaction
+            $processedBilling = \App\Models\BillingProcess::find($billing_process_id);
+            
+            if (!$processedBilling) {
+                return redirect()->back()->with('error', 'Data pembayaran tidak ditemukan');
+            }
+            
+            // Check if the billing already exists in billing table before starting transaction
+            $billingExists = billing::where('billing_code', $processedBilling->billing_code)
+                ->orWhere(function($query) use ($processedBilling) {
+                    $query->where('no_ktp', $processedBilling->no_ktp)
+                          ->where('bulan', $processedBilling->bulan)
+                          ->where('tahun', $processedBilling->tahun);
+                })
+                ->exists();
+            
+            if ($billingExists) {
+                return redirect()->back()->with('error', 'Billing sudah ada di daftar tagihan aktif');
+            }
+            
+            // Now start the transaction
+            DB::beginTransaction();
+            
+            // Create a new billing record
+            $billing = new billing();
+            $billing->fill($processedBilling->toArray());
+            $billing->status_bayar = 'Belum Lunas';
+            $billing->status = 'N';
+            $billing->save();
+            
+            // Delete the processed billing
+            $processedBilling->delete();
+            
+            DB::commit();
+            
+            return redirect()->back()->with('success', 'Pembayaran berhasil dibatalkan dan dikembalikan ke daftar tagihan');
+        } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            Log::error('Error in cancelPayment: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -518,17 +557,226 @@ class BillingController extends Controller
     }
     
     /**
-     * Public method to generate billing from routes or other controllers
+     * Display processed billing records.
      */
-    public function generateBillingForPeriod($bulan, $tahun)
+    public function processed(Request $request)
     {
-        $result = $this->generateFullBilling($bulan, $tahun);
+        try {
+            $bulan = $request->input('bulan', date('m'));
+            $tahun = $request->input('tahun', date('Y'));
+            
+            // Base query
+            $query = \App\Models\BillingProcess::query();
+
+            // Pencarian berdasarkan nama atau no KTP
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('nama', 'like', '%' . $search . '%')
+                      ->orWhere('no_ktp', 'like', '%' . $search . '%');
+                });
+            }
+            
+            // Filter berdasarkan bulan dan tahun
+            if ($bulan && $tahun) {
+                $query->where(function($q) use ($bulan, $tahun) {
+                    $q->where(function($q2) use ($bulan, $tahun) {
+                        $q2->where('bulan', $bulan)
+                           ->where('tahun', $tahun);
+                    })
+                    ->orWhere('bulan_tahun', 'like', '%' . $this->bulanList[$bulan] . ' ' . $tahun . '%');
+                });
+            }
+            
+            // Ambil data billing dengan pagination
+            $dataBillingProcess = $query->paginate(10);
+            
+            // Data untuk dropdown tahun (5 tahun ke belakang sampai 2 tahun ke depan)
+            $tahunList = range(date('Y') - 5, date('Y') + 2);
+            
+            return view('billing.processed', [
+                'dataBillingProcess' => $dataBillingProcess,
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+                'tahunList' => $tahunList,
+                'bulanList' => $this->bulanList
+            ]);
+            
+        } catch (\Exception $e) {
+            // Log the error
+            Log::error('Error in processed billings: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            
+            // Return empty paginator instead of empty collection
+            return view('billing.processed', [
+                'error' => 'Terjadi kesalahan: ' . $e->getMessage(),
+                'dataBillingProcess' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10),
+                'bulan' => $bulan ?? date('m'),
+                'tahun' => $tahun ?? date('Y'),
+                'tahunList' => range(date('Y') - 5, date('Y') + 2),
+                'bulanList' => $this->bulanList
+            ]);
+        }
+    }
+    
+    /**
+     * Export processed billings to Excel
+     */
+    public function exportProcessedExcel(Request $request)
+    {
+        // Buat spreadsheet baru
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
         
-        if ($result['status'] === 'error') {
-            return redirect()->route('billing.index')->with('error', $result['message']);
+        // Set judul kolom
+        $sheet->setCellValue('A1', 'No');
+        $sheet->setCellValue('B1', 'ID Billing');
+        $sheet->setCellValue('C1', 'No KTP');
+        $sheet->setCellValue('D1', 'Nama');
+        $sheet->setCellValue('E1', 'Bulan');
+        $sheet->setCellValue('F1', 'Tahun');
+        $sheet->setCellValue('G1', 'Jenis Transaksi');
+        $sheet->setCellValue('H1', 'Total Tagihan');
+        $sheet->setCellValue('I1', 'Tanggal Bayar');
+        
+        // Format header dengan styling
+        $headerStyle = [
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '14AE5C'],
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                ],
+            ],
+        ];
+        
+        $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
+        
+        // Set lebar kolom
+        $sheet->getColumnDimension('A')->setWidth(5);
+        $sheet->getColumnDimension('B')->setWidth(20);
+        $sheet->getColumnDimension('C')->setWidth(20);
+        $sheet->getColumnDimension('D')->setWidth(25);
+        $sheet->getColumnDimension('E')->setWidth(15);
+        $sheet->getColumnDimension('F')->setWidth(15);
+        $sheet->getColumnDimension('G')->setWidth(20);
+        $sheet->getColumnDimension('H')->setWidth(15);
+        $sheet->getColumnDimension('I')->setWidth(15);
+        
+        // Query data billing
+        $query = \App\Models\BillingProcess::query();
+        
+        // Pencarian berdasarkan nama atau no KTP
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', '%' . $search . '%')
+                  ->orWhere('no_ktp', 'like', '%' . $search . '%');
+            });
         }
         
-        return redirect()->route('billing.index', ['bulan' => $bulan, 'tahun' => $tahun])
-                         ->with('success', 'Billing berhasil dibuat untuk periode ' . $this->bulanList[$bulan] . ' ' . $tahun);
+        // Filter berdasarkan bulan dan tahun jika ada
+        if ($request->has('bulan') && $request->has('tahun')) {
+            $query->where(function($q) use ($request) {
+                $q->where(function($q2) use ($request) {
+                    $q2->where('bulan', $request->bulan)
+                       ->where('tahun', $request->tahun);
+                })
+                ->orWhere('bulan_tahun', 'like', '%' . $this->bulanList[$request->bulan] . ' ' . $request->tahun . '%');
+            });
+        }
+        
+        $dataBillingProcess = $query->get();
+        
+        // Isi data
+        $row = 2;
+        $totalBilling = 0;
+        foreach ($dataBillingProcess as $index => $item) {
+            $sheet->setCellValue('A' . $row, $index + 1);
+            $sheet->setCellValue('B' . $row, $item->billing_code);
+            $sheet->setCellValue('C' . $row, $item->no_ktp);
+            $sheet->setCellValue('D' . $row, $item->nama);
+            $sheet->setCellValue('E' . $row, $item->bulan);
+            $sheet->setCellValue('F' . $row, $item->tahun);
+            $sheet->setCellValue('G' . $row, $item->jns_trans ?? 'Billing');
+            $sheet->setCellValue('H' . $row, $item->total_tagihan ?? $item->total_billing ?? 0);
+            $sheet->setCellValue('I' . $row, $item->tgl_bayar ? $item->tgl_bayar->format('d/m/Y') : '-');
+            
+            // Format angka untuk kolom nominal
+            $sheet->getStyle('H' . $row)->getNumberFormat()->setFormatCode('#,##0');
+            
+            $totalBilling += $item->total_tagihan ?? $item->total_billing ?? 0;
+            $row++;
+        }
+        
+        // Tambahkan total di baris terakhir
+        $sheet->setCellValue('G' . $row, 'TOTAL');
+        $sheet->setCellValue('H' . $row, $totalBilling);
+        $sheet->getStyle('H' . $row)->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('G' . $row . ':H' . $row)->applyFromArray([
+            'font' => [
+                'bold' => true,
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'F2F2F2'],
+            ],
+        ]);
+        
+        // Buat writer
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'billing_lunas_' . date('Ymd') . '.xlsx';
+        
+        // Simpan ke file sementara
+        $temp_file = tempnam(sys_get_temp_dir(), $filename);
+        $writer->save($temp_file);
+        
+        // Return response download
+        return response()->download($temp_file, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
+    }
+    
+    /**
+     * Export processed billings to PDF
+     */
+    public function exportProcessedPdf(Request $request)
+    {
+        // Query data billing
+        $query = \App\Models\BillingProcess::query();
+        
+        // Pencarian berdasarkan nama atau no KTP
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', '%' . $search . '%')
+                  ->orWhere('no_ktp', 'like', '%' . $search . '%');
+            });
+        }
+        
+        // Filter berdasarkan bulan dan tahun jika ada
+        if ($request->has('bulan') && $request->has('tahun')) {
+            $query->where(function($q) use ($request) {
+                $q->where(function($q2) use ($request) {
+                    $q2->where('bulan', $request->bulan)
+                       ->where('tahun', $request->tahun);
+                })
+                ->orWhere('bulan_tahun', 'like', '%' . $this->bulanList[$request->bulan] . ' ' . $request->tahun . '%');
+            });
+        }
+        
+        $dataBillingProcess = $query->get();
+        
+        // Load view untuk PDF
+        $pdf = PDF::loadView('billing.pdf_processed', compact('dataBillingProcess'));
+        
+        // Download PDF
+        return $pdf->download('billing_lunas_' . date('Ymd') . '.pdf');
     }
 }

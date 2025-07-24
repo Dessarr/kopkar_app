@@ -59,7 +59,12 @@ Route::middleware(['auth:admin'])->group(function () {
         Route::post('/process/{billing_code}', [BillingController::class, 'processPayment'])->name('billing.process');
         Route::get('/export/excel', [BillingController::class, 'exportExcel'])->name('billing.export.excel');
         Route::get('/export/pdf', [BillingController::class, 'exportPdf'])->name('billing.export.pdf');
-        Route::get('/generate/{bulan}/{tahun}', [BillingController::class, 'generateBillingForPeriod'])->name('billing.generate');
+        
+        // New routes for processed billings
+        Route::get('/processed', [BillingController::class, 'processed'])->name('billing.processed');
+        Route::post('/cancel/{billing_process_id}', [BillingController::class, 'cancelPayment'])->name('billing.cancel');
+        Route::get('/processed/export/excel', [BillingController::class, 'exportProcessedExcel'])->name('billing.processed.export.excel');
+        Route::get('/processed/export/pdf', [BillingController::class, 'exportProcessedPdf'])->name('billing.processed.export.pdf');
     });
 
     //Route untuk Pinjaman

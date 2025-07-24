@@ -11,13 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Drop the existing billing table
-        Schema::dropIfExists('billing');
-
-        // Create a new billing table with the correct structure
-        Schema::create('billing', function (Blueprint $table) {
-            $table->id(); // Auto-incrementing primary key
-            $table->string('billing_code')->nullable(); // For custom billing codes if needed
+        Schema::create('billing_process', function (Blueprint $table) {
+            $table->id();
+            $table->string('billing_code')->nullable();
+            $table->unsignedBigInteger('id_transaksi')->nullable();
+            $table->string('jns_transaksi')->nullable();
+            $table->decimal('jumlah', 15, 2)->nullable();
             $table->string('keterangan')->nullable();
             $table->string('no_ktp');
             $table->string('nama');
@@ -31,9 +30,14 @@ return new class extends Migration
             $table->decimal('simpanan_pokok', 15, 2)->nullable()->default(0);
             $table->decimal('total_billing', 15, 2)->nullable()->default(0);
             $table->decimal('total_tagihan', 15, 2)->nullable()->default(0);
-            $table->enum('status', ['Y', 'N'])->default('N');
-            $table->string('status_bayar')->default('belum');
-            $table->enum('jns_trans', ['simpanan', 'toserda', 'pinjaman'])->nullable();
+            $table->unsignedBigInteger('id_akun')->nullable();
+            $table->enum('status', ['Y', 'N'])->default('Y');
+            $table->string('status_bayar')->default('Lunas');
+            $table->string('jns_trans')->nullable();
+            $table->date('tgl_bayar')->nullable();
+            $table->string('payment_method')->nullable();
+            $table->string('payment_ref')->nullable();
+            $table->unsignedBigInteger('processed_by')->nullable();
             $table->timestamps();
         });
     }
@@ -43,6 +47,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('billing');
+        Schema::dropIfExists('billing_process');
     }
-};
+}; 
