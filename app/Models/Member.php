@@ -39,7 +39,8 @@ class Member extends Authenticatable
         'simpanan_wajib',
         'simpanan_sukarela',
         'simpanan_khusus_2',
-        'id_cabang'
+        'id_cabang',
+        'email'
     ];
 
     protected $hidden = [

@@ -46,6 +46,30 @@ Route::post('/member/logout', [MemberController::class, 'logout'])->name('member
 Route::get('/member/toserda', [MemberController::class, 'toserdaPayment'])->name('member.toserda.payment')->middleware('auth:member');
 Route::post('/member/toserda/process/{billing_code}', [MemberController::class, 'processToserda'])->name('member.toserda.process')->middleware('auth:member');
 
+// Additional Member Routes for Navbar
+Route::middleware(['auth:member'])->group(function () {
+    // Beranda (Home)
+    Route::get('/member/beranda', [MemberController::class, 'beranda'])->name('member.beranda');
+    
+    // Pengajuan Pinjaman
+    Route::get('/member/pengajuan-pinjaman', [MemberController::class, 'pengajuanPinjaman'])->name('member.pengajuan.pinjaman');
+    Route::post('/member/pengajuan-pinjaman', [MemberController::class, 'storePengajuanPinjaman'])->name('member.pengajuan.pinjaman.store');
+    
+    // Pengajuan Penarikan Simpanan
+    Route::get('/member/pengajuan-penarikan', [MemberController::class, 'pengajuanPenarikan'])->name('member.pengajuan.penarikan');
+    Route::post('/member/pengajuan-penarikan', [MemberController::class, 'storePengajuanPenarikan'])->name('member.pengajuan.penarikan.store');
+    
+    // Laporan Member
+    Route::get('/member/laporan', [MemberController::class, 'laporan'])->name('member.laporan');
+    Route::get('/member/laporan/simpanan', [MemberController::class, 'laporanSimpanan'])->name('member.laporan.simpanan');
+    Route::get('/member/laporan/pinjaman', [MemberController::class, 'laporanPinjaman'])->name('member.laporan.pinjaman');
+    Route::get('/member/laporan/transaksi', [MemberController::class, 'laporanTransaksi'])->name('member.laporan.transaksi');
+    
+    // Profile
+    Route::get('/member/profile', [MemberController::class, 'profile'])->name('member.profile');
+    Route::put('/member/profile', [MemberController::class, 'updateProfile'])->name('member.profile.update');
+});
+
 // Anggota Routes
 Route::middleware(['auth:member'])->group(function () {
     Route::get('/anggota/bayar-toserda', [AnggotaController::class, 'bayarToserda'])->name('anggota.bayar.toserda');

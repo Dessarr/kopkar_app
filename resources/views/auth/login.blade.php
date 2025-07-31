@@ -106,7 +106,7 @@
                                 class="flex flex-row items-center bg-white rounded-lg border focus-within:ring-2 focus-within:ring-[#1abc9c]">
                                 <label for="no_ktp"><i
                                         class="fa-solid fa-id-card text-gray-400 text-lg px-3"></i></label>
-                                <input type="text" name="no_ktp" id="noKtpMember" placeholder="No. KTP"
+                                <input type="text" name="no_ktp" id="noKtpMember" placeholder="No. ID"
                                     value="{{ old('no_ktp') }}"
                                     class="w-full px-4 py-3 md:py-4 bg-transparent outline-none" required />
                             </div>

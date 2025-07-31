@@ -1,159 +1,378 @@
-@extends('layouts.app')
+@extends('layouts.member')
 
 @section('title', 'Member Dashboard')
 
-@section('sidebar')
-<a href="#" class="flex items-center p-3 rounded-lg sidebar-item active">
-    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
-        </path>
-    </svg>
-    Home
-</a>
-<a href="{{ route('anggota.bayar.toserda') }}" class="flex items-center p-3 rounded-lg sidebar-item">
-    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-    </svg>
-    Bayar Toserda/Lain-lain
-</a>
-<a href="{{ route('member.logout') }}"
-    onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-    class="flex items-center p-3 rounded-lg sidebar-item">
-    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-    </svg>
-    Logout
-</a>
-<form id="logout-form" action="{{ route('member.logout') }}" method="POST" class="hidden">
-    @csrf
-</form>
-@endsection
-
 @section('content')
-<div class="bg-white p-8 rounded-lg shadow-md mb-6 flex flex-col items-center">
-    <div class="flex flex-col items-center mb-6">
-        @if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic))
-        <img src="{{ asset('storage/anggota/' . $anggota->file_pic) }}" alt="Foto {{ $anggota->nama }}"
-            class="w-32 h-32 object-cover rounded-full border-4 border-green-500 shadow-lg mb-4">
-        @else
-        <div
-            class="w-32 h-32 rounded-full border-4 border-green-500 flex items-center justify-center bg-gray-100 shadow-lg mb-4">
-            <svg class="w-14 h-14 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-            </svg>
-        </div>
-        @endif
-        <h2 class="text-3xl font-extrabold text-gray-800 mb-1 text-center">{{ $anggota->nama ?? 'Member' }}</h2>
-        <p class="text-green-700 font-semibold mb-2 text-center">Anggota</p>
+<!-- Date Selector -->
+<div class="flex items-center mb-6">
+    <div class="bg-gray-100 px-4 py-2 rounded-lg flex items-center">
+        <svg class="w-5 h-5 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+        <span class="text-gray-700 font-medium">{{ now()->format('F Y') }}</span>
     </div>
-    <div class="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div
-            class="bg-gray-50 rounded-lg shadow p-3 text-xs backdrop-blur-sm transition-all duration-300 border border-gray-200 hover:backdrop-blur-none hover:bg-white hover:border-green-400">
-            <h4 class="text-green-700 font-semibold text-xs mb-1">Data Pribadi</h4>
-            <div class="flex flex-col gap-y-1">
-                <p class="mb-0"><span class="font-semibold">ID Koperasi:</span> {{ $anggota->no_ktp ?? '-' }}</p>
-                <p class="mb-0"><span class="font-semibold">Tempat, Tgl Lahir:</span> {{ $anggota->tmp_lahir ?? '-' }},
-                    {{ $anggota->tgl_lahir ?? '-' }}</p>
-                <p class="mb-0"><span class="font-semibold">Jenis Kelamin:</span>
-                    {{ $anggota->jk == 'L' ? 'Laki-laki' : ($anggota->jk == 'P' ? 'Perempuan' : '-') }}</p>
-                <p class="mb-0"><span class="font-semibold">Status:</span> {{ $anggota->status ?? '-' }}</p>
-                <p class="mb-0"><span class="font-semibold">Agama:</span> {{ $anggota->agama ?? '-' }}</p>
+</div>
+
+<!-- Page Title -->
+<div class="text-center mb-8">
+    <h1 class="text-3xl font-bold text-gray-800">Data Anggota</h1>
+</div>
+
+<!-- Main Content Container with Background -->
+<div class="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-8 shadow-lg">
+    <!-- Main Content Grid with Golden Ratio -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <!-- Left Side - 4 Cards in 2x2 Grid (Golden Ratio: ~3/5) -->
+        <div class="lg:col-span-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Card 1: Data Pribadi -->
+                <div
+                    class="bg-white/80 backdrop-blur-sm rounded-lg shadow-md p-6 transition-all duration-300 hover:backdrop-blur-none hover:bg-white hover:shadow-xl hover:scale-105 blur-sm hover:blur-none">
+                    <h3 class="text-lg font-semibold text-green-700 mb-4">Data Pribadi</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">ID Koperasi:</span>
+                            <span class="font-semibold">{{ $anggota->no_ktp ?? '1234567890123456' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Tempat, Tgl Lahir:</span>
+                            <span class="font-semibold">{{ $anggota->tmp_lahir ?? 'Jakarta' }},
+                                {{ $anggota->tgl_lahir ?? '2000-01-01' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Jenis Kelamin:</span>
+                            <span
+                                class="font-semibold">{{ $anggota->jk == 'L' ? 'Laki-laki' : ($anggota->jk == 'P' ? 'Perempuan' : 'Laki-laki') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Status:</span>
+                            <span class="font-semibold">{{ $anggota->status ?? 'Belum Menikah' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Agama:</span>
+                            <span class="font-semibold">{{ $anggota->agama ?? 'Islam' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Kontak & Pekerjaan -->
+                <div
+                    class="bg-white/80 backdrop-blur-sm rounded-lg shadow-md p-6 transition-all duration-300 hover:backdrop-blur-none hover:bg-white hover:shadow-xl hover:scale-105 blur-sm hover:blur-none">
+                    <h3 class="text-lg font-semibold text-green-700 mb-4">Kontak & Pekerjaan</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Alamat:</span>
+                            <span class="font-semibold">{{ $anggota->alamat ?? 'Jl. Contoh No.1' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Kota:</span>
+                            <span class="font-semibold">{{ $anggota->kota ?? 'Jakarta' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">No. Telp:</span>
+                            <span class="font-semibold">{{ $anggota->notelp ?? '08123456789' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Departemen:</span>
+                            <span class="font-semibold">{{ $anggota->departement ?? 'IT' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Jabatan:</span>
+                            <span class="font-semibold">{{ $anggota->jabatan_id ?? '1' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Bank & Rekening -->
+                <div
+                    class="bg-white/80 backdrop-blur-sm rounded-lg shadow-md p-6 transition-all duration-300 hover:backdrop-blur-none hover:bg-white hover:shadow-xl hover:scale-105 blur-sm hover:blur-none">
+                    <h3 class="text-lg font-semibold text-green-700 mb-4">Bank & Rekening</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Bank:</span>
+                            <span class="font-semibold">{{ $anggota->bank ?? 'BCA' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">No. Rekening:</span>
+                            <span class="font-semibold">{{ $anggota->no_rekening ?? '1234567890' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Nama Pemilik Rekening:</span>
+                            <span class="font-semibold">{{ $anggota->nama_pemilik_rekening ?? 'prakerinmember' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 4: Status Keanggotaan -->
+                <div
+                    class="bg-white/80 backdrop-blur-sm rounded-lg shadow-md p-6 transition-all duration-300 hover:backdrop-blur-none hover:bg-white hover:shadow-xl hover:scale-105 blur-sm hover:blur-none">
+                    <h3 class="text-lg font-semibold text-green-700 mb-4">Status Keanggotaan</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Tanggal Daftar:</span>
+                            <span class="font-semibold">{{ $anggota->tgl_daftar ?? '2025-07-11' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Status Aktif:</span>
+                            <span class="font-semibold">{{ $anggota->aktif == 'Y' ? 'Aktif' : 'Tidak Aktif' }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div
-            class="bg-gray-50 rounded-lg shadow p-3 text-xs backdrop-blur-sm transition-all duration-300 border border-gray-200 hover:backdrop-blur-none hover:bg-white hover:border-green-400">
-            <h4 class="text-green-700 font-semibold text-xs mb-1">Kontak & Pekerjaan</h4>
-            <div class="flex flex-col gap-y-1">
-                <p class="mb-0"><span class="font-semibold">Alamat:</span> {{ $anggota->alamat ?? '-' }}</p>
-                <p class="mb-0"><span class="font-semibold">Kota:</span> {{ $anggota->kota ?? '-' }}</p>
-                <p class="mb-0"><span class="font-semibold">No. Telp:</span> {{ $anggota->notelp ?? '-' }}</p>
-                <p class="mb-0"><span class="font-semibold">Departemen:</span> {{ $anggota->departement ?? '-' }}</p>
-                <p class="mb-0"><span class="font-semibold">Jabatan:</span> {{ $anggota->jabatan_id ?? '-' }}</p>
-            </div>
-        </div>
-        <div
-            class="bg-gray-50 rounded-lg shadow p-3 text-xs backdrop-blur-sm transition-all duration-300 border border-gray-200 hover:backdrop-blur-none hover:bg-white hover:border-green-400">
-            <h4 class="text-green-700 font-semibold text-xs mb-1">Bank & Rekening</h4>
-            <div class="flex flex-col gap-y-1">
-                <p class="mb-0"><span class="font-semibold">Bank:</span> {{ $anggota->bank ?? '-' }}</p>
-                <p class="mb-0"><span class="font-semibold">No. Rekening:</span> {{ $anggota->no_rekening ?? '-' }}</p>
-                <p class="mb-0"><span class="font-semibold">Nama Pemilik Rekening:</span>
-                    {{ $anggota->nama_pemilik_rekening ?? '-' }}</p>
-            </div>
-        </div>
-        <div
-            class="bg-gray-50 rounded-lg shadow p-3 text-xs backdrop-blur-sm transition-all duration-300 border border-gray-200 hover:backdrop-blur-none hover:bg-white hover:border-green-400">
-            <h4 class="text-green-700 font-semibold text-xs mb-1">Status Keanggotaan</h4>
-            <div class="flex flex-col gap-y-1">
-                <p class="mb-0"><span class="font-semibold">Tanggal Daftar:</span> {{ $anggota->tgl_daftar ?? '-' }}</p>
-                <p class="mb-0"><span class="font-semibold">Status Aktif:</span>
-                    {{ $anggota->aktif == 'Y' ? 'Aktif' : 'Tidak Aktif' }}</p>
+
+        <!-- Right Side - Profile Photo and Identity (Golden Ratio: ~2/5) -->
+        <div class="lg:col-span-2">
+            <div class="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-6 h-fit">
+                <div class="flex flex-col items-center mb-6">
+                    <!-- Profile Photo -->
+                    <div class="mb-4">
+                        @if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic))
+                        <img src="{{ asset('storage/anggota/' . $anggota->file_pic) }}" alt="Foto {{ $anggota->nama }}"
+                            class="w-24 h-24 object-cover rounded-full border-4 border-green-500 shadow-lg">
+                        @else
+                        <div
+                            class="w-24 h-24 rounded-full border-4 border-green-500 flex items-center justify-center bg-gray-100 shadow-lg">
+                            <svg class="w-10 h-10 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                            </svg>
+                        </div>
+                        @endif
+                    </div>
+
+                    <!-- Name and Status -->
+                    <h2 class="text-xl font-bold text-gray-800 mb-1">{{ $anggota->nama ?? 'prakerinmember' }}</h2>
+                    <p class="text-green-700 font-semibold text-sm">Anggota</p>
+                </div>
+
+                <!-- Identity Details -->
+                <div class="space-y-2 text-sm">
+                    <div class="flex border-b border-gray-200 pb-2">
+                        <span class="font-semibold text-gray-600 w-24">ID Anggota:</span>
+                        <span class="text-gray-800">{{ $anggota->no_ktp ?? '1234567890123456' }}</span>
+                    </div>
+                    <div class="flex border-b border-gray-200 pb-2">
+                        <span class="font-semibold text-gray-600 w-24">Nama:</span>
+                        <span class="text-gray-800 font-bold">{{ $anggota->nama ?? 'prakerinmember' }}</span>
+                    </div>
+                    <div class="flex border-b border-gray-200 pb-2">
+                        <span class="font-semibold text-gray-600 w-24">Jenis Kelamin:</span>
+                        <span
+                            class="text-gray-800">{{ $anggota->jk == 'L' ? 'Laki-Laki' : ($anggota->jk == 'P' ? 'Perempuan' : 'Laki-Laki') }}</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <!-- Card Pinjaman Kredit -->
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <h3 class="font-bold text-gray-800 mb-4">Pinjaman Kredit</h3>
-        <ul class="space-y-2 text-sm text-gray-600">
-            <li class="flex items-center"><span class="w-3 h-3 rounded-full bg-green-500 mr-2"></span>Tagihan belum
-                lunas: <span
-                    class="font-bold ml-auto">{{ number_format($anggota->total_pinjaman ?? 0, 0, ',', '.') }}</span>
-            </li>
-            <li class="flex items-center"><span class="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>Tagihan belum lunas
-                bulan lalu: <span
-                    class="font-bold ml-auto">{{ number_format($anggota->tagihan_bulan_lalu ?? 0, 0, ',', '.') }}</span>
-            </li>
-            <li class="flex items-center"><span class="w-3 h-3 rounded-full bg-red-500 mr-2"></span>Pembayaran bulan
-                ini: <span
-                    class="font-bold ml-auto">{{ number_format($anggota->pembayaran_bulan_ini ?? 0, 0, ',', '.') }}</span>
-            </li>
-        </ul>
+<!-- Financial Summary Cards with New Grid Layout -->
+<div class="grid grid-cols-7 grid-rows-6 gap-4 mt-8">
+    <!-- 1. Saldo Simpanan (Top Left) -->
+    <div class="col-span-2 row-span-2 bg-orange-500 rounded-lg shadow-md p-4 text-white">
+        <div class="flex justify-between items-start mb-3">
+            <h3 class="text-lg font-bold">Saldo Simpanan</h3>
+            <div class="bg-white bg-opacity-20 p-2 rounded-full">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                    </path>
+                </svg>
+            </div>
+        </div>
+        <div class="space-y-1 text-xs">
+            @foreach($simpananList as $simpanan)
+            <div class="flex justify-between">
+                <span>{{ $simpanan['nama'] }}:</span>
+                <span class="font-bold">{{ number_format($simpanan['jumlah'], 0, ',', '.') }}</span>
+            </div>
+            @endforeach
+            <div class="border-t border-white border-opacity-30 pt-1 mt-1">
+                <div class="flex justify-between font-bold">
+                    <span>Jumlah:</span>
+                    <span>{{ number_format($totalSimpanan, 0, ',', '.') }}</span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Card Simpanan -->
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <h3 class="font-bold text-gray-800 mb-4">Simpanan</h3>
-        <ul class="space-y-2 text-sm text-gray-600">
-            <li class="flex items-center"><span class="w-3 h-3 rounded-full bg-green-500 mr-2"></span>Total simpanan:
-                <span class="font-bold ml-auto">{{ number_format($anggota->total_simpanan ?? 0, 0, ',', '.') }}</span>
-            </li>
-            <li class="flex items-center"><span class="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>Simpanan wajib:
-                <span class="font-bold ml-auto">{{ number_format($anggota->simpanan_wajib ?? 0, 0, ',', '.') }}</span>
-            </li>
-            <li class="flex items-center"><span class="w-3 h-3 rounded-full bg-red-500 mr-2"></span>Simpanan sukarela:
-                <span
-                    class="font-bold ml-auto">{{ number_format($anggota->simpanan_sukarela ?? 0, 0, ',', '.') }}</span>
-            </li>
-        </ul>
+    <!-- 2. Tagihan Kredit (Middle Left) -->
+    <div class="col-span-2 row-span-2 col-start-1 row-start-3 bg-purple-500 rounded-lg shadow-md p-4 text-white">
+        <div class="flex justify-between items-start mb-3">
+            <h3 class="text-lg font-bold">Tagihan Kredit</h3>
+            <div class="bg-white bg-opacity-20 p-2 rounded-full">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                    </path>
+                </svg>
+            </div>
+        </div>
+        <div class="space-y-1 text-xs">
+            <div class="flex justify-between">
+                <span>Pinjaman Biasa:</span>
+                <span class="font-bold">{{ number_format($totalPinjaman, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Sisa Pinjaman:</span>
+                <span class="font-bold">{{ number_format($sisaPinjaman, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Pinjaman Barang:</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Sisa Pinjaman:</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Pinjaman Bank:</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Tagihan Takterbayar:</span>
+                <span class="font-bold">{{ number_format($totalTagihan, 0, ',', '.') }}</span>
+            </div>
+        </div>
     </div>
 
-    <!-- Card Transaksi -->
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <h3 class="font-bold text-gray-800 mb-4">Transaksi Terakhir</h3>
-        <ul class="space-y-2 text-sm text-gray-600">
-            <li class="flex items-center">
-                <span class="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
-                <a href="{{ route('anggota.bayar.toserda') }}" class="text-blue-600 hover:underline">Toserda:</a>
+    <!-- 3. Keterangan (Bottom Left) -->
+    <div class="col-span-2 row-span-2 col-start-1 row-start-5 bg-blue-500 rounded-lg shadow-md p-4 text-white">
+        <div class="flex justify-between items-start mb-3">
+            <h3 class="text-lg font-bold">Keterangan</h3>
+            <div class="bg-white bg-opacity-20 p-2 rounded-full">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                    </path>
+                </svg>
+            </div>
+        </div>
+        <div class="space-y-1 text-xs">
+            <div class="flex justify-between">
+                <span>Jumlah Pinjaman:</span>
+                <span class="font-bold">{{ number_format($totalPinjaman, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Pinjaman Lunas:</span>
+                <span class="font-bold">{{ $pinjamanLunas }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span>Pembayaran:</span>
                 <span
-                    class="font-bold ml-auto">{{ number_format($anggota->transaksi_toserda ?? 0, 0, ',', '.') }}</span>
-            </li>
-            <li class="flex items-center"><span class="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>Angkutan: <span
-                    class="font-bold ml-auto">{{ number_format($anggota->transaksi_angkutan ?? 0, 0, ',', '.') }}</span>
-            </li>
-            <li class="flex items-center"><span class="w-3 h-3 rounded-full bg-red-500 mr-2"></span>Lainnya: <span
-                    class="font-bold ml-auto">{{ number_format($anggota->transaksi_lainnya ?? 0, 0, ',', '.') }}</span>
-            </li>
-        </ul>
-        <div class="mt-4 text-center">
-            <a href="{{ route('anggota.bayar.toserda') }}" class="text-blue-600 hover:underline text-sm">Bayar Tagihan
-                Toserda</a>
+                    class="bg-white text-red-500 px-1 py-0.5 rounded text-xs font-bold border border-red-500">Lancar</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Tanggal Tempo:</span>
+                <span class="font-bold">{{ $anggota->tanggal_tempo ?? '-' }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Tagihan Simpanan (Center - Long Card) -->
+    <div class="col-span-2 row-span-6 col-start-3 row-start-1 bg-green-500 rounded-lg shadow-md p-4 text-white">
+        <div class="flex justify-between items-start mb-3">
+            <h3 class="text-lg font-bold">Tagihan Simpanan</h3>
+            <div class="bg-white bg-opacity-20 p-2 rounded-full">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                    </path>
+                </svg>
+            </div>
+        </div>
+        <div class="space-y-1 text-xs">
+            @foreach($simpananList as $simpanan)
+            <div class="flex justify-between">
+                <span>{{ $simpanan['nama'] }}:</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+            </div>
+            @endforeach
+            <div class="flex justify-between">
+                <span>Pinjaman Biasa:</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                <span class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">0/0</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Jasa (1%):</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Pinjaman Barang:</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                <span class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">0/0</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Jasa (2%):</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Pinjaman Bank BSM:</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                <span class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">0/0</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Jasa (1%):</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Toserda:</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Lain-lain:</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+            </div>
+            <div class="border-t border-white border-opacity-30 pt-1 mt-1">
+                <div class="space-y-1">
+                    <div class="flex justify-between">
+                        <span>Jumlah:</span>
+                        <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Tag Bulan Lalu:</span>
+                        <span class="font-bold">{{ number_format($tagihanBulanLalu, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold">Pot Gaji:</span>
+                        <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold">Pot Simpanan:</span>
+                        <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Tag Harus Dibayar:</span>
+                        <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Notifikasi Pengajuan Pinjaman (Top Right) -->
+    <div class="col-span-3 row-span-3 col-start-5 row-start-1 bg-blue-100 rounded-lg p-4 border border-blue-200">
+        <div class="flex items-center h-full">
+            <svg class="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                </path>
+            </svg>
+            <h3 class="text-lg font-semibold text-blue-800">Belum ada Pengajuan Pinjaman</h3>
+        </div>
+    </div>
+
+    <!-- 6. Notifikasi Penarikan Simpanan (Bottom Right) -->
+    <div class="col-span-3 row-span-3 col-start-5 row-start-4 bg-blue-100 rounded-lg p-4 border border-blue-200">
+        <div class="flex items-center h-full">
+            <svg class="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                </path>
+            </svg>
+            <h3 class="text-lg font-semibold text-blue-800">Belum ada Penarikan Simpanan</h3>
         </div>
     </div>
 </div>

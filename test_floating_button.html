@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Floating Button</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f3f4f6;
+        }
+        
+        .floating-burger {
+            position: fixed;
+            top: 1.5rem;
+            left: 0.5rem;
+            z-index: 50;
+            transition: all 0.3s ease;
+            display: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #14AE5C;
+            color: white;
+            border: 2px solid white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .floating-burger:hover {
+            background-color: #0f8a4a;
+            transform: scale(1.1);
+        }
+
+        .floating-burger:active {
+            transform: scale(0.95);
+        }
+
+        .floating-burger.open {
+            left: 18rem;
+            background-color: white;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+
+        .floating-burger.open:hover {
+            background-color: #f3f4f6;
+        }
+
+        @media (max-width: 1023px) {
+            .floating-burger {
+                display: flex !important;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .floating-burger {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div x-data="{ sidebarOpen: false }">
+        <!-- Floating Burger Menu -->
+        <button 
+            class="floating-burger"
+            @click="sidebarOpen = !sidebarOpen"
+            :class="{ 'open': sidebarOpen }"
+        >
+            <i class="fas fa-bars" x-show="!sidebarOpen"></i>
+            <i class="fas fa-times" x-show="sidebarOpen"></i>
+        </button>
+
+        <!-- Test Content -->
+        <div class="p-8">
+            <h1 class="text-2xl font-bold mb-4">Test Floating Button</h1>
+            <p class="mb-4">Resize browser window to mobile size to see the floating button.</p>
+            <p class="text-sm text-gray-600">Button should appear at top-left when screen width < 1024px</p>
+            
+            <div class="mt-8 p-4 bg-white rounded-lg shadow">
+                <h2 class="font-semibold mb-2">Current State:</h2>
+                <p>Sidebar Open: <span x-text="sidebarOpen ? 'Yes' : 'No'" class="font-bold"></span></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
