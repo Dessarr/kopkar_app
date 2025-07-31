@@ -125,21 +125,21 @@
         <!-- Right Side - Profile Photo and Identity (Golden Ratio: ~2/5) -->
         <div class="lg:col-span-2">
             <div class="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-6 h-fit">
-                <div class="flex flex-col items-center mb-6">
+    <div class="flex flex-col items-center mb-6">
                     <!-- Profile Photo -->
                     <div class="mb-4">
-                        @if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic))
-                        <img src="{{ asset('storage/anggota/' . $anggota->file_pic) }}" alt="Foto {{ $anggota->nama }}"
+        @if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic))
+        <img src="{{ asset('storage/anggota/' . $anggota->file_pic) }}" alt="Foto {{ $anggota->nama }}"
                             class="w-24 h-24 object-cover rounded-full border-4 border-green-500 shadow-lg">
-                        @else
-                        <div
+        @else
+        <div
                             class="w-24 h-24 rounded-full border-4 border-green-500 flex items-center justify-center bg-gray-100 shadow-lg">
                             <svg class="w-10 h-10 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                                <path
-                                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                            </svg>
-                        </div>
-                        @endif
+                <path
+                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
+        </div>
+        @endif
                     </div>
 
                     <!-- Name and Status -->
@@ -267,9 +267,9 @@
             <div class="flex justify-between">
                 <span>Tanggal Tempo:</span>
                 <span class="font-bold">{{ $anggota->tanggal_tempo ?? '-' }}</span>
-            </div>
         </div>
     </div>
+</div>
 
     <!-- 4. Tagihan Simpanan (Center - Long Card) -->
     <div class="col-span-2 row-span-6 col-start-3 row-start-1 bg-green-500 rounded-lg shadow-md p-4 text-white">
