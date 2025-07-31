@@ -172,23 +172,16 @@
                         <td class="px-4 py-2 border-b">{{ $tr->no_ktp }}</td>
                         <td class="px-4 py-2 border-b">{{ number_format($tr->jumlah, 0, ',', '.') }}</td>
                         <td class="px-4 py-2 border-b">
-                            @php
-                            $billing = \App\Models\billing::where('no_ktp', $tr->no_ktp)
-                                ->where('bulan', $tr->tgl_transaksi->format('m'))
-                                ->where('tahun', $tr->tgl_transaksi->format('Y'))
-                                ->where('jns_trans', 'toserda')
-                                ->first();
-                            @endphp
-                            @if($billing)
+                            @if($tr->status_billing == 'Y')
                             <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs text-nowrap">Sudah Billing</span>
                             @else
                             <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs text-nowrap">Belum Billing</span>
                             @endif
                         </td>
                         <td class="px-4 py-2 border-b">
-                            @if($billing && $billing->status_bayar == 'sudah')
+                            @if($tr->status_billing == 'Y' && $tr->tgl_bayar)
                             <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Sudah Bayar</span>
-                            @elseif($billing)
+                            @elseif($tr->status_billing == 'Y')
                             <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Belum Bayar</span>
                             @else
                             <span class="px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs">Belum Ditagih</span>

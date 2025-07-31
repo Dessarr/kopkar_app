@@ -71,4 +71,12 @@ class TblPinjamanD extends Table_Base
     {
         return $this->belongsTo(jns_akun::class, 'jns_trans');
     }
+
+    /**
+     * Get the related pinjaman.
+     */
+    public function pinjaman()
+    {
+        return $this->belongsTo(TblPinjamanH::class, 'pinjam_id', 'id');
+    }
 } 

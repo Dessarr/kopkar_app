@@ -165,10 +165,10 @@ class ToserdaController extends Controller
             }
 
         if ($billingStatus === 'billed') {
-                    $query->whereHas('billing');
+            $query->where('status_billing', 'Y');
         } elseif ($billingStatus === 'unbilled') {
-                    $query->whereDoesntHave('billing');
-                }
+            $query->where('status_billing', 'N');
+        }
             
         $transaksi = $query->orderBy('tgl_transaksi', 'desc')->paginate(15);
             
@@ -335,44 +335,24 @@ class ToserdaController extends Controller
             // Ambil semua transaksi bulan & tahun yang belum dibilling
             $transactions = TblTransToserda::whereMonth('tgl_transaksi', $bulan)
                 ->whereYear('tgl_transaksi', $tahun)
-                ->whereDoesntHave('billing', function($query) {
-                    $query->where('jns_trans', 'toserda');
-                })
+                ->where('status_billing', 'N') // Hanya yang belum dibilling
                 ->get();
 
             if ($transactions->isEmpty()) {
                 return redirect()->back()->with('error', 'Tidak ada transaksi yang perlu diproses untuk periode ini.');
             }
 
-            // Group by no_ktp
-            $transactionsByMember = $transactions->groupBy('no_ktp');
-            $billingCount = 0;
+            // Update status_billing menjadi 'Y' untuk semua transaksi yang diproses
+            $updatedCount = TblTransToserda::whereMonth('tgl_transaksi', $bulan)
+                ->whereYear('tgl_transaksi', $tahun)
+                ->where('status_billing', 'N')
+                ->update([
+                    'status_billing' => 'Y',
+                    'tgl_trans' => now()
+                ]);
 
-            DB::beginTransaction();
-            foreach ($transactionsByMember as $noKtp => $trs) {
-                $total = $trs->sum('jumlah');
-                $anggota = data_anggota::where('no_ktp', $noKtp)->first();
-                try {
-                    billing::create([
-                        'billing_code' => 'BL' . \Str::random(6),
-                        'bulan' => $bulan,
-                        'tahun' => $tahun,
-                        'no_ktp' => $noKtp,
-                        'id_anggota' => $anggota?->id ?? null,
-                        'nama' => $anggota?->nama ?? '-',
-                        'total_billing' => $total,
-                        'total_tagihan' => $total,
-                        'status' => 'N',
-                        'status_bayar' => 'Belum Lunas',
-                        'jns_trans' => 'toserda',
-                    ]);
-                    $billingCount++;
-                } catch (\Exception $e) {
-                    \Log::error('Gagal insert billing untuk KTP: ' . $noKtp . ' - ' . $e->getMessage());
-                }
-            }
             DB::commit();
-            return redirect()->back()->with('success', "Berhasil memproses $billingCount billing anggota untuk periode $bulan/$tahun.");
+            return redirect()->back()->with('success', "Berhasil memproses $updatedCount transaksi Toserda untuk periode $bulan/$tahun. Data sekarang tersedia di Billing Toserda.");
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
@@ -490,4 +470,4 @@ class ToserdaController extends Controller
         $sheet->getColumnDimension('C')->setWidth(25);
         $sheet->getColumnDimension('D')->setWidth(40);
     }
-} 
+}

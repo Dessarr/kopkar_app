@@ -121,12 +121,27 @@
         </div>
 
         <!--BILLING NEW 1 Section-->
-        <a href="{{ route('billing.index') }}" class="flex items-center p-3 rounded-lg sidebar-item mb-2">
-            <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m0 0l-6-6m6 6H3" />
-            </svg>
-            <span class="">Billing</span>
-        </a>
+        <div>
+            <button @click="openMenu === 'billing' ? openMenu = '' : openMenu = 'billing'"
+                class="flex items-center w-full p-3 rounded-lg sidebar-item focus:outline-none">
+                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m0 0l-6-6m6 6H3" />
+                </svg>
+                Billing
+                <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path :class="{'rotate-180': openMenu === 'billing'}" class="transition-transform"
+                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+            <div x-show="openMenu === 'billing'" class="pl-8 space-y-1 mt-1" x-transition>
+                <a href="{{ route('billing.index') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">Billing Utama</a>
+                <a href="{{ route('billing.toserda') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">Billing Toserda</a>
+                <a href="{{ route('billing.toserda.processed') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white transition-colors duration-200">Billing Toserda Diproses</a>
+            </div>
+        </div>
 
         <!-- Billing  OLD-->
         <!-- <div>
@@ -272,13 +287,12 @@
             </div>
         </div>
 
-        <!-- Laporan -->
+        <!-- Laporan Section -->
         <div>
             <button @click="openMenu === 'laporan' ? openMenu = '' : openMenu = 'laporan'"
                 class="flex items-center w-full p-3 rounded-lg sidebar-item focus:outline-none">
                 <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 17v-2a4 4 0 018 0v2m-4-4a4 4 0 100-8 4 4 0 000 8z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18" />
                 </svg>
                 Laporan
                 <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -287,54 +301,23 @@
                 </svg>
             </button>
             <div x-show="openMenu === 'laporan'" class="pl-8 space-y-1 mt-1" x-transition>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Angkutan
-                    Karyawan</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Toserda</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Data
-                    Anggota</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Kas
-                    Anggota</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Jatuh
-                    Tempo</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Kredit
-                    Macet</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Transaksi
-                    Kas</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Buku
-                    Besar</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Neraca
-                    Saldo</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Kas
-                    Simpanan</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Kas
-                    Pinjaman</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Target
-                    & Realisasi</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Pengeluaran
-                    Pinjaman</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Angsuran
-                    Pinjaman</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Rekapitulasi</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">Saldo
-                    Kas</a>
-                <a href="#"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white  transition-colors duration-200">SHU</a>
+                <a href="{{ route('laporan.buku_besar') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.buku_besar') ? 'bg-[#14AE5C] text-white' : '' }}">Buku Besar</a>
+                <a href="{{ route('laporan.neraca_saldo') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.neraca_saldo') ? 'bg-[#14AE5C] text-white' : '' }}">Neraca Saldo</a>
+                <a href="{{ route('laporan.kas_simpanan') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.kas_simpanan') ? 'bg-[#14AE5C] text-white' : '' }}">Kas Simpanan</a>
+                <a href="{{ route('laporan.kas_pinjaman') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.kas_pinjaman') ? 'bg-[#14AE5C] text-white' : '' }}">Kas Pinjaman</a>
+                <a href="{{ route('laporan.target_realisasi') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.target_realisasi') ? 'bg-[#14AE5C] text-white' : '' }}">Target & Realisasi</a>
+                <a href="{{ route('laporan.pengeluaran_pinjaman') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.pengeluaran_pinjaman') ? 'bg-[#14AE5C] text-white' : '' }}">Pengeluaran Pinjaman</a>
+                <a href="{{ route('laporan.angsuran_pinjaman') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.angsuran_pinjaman') ? 'bg-[#14AE5C] text-white' : '' }}">Angsuran Pinjaman</a>
+                <a href="{{ route('laporan.rekapitulasi') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.rekapitulasi') ? 'bg-[#14AE5C] text-white' : '' }}">Rekapitulasi</a>
+                <a href="{{ route('laporan.saldo_kas') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.saldo_kas') ? 'bg-[#14AE5C] text-white' : '' }}">Saldo Kas</a>
+                <a href="{{ route('laporan.shu') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.shu') ? 'bg-[#14AE5C] text-white' : '' }}">SHU</a>
+                <a href="{{ route('laporan.kas.anggota') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.kas.anggota') ? 'bg-[#14AE5C] text-white' : '' }}">Kas Anggota</a>
+                <a href="{{ route('laporan.data.anggota') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.data.anggota') ? 'bg-[#14AE5C] text-white' : '' }}">Data Anggota</a>
+                <a href="{{ route('laporan.jatuh.tempo') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.jatuh.tempo') ? 'bg-[#14AE5C] text-white' : '' }}">Jatuh Tempo</a>
+                <a href="{{ route('laporan.kredit.macet') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.kredit.macet') ? 'bg-[#14AE5C] text-white' : '' }}">Kredit Macet</a>
+                <a href="{{ route('laporan.transaksi.kas') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.transaksi.kas') ? 'bg-[#14AE5C] text-white' : '' }}">Transaksi Kas</a>
+                <a href="{{ route('laporan.angkutan.karyawan') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.angkutan.karyawan') ? 'bg-[#14AE5C] text-white' : '' }}">Angkutan Karyawan</a>
+                <a href="{{ route('laporan.toserda') }}" class="block py-2 px-3 rounded-lg transition-colors duration-200 {{ request()->routeIs('laporan.toserda') ? 'bg-[#14AE5C] text-white' : '' }}">Toserda</a>
             </div>
         </div>
         <!-- Setting -->
