@@ -7,9 +7,22 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;  
 use App\Models\Member;
+use App\Models\JnsPinjaman;
+use Carbon\Carbon;
+
 
 class MemberController extends Controller
 {
+    
+    // Menampilkan form pengajuan pinjaman baru
+    public function tambahPengajuanPinjaman()
+    {
+        $jenisPinjaman = JnsPinjaman::all(); // Assuming you want to get all types of loans
+        return view('member.form_pengajuan_pinjaman', compact('jenisPinjaman'));
+    }
+
+   
+
     public function showLoginForm()
     {
         return view('auth.login');
@@ -22,27 +35,19 @@ class MemberController extends Controller
             'pass_word' => 'required'
         ]);
 
-        // Debug log
-        Log::info('Login attempt for member: ' . $credentials['no_ktp']);
-
-        // Cari member berdasarkan no_ktp
         $member = Member::where('no_ktp', $credentials['no_ktp'])->first();
 
         if ($member) {
-            Log::info('Member found with ID: ' . $member->id);
-            
-            // Debug password check
-            $passwordMatch = Hash::check($credentials['pass_word'], $member->pass_word);
-            Log::info('Password match: ' . ($passwordMatch ? 'Yes' : 'No'));
-
-            if ($passwordMatch) {
+            // Fix: Verify the provided password against the stored hash
+            if (password_verify($credentials['pass_word'], $member->pass_word)) {
                 Auth::guard('member')->login($member);
                 $request->session()->regenerate();
-                Log::info('Login successful for member: ' . $member->nama);
-                return redirect()->intended('member/dashboard');
+                return redirect()->route('member.dashboard');
             }
+            // Log failed login attempts
+            Log::warning('Failed login attempt for member: ' . $credentials['no_ktp']);
         } else {
-            Log::info('No member found with name: ' . $credentials['no_ktp']);
+            Log::info('No member found with no_ktp: ' . $credentials['no_ktp']);
         }
 
         return back()->withErrors([
@@ -237,36 +242,19 @@ class MemberController extends Controller
     public function pengajuanPinjaman()
     {
         $member = auth()->guard('member')->user();
-        $jenisPinjaman = \App\Models\JnsPinjaman::where('aktif', 'Y')->get();
-        return view('member.pengajuan_pinjaman', compact('member', 'jenisPinjaman'));
+        return view('member.pengajuan_pinjaman', compact('member'));
+    }
+
+    public function createPengajuanPinjaman()
+    {
+        $member = auth()->guard('member')->user();
+        return view('member.form_pengajuan_pinjaman', compact('member'));
     }
 
     public function storePengajuanPinjaman(Request $request)
     {
-        $request->validate([
-            'jenis_pinjaman' => 'required',
-            'jumlah_pinjaman' => 'required|numeric|min:1000',
-            'keterangan' => 'nullable|string|max:500'
-        ]);
-
-        try {
-            $member = auth()->guard('member')->user();
-            
-            // Create loan application
-            $pengajuan = new \App\Models\data_pengajuan();
-            $pengajuan->no_ktp = $member->no_ktp;
-            $pengajuan->jenis_pinjaman = $request->jenis_pinjaman;
-            $pengajuan->jumlah_pinjaman = $request->jumlah_pinjaman;
-            $pengajuan->keterangan = $request->keterangan;
-            $pengajuan->status = 'Pending';
-            $pengajuan->tgl_pengajuan = now();
-            $pengajuan->save();
-
-            return redirect()->route('member.pengajuan.pinjaman')->with('success', 'Pengajuan pinjaman berhasil dikirim');
-        } catch (\Exception $e) {
-            Log::error('Error in storePengajuanPinjaman: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
+        return redirect()->route('member.pengajuan.pinjaman')
+            ->with('success', 'Pengajuan pinjaman berhasil dikirim');
     }
 
     public function pengajuanPenarikan()
@@ -358,8 +346,13 @@ class MemberController extends Controller
         ]);
 
         try {
-            $member = auth()->guard('member')->user();
-            $member->update($request->only(['nama', 'alamat', 'notelp', 'email']));
+            $authMember = auth()->guard('member')->user();
+            $member =Member::find($authMember->id);
+            $member->nama = $request->input('nama');
+            $member->alamat = $request->input('alamat');
+            $member->notelp = $request->input('notelp');
+            $member->email = $request->input('email');
+            $member->save();
 
             return redirect()->route('member.profile')->with('success', 'Profil berhasil diperbarui');
         } catch (\Exception $e) {
@@ -367,4 +360,68 @@ class MemberController extends Controller
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
-} 
+
+    
+
+public function hitungSimulasi(Request $request)
+{
+    try {
+        $request->validate([
+            'nominal' => 'required|numeric|min:1000',
+            'lama_angsuran' => 'required|numeric|min:1|max:60',
+            'jenis_pinjaman' => 'required'
+        ]);
+
+        $nominal = (float) $request->nominal;
+        $lama_angsuran = (int) $request->lama_angsuran;
+        
+        // Set bunga dan biaya admin ke 0 sesuai permintaan
+        $bunga = 0;
+        $biaya_admin = 0;
+
+        // Hitung angsuran pokok (nominal dibagi jumlah bulan)
+        $angsuran_pokok = $nominal / $lama_angsuran;
+        
+        // Biaya bunga dan admin tetap 0
+        $biaya_bunga = 0;
+        
+        // Jumlah tagihan per bulan
+        $jumlah_tagihan = $angsuran_pokok + $biaya_bunga + $biaya_admin;
+
+        $data = [];
+
+        for ($i = 1; $i <= $lama_angsuran; $i++) {
+            // Hitung tanggal tempo (28 hari setiap bulan)
+            $tanggal_tempo = Carbon::now()->addMonths($i)->format('d F Y');
+
+            $data[] = [
+                'angsuran_ke' => $i,
+                'tanggal_tempo' => $tanggal_tempo,
+                'angsuran_pokok' => number_format($angsuran_pokok, 0, ',', '.'),
+                'biaya_bunga' => number_format($biaya_bunga, 0, ',', '.'),
+                'biaya_admin' => number_format($biaya_admin, 0, ',', '.'),
+                'jumlah_tagihan' => number_format($jumlah_tagihan, 0, ',', '.'),
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'summary' => [
+                'total_pinjaman' => number_format($nominal, 0, ',', '.'),
+                'total_angsuran' => number_format($nominal, 0, ',', '.'),
+                'jumlah_bulan' => $lama_angsuran
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan dalam perhitungan simulasi: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+
+
+}

@@ -125,21 +125,21 @@
         <!-- Right Side - Profile Photo and Identity (Golden Ratio: ~2/5) -->
         <div class="lg:col-span-2">
             <div class="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-6 h-fit">
-    <div class="flex flex-col items-center mb-6">
+                <div class="flex flex-col items-center mb-6">
                     <!-- Profile Photo -->
                     <div class="mb-4">
-        @if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic))
-        <img src="{{ asset('storage/anggota/' . $anggota->file_pic) }}" alt="Foto {{ $anggota->nama }}"
+                        @if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic))
+                        <img src="{{ asset('storage/anggota/' . $anggota->file_pic) }}" alt="Foto {{ $anggota->nama }}"
                             class="w-24 h-24 object-cover rounded-full border-4 border-green-500 shadow-lg">
-        @else
-        <div
+                        @else
+                        <div
                             class="w-24 h-24 rounded-full border-4 border-green-500 flex items-center justify-center bg-gray-100 shadow-lg">
                             <svg class="w-10 h-10 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-            </svg>
-        </div>
-        @endif
+                                <path
+                                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                            </svg>
+                        </div>
+                        @endif
                     </div>
 
                     <!-- Name and Status -->
@@ -171,7 +171,7 @@
 <!-- Financial Summary Cards with New Grid Layout -->
 <div class="grid grid-cols-7 grid-rows-6 gap-4 mt-8">
     <!-- 1. Saldo Simpanan (Top Left) -->
-    <div class="col-span-2 row-span-2 bg-orange-500 rounded-lg shadow-md p-4 text-white">
+    <div class="col-span-2 row-span-2 bg-orange-100 rounded-lg p-4 border border-orange-200 text-orange-800">
         <div class="flex justify-between items-start mb-3">
             <h3 class="text-lg font-bold">Saldo Simpanan</h3>
             <div class="bg-white bg-opacity-20 p-2 rounded-full">
@@ -199,7 +199,8 @@
     </div>
 
     <!-- 2. Tagihan Kredit (Middle Left) -->
-    <div class="col-span-2 row-span-2 col-start-1 row-start-3 bg-purple-500 rounded-lg shadow-md p-4 text-white">
+    <div
+        class="col-span-2 row-span-2 col-start-1 row-start-3 bg-purple-100 rounded-lg p-4 border border-purple-200 text-purple-800">
         <div class="flex justify-between items-start mb-3">
             <h3 class="text-lg font-bold">Tagihan Kredit</h3>
             <div class="bg-white bg-opacity-20 p-2 rounded-full">
@@ -239,7 +240,8 @@
     </div>
 
     <!-- 3. Keterangan (Bottom Left) -->
-    <div class="col-span-2 row-span-2 col-start-1 row-start-5 bg-blue-500 rounded-lg shadow-md p-4 text-white">
+    <div
+        class="col-span-2 row-span-2 col-start-1 row-start-5 bg-blue-100 rounded-lg p-4 border border-blue-200 text-blue-800">
         <div class="flex justify-between items-start mb-3">
             <h3 class="text-lg font-bold">Keterangan</h3>
             <div class="bg-white bg-opacity-20 p-2 rounded-full">
@@ -267,12 +269,13 @@
             <div class="flex justify-between">
                 <span>Tanggal Tempo:</span>
                 <span class="font-bold">{{ $anggota->tanggal_tempo ?? '-' }}</span>
+            </div>
         </div>
     </div>
-</div>
 
     <!-- 4. Tagihan Simpanan (Center - Long Card) -->
-    <div class="col-span-2 row-span-6 col-start-3 row-start-1 bg-green-500 rounded-lg shadow-md p-4 text-white">
+    <div
+        class="col-span-2 row-span-6 col-start-3 row-start-1 bg-green-100 rounded-lg p-4 border border-green-200 text-green-800">
         <div class="flex justify-between items-start mb-3">
             <h3 class="text-lg font-bold">Tagihan Simpanan</h3>
             <div class="bg-white bg-opacity-20 p-2 rounded-full">
