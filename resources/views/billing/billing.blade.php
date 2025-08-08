@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Billing Anggota')
-@section('sub-title', 'Tagihan Bulanan Anggota')
+@section('title', 'Billing Simpanan')
+@section('sub-title', 'Tagihan Bulanan Simpanan')
 
 @section('content')
 <div class="container mx-auto px-4">
@@ -50,15 +50,21 @@
                         </svg>
                         <span class="text-sm">Export PDF</span>
                     </a>
-                    <a href="{{ route('billing.processed') }}"
-                        class="inline-flex items-center gap-2 bg-blue-50 border border-blue-400 text-blue-900 font-medium px-5 py-2 rounded-lg transition hover:bg-blue-100 hover:border-blue-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        <span class="text-sm">Billing Lunas</span>
-                    </a>
+                    <form action="{{ route('billing.simpanan.process_all') }}" method="POST" class="inline">
+                        @csrf
+                        <input type="hidden" name="bulan" value="{{ $bulan }}" />
+                        <input type="hidden" name="tahun" value="{{ $tahun }}" />
+                        <button type="submit"
+                            class="inline-flex items-center gap-2 bg-blue-50 border border-blue-400 text-blue-900 font-medium px-5 py-2 rounded-lg transition hover:bg-blue-100 hover:border-blue-500"
+                            onclick="return confirm('Proses semua billing simpanan bulan ini ke Billing Utama?')">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <span class="text-sm">Proses All ke Billing Utama</span>
+                        </button>
+                    </form>
                 </div>
             </div>
 
@@ -89,7 +95,7 @@
                         <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Cari Anggota</label>
                         <div class="flex items-center bg-gray-100 p-2 rounded-lg border-2 border-gray-300">
                             <i class="fa-solid fa-magnifying-glass mr-2 text-gray-400"></i>
-                        <input type="text"
+                            <input type="text"
                                 class="text-sm text-gray-500 bg-transparent border-none focus:outline-none w-full"
                                 id="search" name="search" placeholder="Nama atau No ID Koperasi"
                                 value="{{ request('search') }}">

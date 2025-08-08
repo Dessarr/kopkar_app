@@ -160,9 +160,9 @@
                 <a href="{{ route('billing.toserda') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">Billing
                     Toserda</a>
-                <a href="{{ route('billing.toserda.processed') }}"
+                <a href="{{ route('billing.utama') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">Billing
-                    Toserda Diproses</a>
+                    Utama</a>
             </div>
         </div>
 

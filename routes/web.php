@@ -103,15 +103,20 @@ Route::middleware(['auth:admin'])->group(function () {
         Route::post('/cancel/{billing_process_id}', [BillingController::class, 'cancelPayment'])->name('billing.cancel');
         Route::get('/processed/export/excel', [BillingController::class, 'exportProcessedExcel'])->name('billing.processed.export.excel');
         Route::get('/processed/export/pdf', [BillingController::class, 'exportProcessedPdf'])->name('billing.processed.export.pdf');
+
+        // Simpanan -> Proses semua ke Billing Utama (tbl_trans_sp_bayar_temp)
+        Route::post('/simpanan/process-all', [BillingController::class, 'processAllToMain'])->name('billing.simpanan.process_all');
     });
 
     // Route Billing Toserda
     Route::prefix('billing-toserda')->group(function () {
         Route::get('/', [BillingToserdaController::class, 'index'])->name('billing.toserda');
-        Route::post('/proses/{id}', [BillingToserdaController::class, 'proses'])->name('billing.toserda.proses');
-        Route::get('/processed', [BillingToserdaController::class, 'processed'])->name('billing.toserda.processed');
-        Route::post('/cancel/{id}', [BillingToserdaController::class, 'cancel'])->name('billing.toserda.cancel');
+        // Proses semua Toserda bulan/tahun terpilih ke Billing Utama
+        Route::post('/process-all', [BillingToserdaController::class, 'processAllToMain'])->name('billing.toserda.process_all');
     });
+
+    // Billing Utama (ambil dari tbl_trans_sp_bayar_temp)
+    Route::get('/billing-utama', [\App\Http\Controllers\BillingUtamaController::class, 'index'])->name('billing.utama');
 
     //Route untuk Pinjaman
     Route::get('/pinjaman/data_pengajuan', [DtaPengajuanController::class, 'index'])->name('pinjaman.data_pengajuan');

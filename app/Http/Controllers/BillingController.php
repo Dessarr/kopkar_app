@@ -9,11 +9,11 @@ use App\Models\jns_akun;
 use App\Models\TblTransToserda;
 use App\Models\TblTransSp;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\PDF;
+use Carbon\Carbon;
 
 class BillingController extends Controller
 {
@@ -46,7 +46,7 @@ class BillingController extends Controller
                 'bulan_tahun' => $this->bulanList[$bulan] . ' ' . $tahun
             ]);
             
-            // Always generate billing for the selected month and year
+            // Always generate billing for the selected month and year (Simpanan)
             $result = $this->generateFullBilling($bulan, $tahun);
             
             if ($result['status'] === 'error') {
@@ -113,25 +113,22 @@ class BillingController extends Controller
         $bulan_sekarang = date('m');
         $tahun_sekarang = date('Y');
         
-        // Check if trying to process past billing
-        if ($tahun_input < $tahun_sekarang || ($tahun_input == $tahun_sekarang && $bulan_input < $bulan_sekarang)) {
-            return [
-                'status' => 'error',
-                'message' => 'Tidak dapat generate billing untuk bulan yang sudah lewat.'
-            ];
-        }
+        // Mengizinkan load semua bulan (sesuai kebutuhan revisi)
         
         // Format bulan tahun string
         $bulan_tahun_string = $this->bulanList[$bulan_input] . ' ' . $tahun_input;
         
         try {
-            // 1. Hapus semua billing yang ada secara terpisah dari transaction utama
-            billing::query()->delete();
+            // 1. Hapus SEMUA data billing simpanan terlebih dahulu untuk menghindari penumpukan
+            $deletedCount = billing::where('jns_trans', 'Simpanan')->delete();
+            
+            // Log untuk debugging
+            Log::info("Deleted $deletedCount billing records (all simpanan) before generating for month $bulan_input/$tahun_input");
             
             // Mulai transaction untuk generate data baru
             DB::beginTransaction();
              
-            // 2. Generate billing untuk semua anggota yang belum memiliki billing_process untuk bulan ini
+            // 2. Generate billing simpanan (wajib, sukarela, khusus_2) + simpanan pokok jika bulan daftar
             // Get active members
             $anggotaAktif = data_anggota::where('aktif', 'Y')->get();
             
@@ -147,26 +144,24 @@ class BillingController extends Controller
             $billingData = [];
             
             foreach ($anggotaAktif as $anggota) {
-                // Skip if this member already has a billing_process record for this month
-                $alreadyProcessed = \App\Models\BillingProcess::where('no_ktp', $anggota->no_ktp)
-                    ->where('bulan', $bulan_input)
-                    ->where('tahun', $tahun_input)
-                    ->where('jns_trans', 'Simpanan')
-                ->exists();
-                
-                if ($alreadyProcessed) {
-                    continue; // Skip this member for simpanan billing
-                }
-                
                 // Each member's monthly billing should be their individual savings amounts
-                $total_simpanan = $anggota->simpanan_wajib + 
-                                $anggota->simpanan_sukarela + 
-                                $anggota->simpanan_khusus_2;
+                $simpanan_wajib = $anggota->simpanan_wajib ?? 0;
+                $simpanan_sukarela = $anggota->simpanan_sukarela ?? 0;
+                $simpanan_khusus_2 = $anggota->simpanan_khusus_2 ?? 0;
+                $total_simpanan = $simpanan_wajib + $simpanan_sukarela + $simpanan_khusus_2;
                 
                 // Add simpanan pokok if this is the member's registration month
-                $tgl_daftar = Carbon::parse($anggota->tgl_daftar);
-                $tambah_simpanan_pokok = ($bulan_input == $tgl_daftar->format('m') && $tahun_input == $tgl_daftar->format('Y')) 
-                    ? $simpanan_pokok : 0;
+                $tambah_simpanan_pokok = 0;
+                if ($anggota->tgl_daftar && $anggota->tgl_daftar != '0000-00-00') {
+                    try {
+                        $tgl_daftar = Carbon::parse($anggota->tgl_daftar);
+                        $tambah_simpanan_pokok = ($bulan_input == $tgl_daftar->format('m') && $tahun_input == $tgl_daftar->format('Y'))
+                            ? ($simpanan_pokok ?? 100000) : 0;
+                    } catch (\Exception $e) {
+                        // Jika error parsing tanggal, tidak tambah simpanan pokok
+                        $tambah_simpanan_pokok = 0;
+                    }
+                }
                 
                 $total_simpanan += $tambah_simpanan_pokok;
                 
@@ -182,9 +177,9 @@ class BillingController extends Controller
                     'nama' => $anggota->nama,
                     'bulan' => $bulan_input,
                     'tahun' => $tahun_input,
-                    'simpanan_wajib' => $anggota->simpanan_wajib ?? 0,
-                    'simpanan_sukarela' => $anggota->simpanan_sukarela ?? 0,
-                    'simpanan_khusus_2' => $anggota->simpanan_khusus_2 ?? 0,
+                    'simpanan_wajib' => $simpanan_wajib,
+                    'simpanan_sukarela' => $simpanan_sukarela,
+                    'simpanan_khusus_2' => $simpanan_khusus_2,
                     'simpanan_pokok' => $tambah_simpanan_pokok,
                     'total_billing' => $total_simpanan,
                     'total_tagihan' => $total_simpanan,
@@ -204,75 +199,13 @@ class BillingController extends Controller
                 }
             }
             
-            // Generate TOSERDA billing
-            // Get toserda account ID
-            $akunToserda = jns_akun::where('akun', 'like', '%Toserda%')->first();
-            $id_akun_toserda = $akunToserda ? $akunToserda->id : 155; // Default to 155 if not found
-            
-            // Get toserda transactions for the month
-            $transaksiToserda = DB::table('tbl_trans_toserda')
-                ->select('no_ktp', DB::raw('SUM(jumlah) as total_belanja'))
-                ->whereMonth('tgl_transaksi', $bulan_input)
-                ->whereYear('tgl_transaksi', $tahun_input)
-                ->where('dk', 'D') // Only debit transactions (sales)
-                ->whereNotNull('no_ktp')
-                ->groupBy('no_ktp')
-                ->get();
-            
-            // Prepare data for bulk insert - TOSERDA
-            $billingToserdaData = [];
-            
-            foreach ($transaksiToserda as $transaksi) {
-                // Skip if this member already has a billing_process record for this month
-                $alreadyProcessed = \App\Models\BillingProcess::where('no_ktp', $transaksi->no_ktp)
-                    ->where('bulan', $bulan_input)
-                    ->where('tahun', $tahun_input)
-                    ->where('jns_trans', 'Toserda')
-                ->exists();
-                
-                if ($alreadyProcessed) {
-                    continue; // Skip this member for toserda billing
-                }
-                
-                $anggota = data_anggota::where('no_ktp', $transaksi->no_ktp)->first();
-                
-                if ($anggota) {
-                    // Generate billing code
-                    $billing_code = "BILL-" . $tahun_input . $bulan_input . "-" . $transaksi->no_ktp . "-TOSR";
-                    
-                    $billingToserdaData[] = [
-                        'billing_code' => $billing_code,
-                        'bulan_tahun' => $bulan_tahun_string,
-                        'id_anggota' => $anggota->no_ktp,
-                        'no_ktp' => $transaksi->no_ktp,
-                        'nama' => $anggota->nama,
-                        'bulan' => $bulan_input,
-                        'tahun' => $tahun_input,
-                        'jumlah' => $transaksi->total_belanja,
-                        'total_billing' => $transaksi->total_belanja,
-                        'total_tagihan' => $transaksi->total_belanja,
-                        'id_akun' => $id_akun_toserda,
-                        'status' => 'N',
-                        'status_bayar' => 'Belum Lunas',
-                        'jns_trans' => 'Toserda',
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ];
-                }
-            }
-            
-            // Perform bulk insert in chunks to improve performance - TOSERDA
-            if (!empty($billingToserdaData)) {
-                foreach (array_chunk($billingToserdaData, 100) as $chunk) {
-                    billing::insert($chunk);
-                }
-            }
+            // Tidak generate TOSERDA di sini (dipindah ke modul Toserda -> Billing Utama via process-all)
             
             DB::commit();
             
             return [
                 'status' => 'success',
-                'message' => 'Billing berhasil di-generate untuk ' . count($billingData) . ' anggota simpanan dan ' . count($billingToserdaData) . ' anggota toserda.'
+                'message' => 'Billing simpanan berhasil di-generate untuk ' . count($billingData) . ' anggota.'
             ];
             
         } catch (\Exception $e) {
@@ -284,6 +217,58 @@ class BillingController extends Controller
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan saat generate billing: ' . $e->getMessage()
             ];
+        }
+    }
+
+    // Proses semua billing simpanan ke Billing Utama (tbl_trans_sp_bayar_temp)
+    public function processAllToMain(Request $request)
+    {
+        $bulan = $request->input('bulan', date('m'));
+        $tahun = $request->input('tahun', date('Y'));
+        try {
+            DB::beginTransaction();
+            $billings = billing::where('jns_trans', 'Simpanan')
+                ->where('bulan', $bulan)
+                ->where('tahun', $tahun)
+                ->get();
+
+            foreach ($billings as $b) {
+                // Upsert ke tbl_trans_sp_bayar_temp
+                DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
+                    [
+                        'tgl_transaksi' => Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth()->toDateString(),
+                        'no_ktp' => $b->no_ktp,
+                    ],
+                    [
+                        'anggota_id' => null,
+                        'jumlah' => DB::raw('COALESCE(jumlah,0)'),
+                        'keterangan' => 'Billing Simpanan ' . ($b->bulan_tahun ?? ($bulan.'-'.$tahun)),
+                        'tagihan_simpanan_wajib' => $b->simpanan_wajib ?? 0,
+                        'tagihan_simpanan_sukarela' => $b->simpanan_sukarela ?? 0,
+                        'tagihan_simpanan_khusus_2' => $b->simpanan_khusus_2 ?? 0,
+                        'tagihan_pinjaman' => DB::raw('COALESCE(tagihan_pinjaman,0)') ,
+                        'tagihan_pinjaman_jasa' => DB::raw('COALESCE(tagihan_pinjaman_jasa,0)') ,
+                        'tagihan_toserda' => DB::raw('COALESCE(tagihan_toserda,0)') ,
+                        'total_tagihan_simpanan' => ($b->total_tagihan ?? $b->total_billing ?? 0),
+                        'selisih' => DB::raw('COALESCE(selisih,0)'),
+                        'saldo_simpanan_sukarela' => DB::raw('COALESCE(saldo_simpanan_sukarela,0)'),
+                        'saldo_akhir_simpanan_sukarela' => DB::raw('COALESCE(saldo_akhir_simpanan_sukarela,0)'),
+                    ]
+                );
+            }
+
+            // Hapus billing simpanan bulan/tahun ini setelah dipindahkan
+            billing::where('jns_trans', 'Simpanan')
+                ->where('bulan', $bulan)
+                ->where('tahun', $tahun)
+                ->delete();
+
+            DB::commit();
+            return redirect()->route('billing.utama')->with('success', 'Berhasil memproses semua billing simpanan ke Billing Utama.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error processAllToMain: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
     

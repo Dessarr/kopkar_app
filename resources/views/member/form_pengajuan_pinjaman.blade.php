@@ -42,19 +42,6 @@
                         id="bunga" name="bunga" value="0" readonly disabled>
                 </div>
 
-                <!-- Nominal -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="nominal">
-                        Nominal
-                    </label>
-                    <div class="relative">
-                        <span class="absolute left-3 top-2 text-gray-500">Rp</span>
-                        <input type="text"
-                            class="form-input w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent"
-                            id="nominal" name="nominal" placeholder="Masukkan nominal pinjaman" required>
-                    </div>
-                    <p class="text-sm text-gray-500 mt-1">Minimal Rp 1.000</p>
-                </div>
 
                 <!-- Lama Angsuran -->
                 <div class="mb-4">
@@ -73,6 +60,22 @@
                         <option value="60">60 bulan</option>
                     </select>
                 </div>
+
+                <!-- Nominal -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="nominal">
+                        Nominal
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2 text-gray-500">Rp</span>
+                        <input type="text"
+                            class="form-input w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent"
+                            id="nominal" name="nominal" placeholder="Masukkan nominal pinjaman" required>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">Minimal Rp 1.000</p>
+                </div>
+
+
 
                 <!-- Keterangan -->
                 <div class="mb-6">
