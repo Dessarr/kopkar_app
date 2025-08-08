@@ -56,6 +56,10 @@ Route::middleware(['auth:member'])->group(function () {
         Route::get('/pinjaman', [MemberController::class, 'pengajuanPinjaman'])->name('member.pengajuan.pinjaman');
         Route::get('/pinjaman/tambah', [MemberController::class, 'tambahPengajuanPinjaman'])->name('member.tambah.pengajuan.pinjaman');
         Route::post('/simulasi-angsuran', [MemberController::class, 'hitungSimulasi'])->name('member.simulasi.angsuran');
+        Route::post('/pinjaman/store', [MemberController::class, 'storePengajuanPinjaman'])->name('member.pengajuan.pinjaman.store');
+        Route::get('/pinjaman/{id}', [MemberController::class, 'showPengajuan'])->name('member.pengajuan.pinjaman.show');
+        Route::post('/pinjaman/{id}/cancel', [MemberController::class, 'cancelPengajuan'])->name('member.pengajuan.pinjaman.cancel');
+        Route::get('/pinjaman/{id}/cetak', [MemberController::class, 'cetakPengajuan'])->name('member.pengajuan.pinjaman.cetak');
     });
     
 
@@ -120,6 +124,11 @@ Route::middleware(['auth:admin'])->group(function () {
 
     //Route untuk Pinjaman
     Route::get('/pinjaman/data_pengajuan', [DtaPengajuanController::class, 'index'])->name('pinjaman.data_pengajuan');
+    Route::post('/pinjaman/data_pengajuan/{id}/approve', [DtaPengajuanController::class, 'approve'])->name('pinjaman.data_pengajuan.approve');
+    Route::post('/pinjaman/data_pengajuan/{id}/reject', [DtaPengajuanController::class, 'reject'])->name('pinjaman.data_pengajuan.reject');
+    Route::post('/pinjaman/data_pengajuan/{id}/cancel', [DtaPengajuanController::class, 'cancel'])->name('pinjaman.data_pengajuan.cancel');
+    Route::delete('/pinjaman/data_pengajuan/{id}', [DtaPengajuanController::class, 'destroy'])->name('pinjaman.data_pengajuan.destroy');
+    Route::get('/pinjaman/data_pengajuan/{id}/cetak', [DtaPengajuanController::class, 'cetak'])->name('pinjaman.data_pengajuan.cetak');
 
     //Route untuk Master Data
     Route::get('/master-data/jns_akun',[JnsAkunController::class,'index'])->name('master-data.jns_akun');

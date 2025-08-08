@@ -13,7 +13,22 @@
         </div>
 
         <div class="bg-white p-6">
-            <form id="loan-form" method="POST">
+            @if (session('success'))
+                <div class="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">{{ session('success') }}</div>
+            @endif
+            @if (session('error'))
+                <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">{{ session('error') }}</div>
+            @endif
+            @if ($errors->any())
+                <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                    <ul class="list-disc list-inside">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            <form id="loan-form" method="POST" action="{{ route('member.pengajuan.pinjaman.store') }}">
                 @csrf
                 <meta name="csrf-token" content="{{ csrf_token() }}">
 
@@ -142,5 +157,5 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('js/loan-simulation.js') }}"></script>
+<script src="{{ asset('js/loan-simulation.js') }}" defer></script>
 @endpush

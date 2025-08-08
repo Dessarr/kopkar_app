@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Member;
 use App\Models\JnsPinjaman;
 use Carbon\Carbon;
+use App\Http\Requests\StorePengajuanPinjamanRequest;
+use App\Models\data_pengajuan;
 
 
 class MemberController extends Controller
@@ -242,7 +244,10 @@ class MemberController extends Controller
     public function pengajuanPinjaman()
     {
         $member = auth()->guard('member')->user();
-        return view('member.pengajuan_pinjaman', compact('member'));
+        $dataPengajuan = data_pengajuan::where('anggota_id', $member->id)
+            ->orderByDesc('tgl_input')
+            ->paginate(10);
+        return view('member.pengajuan_pinjaman', compact('member','dataPengajuan'));
     }
 
     public function createPengajuanPinjaman()
@@ -251,10 +256,106 @@ class MemberController extends Controller
         return view('member.form_pengajuan_pinjaman', compact('member'));
     }
 
-    public function storePengajuanPinjaman(Request $request)
+    public function storePengajuanPinjaman(StorePengajuanPinjamanRequest $request)
     {
-        return redirect()->route('member.pengajuan.pinjaman')
-            ->with('success', 'Pengajuan pinjaman berhasil dikirim');
+        try {
+            $member = auth()->guard('member')->user();
+
+            // Ambil no_ajuan terakhir bulan berjalan
+            $last = data_pengajuan::whereYear('tgl_input', now()->year)
+                ->whereMonth('tgl_input', now()->month)
+                ->max('no_ajuan');
+            $nextNoAjuan = $last ? ((int)$last + 1) : 1; // default 1
+
+            // Bentuk ajuan_id: B.YY.MM.XXX
+            $yy = now()->format('y');
+            $mm = now()->format('m');
+            $seq = str_pad((string)$nextNoAjuan, 3, '0', STR_PAD_LEFT);
+            $ajuanId = "B.$yy.$mm.$seq";
+
+            $nominalRaw = (string) $request->input('nominal');
+            $nominal = (int) str_replace([',', '.'], '', $nominalRaw);
+            if (!$nominal) {
+                $nominal = (int) $request->input('nominal');
+            }
+
+            $pengajuan = new data_pengajuan();
+            $pengajuan->no_ajuan = $nextNoAjuan;
+            $pengajuan->ajuan_id = $ajuanId;
+            $pengajuan->anggota_id = $member->id;
+            $pengajuan->tgl_input = now();
+            $pengajuan->jenis = '1'; // default Biasa
+            $pengajuan->nominal = $nominal;
+            $pengajuan->lama_ags = (int)$request->input('lama_angsuran');
+            $pengajuan->keterangan = $request->input('keterangan');
+            $pengajuan->status = 0; // Pending
+            $pengajuan->alasan = '';
+            // Hindari error SQL_MODE NO_ZERO_DATE, gunakan NULL jika ada
+            $pengajuan->tgl_cair = date('Y-m-d', strtotime('1970-01-01'));
+            $pengajuan->tgl_update = now();
+            $pengajuan->id_cabang = '';
+            $pengajuan->save();
+
+            Log::info('Pengajuan pinjaman berhasil disimpan', [
+                'member_id' => $member->id,
+                'ajuan_id' => $pengajuan->ajuan_id,
+                'no_ajuan' => $pengajuan->no_ajuan,
+                'nominal' => $pengajuan->nominal,
+            ]);
+
+            return redirect()->route('member.pengajuan.pinjaman')
+                ->with('success', 'Pengajuan pinjaman berhasil dikirim');
+        } catch (\Throwable $e) {
+            Log::error('Gagal menyimpan pengajuan pinjaman', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'payload' => $request->all(),
+                'member_id' => optional(auth()->guard('member')->user())->id,
+            ]);
+
+            return redirect()->back()->withInput()
+                ->with('error', 'Pengajuan gagal disimpan: '.$e->getMessage());
+        }
+    }
+
+    public function showPengajuan(string $id)
+    {
+        $member = auth()->guard('member')->user();
+        $pengajuan = data_pengajuan::where('anggota_id', $member->id)->findOrFail($id);
+        return view('member.detail_pengajuan_pinjaman', compact('member','pengajuan'));
+    }
+
+    public function cancelPengajuan(string $id)
+    {
+        try {
+            $member = auth()->guard('member')->user();
+            $pengajuan = data_pengajuan::where('anggota_id', $member->id)->findOrFail($id);
+
+            if ((int)$pengajuan->status !== 0) {
+                return redirect()->back()->with('error', 'Pengajuan tidak dapat dibatalkan.');
+            }
+
+            $pengajuan->status = 4; // Batal
+            $pengajuan->tgl_update = now();
+            $pengajuan->save();
+
+            Log::info('Pengajuan dibatalkan oleh member', [
+                'member_id' => $member->id,
+                'ajuan_id' => $pengajuan->ajuan_id,
+            ]);
+
+            return redirect()->route('member.pengajuan.pinjaman')->with('success', 'Pengajuan berhasil dibatalkan');
+        } catch (\Throwable $e) {
+            Log::error('Gagal membatalkan pengajuan', [ 'error' => $e->getMessage(), 'id' => $id ]);
+            return redirect()->back()->with('error', 'Gagal membatalkan pengajuan: '.$e->getMessage());
+        }
+    }
+
+    public function cetakPengajuan(string $id)
+    {
+        $member = auth()->guard('member')->user();
+        $pengajuan = data_pengajuan::where('anggota_id', $member->id)->findOrFail($id);
+        return view('member.cetak_pengajuan_pinjaman', compact('member','pengajuan'));
     }
 
     public function pengajuanPenarikan()
