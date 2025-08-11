@@ -220,13 +220,13 @@
                 <a href="{{ route('pinjaman.data_pengajuan') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">Data
                     Pengajuan</a>
-                <a href="#"
+                <a href="{{ route('pinjaman.data_pinjaman') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">Data
                     Pinjaman</a>
-                <a href="#"
+                <a href="{{ route('pinjaman.data_angsuran') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">Data
                     Angsuran</a>
-                <a href="#"
+                <a href="{{ route('pinjaman.lunas') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">Pinjaman
                     Lunas</a>
             </div>

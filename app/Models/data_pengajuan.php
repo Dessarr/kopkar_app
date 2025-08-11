@@ -24,4 +24,9 @@ class data_pengajuan extends Model{
     ];
 
     public $timestamps = false;
+
+    public function anggota()
+    {
+        return $this->belongsTo(data_anggota::class, 'anggota_id', 'id');
+    }
 }

@@ -293,7 +293,7 @@ class MemberController extends Controller
             // Hindari error SQL_MODE NO_ZERO_DATE, gunakan NULL jika ada
             $pengajuan->tgl_cair = date('Y-m-d', strtotime('1970-01-01'));
             $pengajuan->tgl_update = now();
-            $pengajuan->id_cabang = '';
+            $pengajuan->id_cabang = 1; // Default cabang ID
             $pengajuan->save();
 
             Log::info('Pengajuan pinjaman berhasil disimpan', [

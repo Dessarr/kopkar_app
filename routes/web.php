@@ -127,8 +127,28 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::post('/pinjaman/data_pengajuan/{id}/approve', [DtaPengajuanController::class, 'approve'])->name('pinjaman.data_pengajuan.approve');
     Route::post('/pinjaman/data_pengajuan/{id}/reject', [DtaPengajuanController::class, 'reject'])->name('pinjaman.data_pengajuan.reject');
     Route::post('/pinjaman/data_pengajuan/{id}/cancel', [DtaPengajuanController::class, 'cancel'])->name('pinjaman.data_pengajuan.cancel');
+    Route::post('/pinjaman/data_pengajuan/{id}/terlaksana', [DtaPengajuanController::class, 'terlaksana'])->name('pinjaman.data_pengajuan.terlaksana');
     Route::delete('/pinjaman/data_pengajuan/{id}', [DtaPengajuanController::class, 'destroy'])->name('pinjaman.data_pengajuan.destroy');
     Route::get('/pinjaman/data_pengajuan/{id}/cetak', [DtaPengajuanController::class, 'cetak'])->name('pinjaman.data_pengajuan.cetak');
+
+    // Route untuk Data Pinjaman
+    Route::get('/pinjaman/data_pinjaman', [\App\Http\Controllers\DataPinjamanController::class, 'index'])->name('pinjaman.data_pinjaman');
+    Route::get('/pinjaman/data_pinjaman/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'show'])->name('pinjaman.data_pinjaman.show');
+    Route::get('/pinjaman/data_pinjaman/{id}/edit', [\App\Http\Controllers\DataPinjamanController::class, 'edit'])->name('pinjaman.data_pinjaman.edit');
+    Route::put('/pinjaman/data_pinjaman/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'update'])->name('pinjaman.data_pinjaman.update');
+    Route::delete('/pinjaman/data_pinjaman/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'destroy'])->name('pinjaman.data_pinjaman.destroy');
+
+    // Route untuk Data Angsuran
+    Route::get('/pinjaman/data_angsuran', [\App\Http\Controllers\DataAngsuranController::class, 'index'])->name('pinjaman.data_angsuran');
+    Route::get('/pinjaman/data_angsuran/{id}', [\App\Http\Controllers\DataAngsuranController::class, 'show'])->name('pinjaman.data_angsuran.show');
+    Route::post('/pinjaman/data_angsuran/{pinjamanId}', [\App\Http\Controllers\DataAngsuranController::class, 'store'])->name('pinjaman.data_angsuran.store');
+    Route::get('/pinjaman/data_angsuran/{id}/edit', [\App\Http\Controllers\DataAngsuranController::class, 'edit'])->name('pinjaman.data_angsuran.edit');
+    Route::put('/pinjaman/data_angsuran/{id}', [\App\Http\Controllers\DataAngsuranController::class, 'update'])->name('pinjaman.data_angsuran.update');
+    Route::delete('/pinjaman/data_angsuran/{id}', [\App\Http\Controllers\DataAngsuranController::class, 'destroy'])->name('pinjaman.data_angsuran.destroy');
+    Route::get('/pinjaman/data_angsuran/{id}/cetak', [\App\Http\Controllers\DataAngsuranController::class, 'cetak'])->name('pinjaman.data_angsuran.cetak');
+
+    // Route untuk Pinjaman Lunas
+    Route::get('/pinjaman/lunas', [\App\Http\Controllers\DataPinjamanController::class, 'lunas'])->name('pinjaman.lunas');
 
     //Route untuk Master Data
     Route::get('/master-data/jns_akun',[JnsAkunController::class,'index'])->name('master-data.jns_akun');
