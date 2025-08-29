@@ -183,32 +183,35 @@
             </div>
         </div>
         <div class="space-y-1 text-xs">
-            @foreach($simpananList as $simpanan)
-            <div class="border-b border-orange-200 pb-1 mb-1">
-                <div class="flex justify-between">
-                    <span class="font-medium">{{ $simpanan['nama'] }}:</span>
-                    <span class="font-bold">{{ number_format($simpanan['saldo'], 0, ',', '.') }}</span>
-                </div>
-                @if($simpanan['setoran'] > 0 || $simpanan['penarikan'] > 0)
-                <div class="text-xs text-orange-600 mt-1">
-                    <div class="flex justify-between">
-                        <span>Setoran:</span>
-                        <span>{{ number_format($simpanan['setoran'], 0, ',', '.') }}</span>
-                    </div>
-                    @if($simpanan['penarikan'] > 0)
             <div class="flex justify-between">
-                        <span>Penarikan:</span>
-                        <span class="text-red-600">-{{ number_format($simpanan['penarikan'], 0, ',', '.') }}</span>
-                    </div>
-                    @endif
-                </div>
-                @endif
+                <span>Simpanan Wajib:</span>
+                <span class="font-bold">{{ number_format($saldoSimpanan->simpanan_wajib ?? 0, 0, ',', '.') }}</span>
             </div>
-            @endforeach
+            <div class="flex justify-between">
+                <span>Simpanan Sukarela:</span>
+                <span class="font-bold">{{ number_format($saldoSimpanan->simpanan_sukarela ?? 0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Simpanan Khusus II:</span>
+                <span class="font-bold">{{ number_format($saldoSimpanan->simpanan_khusus_2 ?? 0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Simpanan Pokok:</span>
+                <span class="font-bold">{{ number_format($saldoSimpanan->simpanan_pokok ?? 0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Simpanan Khusus I:</span>
+                <span class="font-bold">{{ number_format($saldoSimpanan->simpanan_khusus_1 ?? 0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Tab. Perumahan:</span>
+                <span class="font-bold">{{ number_format($saldoSimpanan->tab_perumahan ?? 0, 0, ',', '.') }}</span>
+            </div>
+            </div>
             <div class="border-t border-white border-opacity-30 pt-1 mt-1">
                 <div class="flex justify-between font-bold">
-                    <span>Total Saldo:</span>
-                    <span>{{ number_format($totalSimpanan, 0, ',', '.') }}</span>
+                    <span>Jumlah:</span>
+                    <span>{{ number_format(($saldoSimpanan->simpanan_wajib ?? 0) + ($saldoSimpanan->simpanan_sukarela ?? 0) + ($saldoSimpanan->simpanan_khusus_2 ?? 0) + ($saldoSimpanan->simpanan_pokok ?? 0) + ($saldoSimpanan->simpanan_khusus_1 ?? 0) + ($saldoSimpanan->tab_perumahan ?? 0), 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>
@@ -230,27 +233,31 @@
         <div class="space-y-1 text-xs">
             <div class="flex justify-between">
                 <span>Pinjaman Biasa:</span>
-                <span class="font-bold">{{ number_format($totalPinjaman, 0, ',', '.') }}</span>
+                <span class="font-bold">{{ number_format($tagihanKredit->pinjaman_biasa ?? 0, 0, ',', '.') }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Sisa Pinjaman:</span>
-                <span class="font-bold">{{ number_format($sisaPinjaman, 0, ',', '.') }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Pinjaman Barang:</span>
-                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Sisa Pinjaman:</span>
-                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                <span class="font-bold">{{ number_format($tagihanKredit->sisa_pinjaman_biasa ?? 0, 0, ',', '.') }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Pinjaman Bank:</span>
-                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                <span class="font-bold">{{ number_format($tagihanKredit->pinjaman_bank ?? 0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Sisa Pinjaman:</span>
+                <span class="font-bold">{{ number_format($tagihanKredit->sisa_pinjaman_bank ?? 0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Pinjaman Barang:</span>
+                <span class="font-bold">{{ number_format($tagihanKredit->pinjaman_barang ?? 0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Sisa Pinjaman:</span>
+                <span class="font-bold">{{ number_format($tagihanKredit->sisa_pinjaman_barang ?? 0, 0, ',', '.') }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Tagihan Takterbayar:</span>
-                <span class="font-bold">{{ number_format($totalTagihan, 0, ',', '.') }}</span>
+                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
             </div>
         </div>
     </div>
@@ -271,20 +278,19 @@
         <div class="space-y-1 text-xs">
             <div class="flex justify-between">
                 <span>Jumlah Pinjaman:</span>
-                <span class="font-bold">{{ number_format($totalPinjaman, 0, ',', '.') }}</span>
+                <span class="font-bold">{{ $keteranganPinjaman->jumlah_pinjaman ?? 0 }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Pinjaman Lunas:</span>
-                <span class="font-bold">{{ $pinjamanLunas }}</span>
+                <span class="font-bold">{{ $keteranganPinjaman->pinjaman_lunas ?? 0 }}</span>
             </div>
             <div class="flex justify-between items-center">
                 <span>Pembayaran:</span>
-                <span
-                    class="bg-white text-red-500 px-1 py-0.5 rounded text-xs font-bold border border-red-500">Lancar</span>
+                <span class="bg-white px-1 py-0.5 rounded text-xs font-bold border {{ $keteranganPinjaman->status_pembayaran == 'Lancar' ? 'text-green-500 border-green-500' : 'text-red-500 border-red-500' }}">{{ $keteranganPinjaman->status_pembayaran ?? 'Lancar' }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Tanggal Tempo:</span>
-                <span class="font-bold">{{ $anggota->tanggal_tempo ?? '-' }}</span>
+                <span class="font-bold">{{ $keteranganPinjaman->tanggal_tempo ?? '-' }}</span>
             </div>
         </div>
     </div>
@@ -294,77 +300,82 @@
         class="col-span-2 row-span-6 col-start-3 row-start-1 bg-green-100 rounded-lg p-4 border border-green-200 text-green-800">
         <div class="flex justify-between items-start mb-3">
             <h3 class="text-lg font-bold">Tagihan Simpanan</h3>
-            <div class="bg-white bg-opacity-20 p-2 rounded-full">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                    </path>
-                </svg>
+            <div class="flex items-center space-x-2">
+                <!-- Filter Periode -->
+                <input type="month" class="text-xs px-2 py-1 rounded border border-green-300 bg-white text-green-800" 
+                       value="{{ $periode }}" onchange="changePeriode(this.value)">
+                <div class="bg-white bg-opacity-20 p-2 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                </div>
             </div>
         </div>
         <div class="space-y-1 text-xs">
             @foreach($simpananList as $simpanan)
             <div class="flex justify-between">
                 <span>{{ $simpanan['nama'] }}:</span>
-                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                <span class="font-bold">{{ number_format($simpanan['jumlah'], 0, ',', '.') }}</span>
             </div>
             @endforeach
             <div class="flex justify-between">
                 <span>Pinjaman Biasa:</span>
-                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
-                <span class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">0/0</span>
+                <span class="font-bold">{{ number_format($tagihanData['pinjaman_biasa']['jumlah'], 0, ',', '.') }}</span>
+                <span class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">{{ $tagihanData['pinjaman_biasa']['sudah_bayar'] }}/{{ $tagihanData['pinjaman_biasa']['total_angsuran'] }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Jasa (1%):</span>
-                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                <span class="font-bold">{{ number_format($tagihanData['pinjaman_biasa']['jasa'], 0, ',', '.') }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Pinjaman Barang:</span>
-                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
-                <span class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">0/0</span>
+                <span class="font-bold">{{ number_format($tagihanData['pinjaman_barang']['jumlah'], 0, ',', '.') }}</span>
+                <span class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">{{ $tagihanData['pinjaman_barang']['sudah_bayar'] }}/{{ $tagihanData['pinjaman_barang']['total_angsuran'] }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Jasa (2%):</span>
-                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                <span class="font-bold">{{ number_format($tagihanData['pinjaman_barang']['jasa'], 0, ',', '.') }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Pinjaman Bank BSM:</span>
-                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
-                <span class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">0/0</span>
+                <span class="font-bold">{{ number_format($tagihanData['pinjaman_bank']['jumlah'], 0, ',', '.') }}</span>
+                <span class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">{{ $tagihanData['pinjaman_bank']['sudah_bayar'] }}/{{ $tagihanData['pinjaman_bank']['total_angsuran'] }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Jasa (1%):</span>
-                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                <span class="font-bold">{{ number_format($tagihanData['pinjaman_bank']['jasa'], 0, ',', '.') }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Toserda:</span>
-                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                <span class="font-bold">{{ number_format($tagihanData['toserda'], 0, ',', '.') }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Lain-lain:</span>
-                <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                <span class="font-bold">{{ number_format($tagihanData['lain_lain'], 0, ',', '.') }}</span>
             </div>
             <div class="border-t border-white border-opacity-30 pt-1 mt-1">
                 <div class="space-y-1">
                     <div class="flex justify-between">
                         <span>Jumlah:</span>
-                        <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                        <span class="font-bold">{{ number_format($tagihanData['summary']['jumlah'], 0, ',', '.') }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Tag Bulan Lalu:</span>
-                        <span class="font-bold">{{ number_format($tagihanBulanLalu, 0, ',', '.') }}</span>
+                        <span class="font-bold">{{ number_format($tagihanData['summary']['tag_bulan_lalu'], 0, ',', '.') }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="font-bold">Pot Gaji:</span>
-                        <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                        <span class="font-bold">{{ number_format($tagihanData['summary']['pot_gaji'], 0, ',', '.') }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="font-bold">Pot Simpanan:</span>
-                        <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                        <span class="font-bold">{{ number_format($tagihanData['summary']['pot_simpanan'], 0, ',', '.') }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Tag Harus Dibayar:</span>
-                        <span class="font-bold">{{ number_format(0, 0, ',', '.') }}</span>
+                        <span class="font-bold">{{ number_format($tagihanData['summary']['tag_harus_dibayar'], 0, ',', '.') }}</span>
                     </div>
                 </div>
             </div>
@@ -373,192 +384,207 @@
 
     <!-- 5. Notifikasi Pengajuan Pinjaman (Top Right) -->
     @if($pengajuanPinjaman)
-        <div class="col-span-3 row-span-3 col-start-5 row-start-1 bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <div class="h-full flex flex-col">
-                <div class="flex items-center mb-3">
-                    <i class="fas fa-file-text text-blue-600 text-xl mr-3"></i>
-                    <h3 class="text-lg font-semibold text-blue-800">Pengajuan Pinjaman Terbaru</h3>
+    <div class="col-span-3 row-span-3 col-start-5 row-start-1 bg-blue-100 rounded-lg p-4 border border-blue-200">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center mb-3">
+                <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+                <h3 class="text-lg font-semibold text-blue-800">Pengajuan Pinjaman Terbaru</h3>
+            </div>
+            <div class="flex-1 space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">ID Ajuan:</span>
+                    <span class="font-semibold">{{ $pengajuanPinjaman->ajuan_id }}</span>
                 </div>
-                
-                <div class="flex-1 space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">ID Ajuan:</span>
-                        <span class="text-sm font-semibold text-gray-800">{{ $pengajuanPinjaman->ajuan_id ?? 'N/A' }}</span>
-                    </div>
-                    
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Tanggal:</span>
-                        <span class="text-sm font-semibold text-gray-800">{{ \Carbon\Carbon::parse($pengajuanPinjaman->tgl_input)->format('d/m/Y') }}</span>
-                    </div>
-                    
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Jumlah:</span>
-                        <span class="text-sm font-semibold text-gray-800">Rp {{ number_format($pengajuanPinjaman->nominal, 0, ',', '.') }}</span>
-                    </div>
-                    
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Status:</span>
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                            @if($pengajuanPinjaman->status == 0) bg-yellow-100 text-yellow-800
-                            @elseif($pengajuanPinjaman->status == 1) bg-blue-100 text-blue-800
-                            @elseif($pengajuanPinjaman->status == 2) bg-red-100 text-red-800
-                            @elseif($pengajuanPinjaman->status == 3) bg-green-100 text-green-800
-                            @elseif($pengajuanPinjaman->status == 4) bg-gray-100 text-gray-800
-                            @else bg-gray-100 text-gray-800
-                            @endif">
-                            @if($pengajuanPinjaman->status == 0) Menunggu Konfirmasi
-                            @elseif($pengajuanPinjaman->status == 1) Disetujui
-                            @elseif($pengajuanPinjaman->status == 2) Ditolak
-                            @elseif($pengajuanPinjaman->status == 3) Terlaksana
-                            @elseif($pengajuanPinjaman->status == 4) Batal
-                            @else Tidak Diketahui
-                            @endif
-                        </span>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Tanggal:</span>
+                    <span
+                        class="font-semibold">{{ \Carbon\Carbon::parse($pengajuanPinjaman->tgl_input)->format('d/m/Y') }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Jumlah:</span>
+                    <span class="font-semibold">Rp {{ number_format($pengajuanPinjaman->nominal, 0, ',', '.') }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Status:</span>
+                    <span
+                        class="px-2 py-1 text-xs rounded border {{ $pengajuanPinjaman->status == 0 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ($pengajuanPinjaman->status == 1 ? 'bg-green-100 text-green-800 border-green-300' : ($pengajuanPinjaman->status == 2 ? 'bg-red-100 text-red-800 border-red-300' : ($pengajuanPinjaman->status == 3 ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-gray-100 text-gray-800 border-gray-300'))) }}">
+                        {{ $pengajuanPinjaman->status == 0 ? 'Menunggu Konfirmasi' : ($pengajuanPinjaman->status == 1 ? 'Disetujui' : ($pengajuanPinjaman->status == 2 ? 'Ditolak' : ($pengajuanPinjaman->status == 3 ? 'Sudah Terlaksana' : 'Batal'))) }}
+                    </span>
+                </div>
+            </div>
+            <div class="mt-3 flex space-x-2">
+                <a href="{{ route('member.pengajuan.pinjaman.show', $pengajuanPinjaman->id) }}"
+                    class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-center py-2 px-3 rounded text-sm transition-colors duration-200">
+                    <i class="fas fa-eye mr-1"></i> Detail
+                </a>
+                @if($pengajuanPinjaman->status == 0)
+                <form action="{{ route('member.pengajuan.pinjaman.cancel', $pengajuanPinjaman->id) }}" method="POST"
+                    class="flex-1">
+                    @csrf
+                    <button type="submit" onclick="return confirm('Yakin ingin membatalkan pengajuan?')"
+                        class="w-full bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded text-sm transition-colors duration-200">
+                        <i class="fas fa-times mr-1"></i> Batal
+                    </button>
+                </form>
+                @endif
+            </div>
         </div>
     </div>
-                
-                <div class="mt-4 space-y-2">
-                    <a href="{{ route('member.pengajuan.pinjaman.show', $pengajuanPinjaman->id) }}" 
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-md transition duration-200 flex items-center justify-center">
-                        <i class="fas fa-eye mr-2"></i> Lihat Detail
-                    </a>
-                    
-                    @if($pengajuanPinjaman->status == 0)
-                        <form action="{{ route('member.pengajuan.pinjaman.cancel', $pengajuanPinjaman->id) }}" method="POST" class="w-full">
-                            @csrf
-                            <button type="submit" 
-                                class="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-3 rounded-md transition duration-200 flex items-center justify-center"
-                                onclick="return confirm('Yakin ingin membatalkan pengajuan ini?')">
-                                <i class="fas fa-times mr-2"></i> Batalkan
-                            </button>
-                        </form>
-                    @endif
+    @else
+    <div class="col-span-3 row-span-3 col-start-5 row-start-1 bg-blue-100 rounded-lg p-4 border border-blue-200">
+        <div class="flex flex-col items-center justify-center h-full text-center">
+            <svg class="w-12 h-12 text-blue-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                </path>
+            </svg>
+            <h3 class="text-lg font-semibold text-blue-800 mb-2">Belum ada Pengajuan Pinjaman</h3>
+            <a href="{{ route('member.tambah.pengajuan.pinjaman') }}"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm transition-colors duration-200">
+                <i class="fas fa-plus mr-1"></i> Ajukan Pinjaman
+            </a>
+        </div>
+    </div>
+    <div class="col-span-3 row-span-3 col-start-5 row-start-1 bg-blue-100 rounded-lg p-4 border border-blue-200">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center mb-3">
+                <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+                <h3 class="text-lg font-semibold text-blue-800">Pengajuan Pinjaman Terbaru</h3>
+            </div>
+            <div class="flex-1 space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">ID Ajuan:</span>
+                    <span class="font-semibold">{{ $pengajuanPinjaman->ajuan_id }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Tanggal:</span>
+                    <span
+                        class="font-semibold">{{ \Carbon\Carbon::parse($pengajuanPinjaman->tgl_input)->format('d/m/Y') }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Jumlah:</span>
+                    <span class="font-semibold">Rp {{ number_format($pengajuanPinjaman->nominal, 0, ',', '.') }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Status:</span>
+                    <span
+                        class="px-2 py-1 text-xs rounded border {{ $pengajuanPinjaman->status == 0 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ($pengajuanPinjaman->status == 1 ? 'bg-green-100 text-green-800 border-green-300' : ($pengajuanPinjaman->status == 2 ? 'bg-red-100 text-red-800 border-red-300' : ($pengajuanPinjaman->status == 3 ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-gray-100 text-gray-800 border-gray-300'))) }}">
+                        {{ $pengajuanPinjaman->status == 0 ? 'Menunggu Konfirmasi' : ($pengajuanPinjaman->status == 1 ? 'Disetujui' : ($pengajuanPinjaman->status == 2 ? 'Ditolak' : ($pengajuanPinjaman->status == 3 ? 'Sudah Terlaksana' : 'Batal'))) }}
+                    </span>
                 </div>
             </div>
-        </div>
-    @else
-        <div class="col-span-3 row-span-3 col-start-5 row-start-1 bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <div class="flex flex-col items-center justify-center h-full text-center">
-                <i class="fas fa-info-circle text-blue-400 text-4xl mb-3"></i>
-                <h3 class="text-lg font-semibold text-blue-800 mb-2">Belum ada Pengajuan Pinjaman</h3>
-                <p class="text-sm text-blue-600 mb-4">Anda belum memiliki pengajuan pinjaman aktif</p>
-                <a href="{{ route('member.pengajuan.pinjaman.form') }}" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-md transition duration-200 flex items-center">
-                    <i class="fas fa-plus mr-2"></i> Ajukan Pinjaman
+            <div class="mt-3 flex space-x-2">
+                <a href="{{ route('member.pengajuan.pinjaman.show', $pengajuanPinjaman->id) }}"
+                    class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-center py-2 px-3 rounded text-sm transition-colors duration-200">
+                    <i class="fas fa-eye mr-1"></i> Detail
                 </a>
+                @if($pengajuanPinjaman->status == 0)
+                <form action="{{ route('member.pengajuan.pinjaman.cancel', $pengajuanPinjaman->id) }}" method="POST"
+                    class="flex-1">
+                    @csrf
+                    <button type="submit" onclick="return confirm('Yakin ingin membatalkan pengajuan?')"
+                        class="w-full bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded text-sm transition-colors duration-200">
+                        <i class="fas fa-times mr-1"></i> Batal
+                    </button>
+                </form>
+                @endif
             </div>
         </div>
+    </div>
+    @else
+    <div class="col-span-3 row-span-3 col-start-5 row-start-1 bg-blue-100 rounded-lg p-4 border border-blue-200">
+        <div class="flex flex-col items-center justify-center h-full text-center">
+            <svg class="w-12 h-12 text-blue-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                </path>
+            </svg>
+            <h3 class="text-lg font-semibold text-blue-800 mb-2">Belum ada Pengajuan Pinjaman</h3>
+            <a href="{{ route('member.tambah.pengajuan.pinjaman') }}"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm transition-colors duration-200">
+                <i class="fas fa-plus mr-1"></i> Ajukan Pinjaman
+            </a>
+        </div>
+    </div>
     @endif
 
     <!-- 6. Notifikasi Penarikan Simpanan (Bottom Right) -->
     @if($pengajuanPenarikan)
-        <div class="col-span-3 row-span-3 col-start-5 row-start-4 bg-orange-50 rounded-lg p-4 border border-orange-200">
-            <div class="h-full flex flex-col">
-                <div class="flex items-center mb-3">
-                    <i class="fas fa-money-bill-wave text-orange-600 text-xl mr-3"></i>
-                    <h3 class="text-lg font-semibold text-orange-800">Pengajuan Penarikan Terbaru</h3>
+
+    <div class="col-span-3 row-span-3 col-start-5 row-start-4 bg-yellow-100 rounded-lg p-4 border border-yellow-200">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center mb-3">
+                <svg class="w-6 h-6 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                    </path>
+                </svg>
+                <h3 class="text-lg font-semibold text-yellow-800">Penarikan Simpanan Terbaru</h3>
+            </div>
+            <div class="flex-1 space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">ID Ajuan:</span>
+                    <span class="font-semibold">{{ $pengajuanPenarikan->ajuan_id ?? 'N/A' }}</span>
                 </div>
-                
-                <div class="flex-1 space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">ID Ajuan:</span>
-                        <span class="text-sm font-semibold text-gray-800">{{ $pengajuanPenarikan->ajuan_id ?? 'N/A' }}</span>
-                    </div>
-                    
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Tanggal:</span>
-                        <span class="text-sm font-semibold text-gray-800">{{ \Carbon\Carbon::parse($pengajuanPenarikan->tgl_input)->format('d/m/Y') }}</span>
-                    </div>
-                    
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Jumlah:</span>
-                        <span class="text-sm font-semibold text-gray-800">Rp {{ number_format($pengajuanPenarikan->nominal, 0, ',', '.') }}</span>
-                    </div>
-                    
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Jenis:</span>
-                        <span class="text-sm font-semibold text-gray-800">{{ $pengajuanPenarikan->jenisSimpanan->jns_simpan ?? 'N/A' }}</span>
-                    </div>
-                    
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Status:</span>
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                            @if($pengajuanPenarikan->status == 0) bg-yellow-100 text-yellow-800
-                            @elseif($pengajuanPenarikan->status == 1) bg-blue-100 text-blue-800
-                            @elseif($pengajuanPenarikan->status == 2) bg-red-100 text-red-800
-                            @elseif($pengajuanPenarikan->status == 3) bg-green-100 text-green-800
-                            @elseif($pengajuanPenarikan->status == 4) bg-gray-100 text-gray-800
-                            @else bg-gray-100 text-gray-800
-                            @endif">
-                            @if($pengajuanPenarikan->status == 0) Menunggu Konfirmasi
-                            @elseif($pengajuanPenarikan->status == 1) Disetujui
-                            @elseif($pengajuanPenarikan->status == 2) Ditolak
-                            @elseif($pengajuanPenarikan->status == 3) Terlaksana
-                            @elseif($pengajuanPenarikan->status == 4) Batal
-                            @else Tidak Diketahui
-                            @endif
-                        </span>
-                    </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Tanggal:</span>
+                    <span
+                        class="font-semibold">{{ \Carbon\Carbon::parse($pengajuanPenarikan->tgl_input)->format('d/m/Y') }}</span>
                 </div>
-                
-                <div class="mt-4 space-y-2">
-                    <a href="{{ route('member.pengajuan.penarikan.show', $pengajuanPenarikan->id) }}" 
-                        class="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium py-2 px-3 rounded-md transition duration-200 flex items-center justify-center">
-                        <i class="fas fa-eye mr-2"></i> Lihat Detail
-                    </a>
-                    
-                    @if($pengajuanPenarikan->status == 0)
-                        <form action="{{ route('member.pengajuan.penarikan.cancel', $pengajuanPenarikan->id) }}" method="POST" class="w-full">
-                            @csrf
-                            <button type="submit" 
-                                class="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-3 rounded-md transition duration-200 flex items-center justify-center"
-                                onclick="return confirm('Yakin ingin membatalkan pengajuan ini?')">
-                                <i class="fas fa-times mr-2"></i> Batalkan
-                            </button>
-                        </form>
-                    @endif
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Jumlah:</span>
+                    <span class="font-semibold">Rp
+                        {{ number_format($pengajuanPenarikan->nominal, 0, ',', '.') }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Jenis:</span>
+                    <span class="font-semibold">{{ $pengajuanPenarikan->jenis }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Status:</span>
+                    <span
+                        class="px-2 py-1 text-xs rounded border {{ $pengajuanPenarikan->status == 0 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ($pengajuanPenarikan->status == 1 ? 'bg-green-100 text-green-800 border-green-300' : ($pengajuanPenarikan->status == 2 ? 'bg-red-100 text-red-800 border-red-300' : ($pengajuanPenarikan->status == 3 ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-gray-100 text-gray-800 border-gray-300'))) }}">
+                        {{ $pengajuanPenarikan->status == 0 ? 'Menunggu Konfirmasi' : ($pengajuanPenarikan->status == 1 ? 'Disetujui' : ($pengajuanPenarikan->status == 2 ? 'Ditolak' : ($pengajuanPenarikan->status == 3 ? 'Sudah Terlaksana' : 'Batal'))) }}
+                    </span>
                 </div>
             </div>
-        </div>
-    @else
-        <div class="col-span-3 row-span-3 col-start-5 row-start-4 bg-orange-50 rounded-lg p-4 border border-orange-200">
-            <div class="flex flex-col items-center justify-center h-full text-center">
-                <i class="fas fa-info-circle text-orange-400 text-4xl mb-3"></i>
-                <h3 class="text-lg font-semibold text-orange-800 mb-2">Belum ada Penarikan Simpanan</h3>
-                <p class="text-sm text-orange-600 mb-4">Anda belum memiliki pengajuan penarikan aktif</p>
-                <a href="{{ route('member.pengajuan.penarikan.form') }}" 
-                    class="bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium py-2 px-4 rounded-md transition duration-200 flex items-center">
-                    <i class="fas fa-plus mr-2"></i> Ajukan Penarikan
+            <div class="mt-3">
+                <a href="{{ route('member.pengajuan.penarikan') }}"
+                    class="w-full bg-yellow-500 hover:bg-yellow-600 text-white text-center py-2 px-3 rounded text-sm transition-colors duration-200 block">
+                    <i class="fas fa-eye mr-1"></i> Lihat Detail
                 </a>
+            </div>
+        </div>
+    </div>
+    @else
+    <div class="col-span-3 row-span-3 col-start-5 row-start-4 bg-yellow-100 rounded-lg p-4 border border-yellow-200">
+        <div class="flex flex-col items-center justify-center h-full text-center">
+            <svg class="w-12 h-12 text-yellow-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                </path>
+            </svg>
+            <h3 class="text-lg font-semibold text-yellow-800 mb-2">Belum ada Penarikan Simpanan</h3>
+            <a href="{{ route('member.pengajuan.penarikan') }}"
+                class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded text-sm transition-colors duration-200">
+                <i class="fas fa-money mr-1"></i> Ajukan Penarikan
+            </a>
         </div>
     </div>
     @endif
 </div>
 
-@push('scripts')
 <script>
-// Auto refresh notifikasi setiap 30 detik
-setInterval(function() {
-    // Refresh halaman untuk mendapatkan data terbaru
-    // Alternatif: bisa menggunakan AJAX untuk update partial
-    location.reload();
-}, 30000); // 30 detik
-
-// Tambahkan animasi untuk notifikasi
-document.addEventListener('DOMContentLoaded', function() {
-    // Animasi fade in untuk notifikasi
-    const notifications = document.querySelectorAll('[class*="bg-blue-50"], [class*="bg-orange-50"]');
-    notifications.forEach(function(notification, index) {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateY(20px)';
-        
-        setTimeout(function() {
-            notification.style.transition = 'all 0.5s ease';
-            notification.style.opacity = '1';
-            notification.style.transform = 'translateY(0)';
-        }, index * 200);
-    });
-});
+function changePeriode(periode) {
+    window.location.href = '{{ route("member.dashboard") }}?periode=' + periode;
+}
 </script>
-@endpush
 @endsection

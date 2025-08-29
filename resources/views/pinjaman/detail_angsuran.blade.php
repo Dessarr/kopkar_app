@@ -76,7 +76,30 @@
             </div>
             <div class="bg-purple-50 p-4 rounded-lg">
                 <label class="block text-sm font-medium text-purple-700">Sisa Tagihan</label>
-                <p class="text-2xl font-bold text-purple-900">Rp {{ number_format($sisaAngsuran, 0, ',', '.') }}</p>
+                <p class="text-2xl font-bold text-purple-900">Rp {{ number_format($sisaTagihan, 0, ',', '.') }}</p>
+            </div>
+        </div>
+        
+        <!-- Informasi Total Tagihan -->
+        <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+            <h3 class="text-md font-medium text-gray-700 mb-2">Detail Total Tagihan</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="text-gray-600">Pokok Pinjaman:</span>
+                    <span class="font-medium">Rp {{ number_format($pinjaman->jumlah, 0, ',', '.') }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-600">Total Bunga:</span>
+                    <span class="font-medium">Rp {{ number_format(($pinjaman->bunga * $pinjaman->jumlah * $pinjaman->lama_angsuran) / 100, 0, ',', '.') }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-600">Biaya Admin:</span>
+                    <span class="font-medium">Rp {{ number_format($pinjaman->biaya_adm, 0, ',', '.') }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-600">Total Tagihan:</span>
+                    <span class="font-medium text-lg text-red-600">Rp {{ number_format($totalTagihan, 0, ',', '.') }}</span>
+                </div>
             </div>
         </div>
     </div>
@@ -85,6 +108,24 @@
     @if($pinjaman->lunas === 'Belum')
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 class="text-lg font-semibold mb-4">Pembayaran Angsuran ke-{{ $angsuranKe }}</h2>
+        
+        <!-- Peringatan untuk Angsuran Pertama -->
+        @if($angsuranKe === 1)
+        <div class="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            <strong>Peringatan:</strong> Pembayaran angsuran pertama tidak boleh langsung lunas. 
+            Jika ingin membayar langsung lunas, gunakan menu Pelunasan.
+        </div>
+        @endif
+        
+        <!-- Informasi Denda Keterlambatan -->
+        @if($denda > 0)
+        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            <strong>Denda Keterlambatan:</strong> Rp {{ number_format($denda, 0, ',', '.') }}
+            <br><small>Jatuh tempo: {{ \Carbon\Carbon::parse($tglTempo)->format('d/m/Y') }}</small>
+        </div>
+        @endif
         
         <form action="{{ route('pinjaman.data_angsuran.store', $pinjaman->id) }}" method="POST">
             @csrf
@@ -95,9 +136,14 @@
                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
                 </div>
                 <div>
-                    <label for="jumlah_bayar" class="block text-sm font-medium text-gray-700">Jumlah Bayar</label>
+                    <label for="jumlah_bayar" class="block text-sm font-medium text-gray-700">Jumlah Bayar (Pokok)</label>
                     <input type="number" name="jumlah_bayar" id="jumlah_bayar" value="{{ $pinjaman->jumlah_angsuran }}" 
-                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
+                           min="{{ $pinjaman->jumlah_angsuran }}" max="{{ $sisaTagihan }}" required>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Minimal: Rp {{ number_format($pinjaman->jumlah_angsuran, 0, ',', '.') }} | 
+                        Maksimal: Rp {{ number_format($sisaTagihan, 0, ',', '.') }}
+                    </p>
                 </div>
                 <div>
                     <label for="bunga" class="block text-sm font-medium text-gray-700">Bunga</label>
@@ -106,13 +152,16 @@
                 </div>
                 <div>
                     <label for="biaya_adm" class="block text-sm font-medium text-gray-700">Biaya Admin</label>
-                    <input type="number" name="biaya_adm" id="biaya_adm" value="{{ $pinjaman->biaya_adm / $pinjaman->lama_angsuran }}" 
-                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+                    <input type="number" name="biaya_adm" id="biaya_adm" value="{{ $angsuranKe === 1 ? $pinjaman->biaya_adm : 0 }}" 
+                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
+                           {{ $angsuranKe === 1 ? 'required' : 'readonly' }}>
+                    <p class="mt-1 text-xs text-gray-500">{{ $angsuranKe === 1 ? 'Hanya dikenakan pada angsuran pertama' : 'Tidak ada biaya admin' }}</p>
                 </div>
                 <div>
                     <label for="denda_rp" class="block text-sm font-medium text-gray-700">Denda (jika ada)</label>
                     <input type="number" name="denda_rp" id="denda_rp" value="{{ $denda }}" 
                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                    <p class="mt-1 text-xs text-gray-500">Denda keterlambatan: Rp {{ number_format($denda, 0, ',', '.') }}</p>
                 </div>
                 <div>
                     <label for="kas_id" class="block text-sm font-medium text-gray-700">Kas</label>
@@ -154,6 +203,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bunga</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Denda</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Biaya Adm</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                     </tr>
                 </thead>
@@ -166,6 +216,13 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp {{ number_format($angsuran->bunga, 0, ',', '.') }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp {{ number_format($angsuran->denda_rp, 0, ',', '.') }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp {{ number_format($angsuran->biaya_adm, 0, ',', '.') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            @if($angsuran->ket_bayar === 'Pelunasan')
+                                <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Pelunasan</span>
+                            @else
+                                <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">Angsuran</span>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex space-x-2">
                                 <a href="{{ route('pinjaman.data_angsuran.edit', $angsuran->id) }}" 
@@ -190,21 +247,4 @@
         @endif
     </div>
 </div>
-
-<script>
-// Auto-calculate denda if jatuh tempo
-document.addEventListener('DOMContentLoaded', function() {
-    const tglTempo = '{{ $tglTempo }}';
-    const today = new Date();
-    const tempoDate = new Date(tglTempo);
-    
-    if (today > tempoDate) {
-        const diffTime = Math.abs(today - tempoDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        const denda = diffDays * 1000; // Denda per hari
-        
-        document.getElementById('denda_rp').value = denda;
-    }
-});
-</script>
 @endsection

@@ -77,7 +77,7 @@
         <div class="mt-4 flex items-center justify-between">
             <div class="text-sm text-gray-500">{{ $dataPengajuan->firstItem() }} - {{ $dataPengajuan->lastItem() }} dari total {{ $dataPengajuan->total() }} data</div>
             <div class="flex items-center space-x-2">
-                {{ $dataPengajuan->links('vendor.pagination.simple-tailwind') }}
+                <div class="mt-6">{{ $dataPengajuan->links('vendor.pagination.simple-tailwind') }}</div>
             </div>
         </div>
     </div>

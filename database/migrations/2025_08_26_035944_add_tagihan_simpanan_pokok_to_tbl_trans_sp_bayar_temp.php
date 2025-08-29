@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('transaksi_kas', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::table('tbl_trans_sp_bayar_temp', function (Blueprint $table) {
+            $table->decimal('tagihan_simpanan_pokok', 15, 2)->default(0.00)->after('tagihan_simpanan_khusus_2');
         });
     }
 
@@ -22,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('transaksi_kas');
+        Schema::table('tbl_trans_sp_bayar_temp', function (Blueprint $table) {
+            $table->dropColumn('tagihan_simpanan_pokok');
+        });
     }
 };

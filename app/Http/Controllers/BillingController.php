@@ -17,6 +17,13 @@ use Carbon\Carbon;
 
 class BillingController extends Controller
 {
+    // Konstanta untuk jenis ID
+    const JENIS_ID_PINJAMAN = 999;
+    const JENIS_ID_SIMPANAN_WAJIB = 41;
+    const JENIS_ID_SIMPANAN_SUKARELA = 32;
+    const JENIS_ID_SIMPANAN_KHUSUS_2 = 52;
+    const JENIS_ID_TOSERDA = 155;
+    
     // Define bulanList as class property
     private $bulanList = [
         '01' => 'Januari',
@@ -120,7 +127,7 @@ class BillingController extends Controller
         
         try {
             // 1. Hapus SEMUA data billing simpanan terlebih dahulu untuk menghindari penumpukan
-            $deletedCount = billing::where('jns_trans', 'Simpanan')->delete();
+            $deletedCount = billing::where('jns_trans', 'simpanan')->delete();
             
             // Log untuk debugging
             Log::info("Deleted $deletedCount billing records (all simpanan) before generating for month $bulan_input/$tahun_input");
@@ -183,10 +190,9 @@ class BillingController extends Controller
                     'simpanan_pokok' => $tambah_simpanan_pokok,
                     'total_billing' => $total_simpanan,
                     'total_tagihan' => $total_simpanan,
-                    'id_akun' => $id_akun_simpanan,
                     'status' => 'N',
-                    'status_bayar' => 'Belum Lunas',
-                    'jns_trans' => 'Simpanan',
+                                            'status_bayar' => 'belum',
+                                            'jns_trans' => 'simpanan',
                     'created_at' => now(),
                     'updated_at' => now()
                 ];
@@ -200,6 +206,12 @@ class BillingController extends Controller
             }
             
             // Tidak generate TOSERDA di sini (dipindah ke modul Toserda -> Billing Utama via process-all)
+            
+            // Generate billing pinjaman untuk bulan ini
+            $this->generateBillingPinjaman($bulan_input, $tahun_input);
+            
+            // Proses billing pinjaman ke tbl_trans_sp_bayar_temp
+            $this->processBillingPinjamanToMain($bulan_input, $tahun_input);
             
             DB::commit();
             
@@ -220,6 +232,131 @@ class BillingController extends Controller
         }
     }
 
+    /**
+     * Generate billing pinjaman untuk bulan tertentu
+     */
+    private function generateBillingPinjaman($bulan, $tahun)
+    {
+        try {
+            // Hapus billing pinjaman bulan sebelumnya untuk menghindari duplikasi
+            DB::table('tbl_trans_tagihan')
+                ->where('jenis_id', self::JENIS_ID_PINJAMAN)
+                ->whereMonth('tgl_transaksi', $bulan)
+                ->whereYear('tgl_transaksi', $tahun)
+                ->delete();
+            
+            // Ambil semua jadwal angsuran untuk bulan tertentu
+            // TIDAK ADA FILTER lunas = 'Belum' agar semua jadwal tetap di-generate
+            $jadwalAngsuran = DB::table('tempo_pinjaman as t')
+                ->join('tbl_pinjaman_h as h', 't.pinjam_id', '=', 'h.id')
+                ->select(
+                    't.pinjam_id',
+                    't.no_ktp',
+                    't.tempo',
+                    'h.jumlah',
+                    'h.lama_angsuran',
+                    'h.bunga_rp',
+                    'h.biaya_adm',
+                    'h.lunas'
+                )
+                ->whereMonth('t.tempo', $bulan)
+                ->whereYear('t.tempo', $tahun)
+                ->get();
+            
+            $billingData = [];
+            
+            foreach ($jadwalAngsuran as $jadwal) {
+                // Hitung angsuran per bulan
+                $angsuranPokok = $jadwal->jumlah / $jadwal->lama_angsuran;
+                $angsuranBunga = $jadwal->bunga_rp / $jadwal->lama_angsuran;
+                $totalAngsuran = $angsuranPokok + $angsuranBunga;
+                
+                // Generate tagihan untuk semua jadwal, terlepas dari status lunas
+                $billingData[] = [
+                    'tgl_transaksi' => $jadwal->tempo,
+                    'no_ktp' => $jadwal->no_ktp,
+                    'anggota_id' => null, // Akan diisi nanti
+                    'jenis_id' => self::JENIS_ID_PINJAMAN,
+                    'jumlah' => $totalAngsuran,
+                    'keterangan' => 'Tagihan Angsuran Pinjaman - Jatuh Tempo: ' . $jadwal->tempo,
+                    'akun' => 'Tagihan',
+                    'dk' => 'K',
+                    'kas_id' => 1,
+                    'user_name' => 'admin'
+                ];
+            }
+            
+            // Insert billing data
+            if (!empty($billingData)) {
+                foreach (array_chunk($billingData, 100) as $chunk) {
+                    DB::table('tbl_trans_tagihan')->insert($chunk);
+                }
+            }
+            
+            Log::info('Billing pinjaman berhasil di-generate', [
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+                'jumlah_tagihan' => count($billingData)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error generating billing pinjaman: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Proses billing pinjaman ke tbl_trans_sp_bayar_temp
+     */
+    private function processBillingPinjamanToMain($bulan, $tahun)
+    {
+        try {
+            // Ambil semua tagihan pinjaman untuk bulan tertentu
+            $tagihanPinjaman = DB::table('tbl_trans_tagihan')
+                ->select('no_ktp', DB::raw('SUM(jumlah) as total'))
+                ->where('jenis_id', self::JENIS_ID_PINJAMAN)
+                ->whereMonth('tgl_transaksi', $bulan)
+                ->whereYear('tgl_transaksi', $tahun)
+                ->groupBy('no_ktp')
+                ->get();
+            
+            foreach ($tagihanPinjaman as $tagihan) {
+                // Upsert ke tbl_trans_sp_bayar_temp
+                DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
+                    [
+                        'tgl_transaksi' => Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth()->toDateString(),
+                        'no_ktp' => $tagihan->no_ktp,
+                    ],
+                    [
+                        'anggota_id' => null,
+                        'jumlah' => DB::raw('COALESCE(jumlah,0)'),
+                        'keterangan' => 'Billing Pinjaman ' . $bulan . '-' . $tahun,
+                        'tagihan_simpanan_wajib' => DB::raw('COALESCE(tagihan_simpanan_wajib,0)'),
+                        'tagihan_simpanan_sukarela' => DB::raw('COALESCE(tagihan_simpanan_sukarela,0)'),
+                        'tagihan_simpanan_khusus_2' => DB::raw('COALESCE(tagihan_simpanan_khusus_2,0)'),
+                        'tagihan_pinjaman' => $tagihan->total ?? 0,
+                        'tagihan_pinjaman_jasa' => DB::raw('COALESCE(tagihan_pinjaman_jasa,0)'),
+                        'tagihan_toserda' => DB::raw('COALESCE(tagihan_toserda,0)'),
+                        'total_tagihan_simpanan' => DB::raw('COALESCE(total_tagihan_simpanan,0)'),
+                        'selisih' => DB::raw('COALESCE(selisih,0)'),
+                        'saldo_simpanan_sukarela' => DB::raw('COALESCE(saldo_simpanan_sukarela,0)'),
+                        'saldo_akhir_simpanan_sukarela' => DB::raw('COALESCE(saldo_akhir_simpanan_sukarela,0)'),
+                    ]
+                );
+            }
+            
+            // Hapus billing pinjaman bulan/tahun ini setelah dipindahkan
+            DB::table('tbl_trans_tagihan')
+                ->where('jenis_id', self::JENIS_ID_PINJAMAN)
+                ->whereMonth('tgl_transaksi', $bulan)
+                ->whereYear('tgl_transaksi', $tahun)
+                ->delete();
+            
+        } catch (\Exception $e) {
+            Log::error('Error processBillingPinjamanToMain: ' . $e->getMessage());
+        }
+    }
+
     // Proses semua billing simpanan ke Billing Utama (tbl_trans_sp_bayar_temp)
     public function processAllToMain(Request $request)
     {
@@ -227,7 +364,7 @@ class BillingController extends Controller
         $tahun = $request->input('tahun', date('Y'));
         try {
             DB::beginTransaction();
-            $billings = billing::where('jns_trans', 'Simpanan')
+            $billings = billing::where('jns_trans', 'simpanan')
                 ->where('bulan', $bulan)
                 ->where('tahun', $tahun)
                 ->get();
@@ -246,6 +383,7 @@ class BillingController extends Controller
                         'tagihan_simpanan_wajib' => $b->simpanan_wajib ?? 0,
                         'tagihan_simpanan_sukarela' => $b->simpanan_sukarela ?? 0,
                         'tagihan_simpanan_khusus_2' => $b->simpanan_khusus_2 ?? 0,
+                        'tagihan_simpanan_pokok' => $b->simpanan_pokok ?? 0,
                         'tagihan_pinjaman' => DB::raw('COALESCE(tagihan_pinjaman,0)') ,
                         'tagihan_pinjaman_jasa' => DB::raw('COALESCE(tagihan_pinjaman_jasa,0)') ,
                         'tagihan_toserda' => DB::raw('COALESCE(tagihan_toserda,0)') ,
@@ -258,7 +396,7 @@ class BillingController extends Controller
             }
 
             // Hapus billing simpanan bulan/tahun ini setelah dipindahkan
-            billing::where('jns_trans', 'Simpanan')
+            billing::where('jns_trans', 'simpanan')
                 ->where('bulan', $bulan)
                 ->where('tahun', $tahun)
                 ->delete();
@@ -293,7 +431,7 @@ class BillingController extends Controller
             DB::beginTransaction();
             
             // Jika billing untuk simpanan, generate record di tbl_trans_sp
-            if ($billing->jns_trans === 'Simpanan') {
+            if ($billing->jns_trans === 'simpanan') {
                 $this->generateSimpananRecords($billing);
             }
             

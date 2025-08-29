@@ -15,6 +15,7 @@ use App\Http\Controllers\DtaPengajuanController;
 use App\Http\Controllers\DtaPengajuanPenarikanController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingToserdaController;
+use App\Http\Controllers\BillingPinjamanController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TransaksiKasController;
 use App\Http\Controllers\SettingController;
@@ -183,8 +184,32 @@ Route::middleware(['auth:admin'])->group(function () {
         Route::post('/process-all', [BillingToserdaController::class, 'processAllToMain'])->name('billing.toserda.process_all');
     });
 
+    // Route Billing Pinjaman
+    Route::prefix('billing-pinjaman')->group(function () {
+        Route::get('/', [\App\Http\Controllers\BillingPinjamanController::class, 'index'])->name('billing.pinjaman');
+        // Proses semua Pinjaman bulan/tahun terpilih ke Billing Utama
+        Route::post('/process-all', [\App\Http\Controllers\BillingPinjamanController::class, 'processAllToMain'])->name('billing.pinjaman.process_all');
+    });
+
     // Billing Utama (ambil dari tbl_trans_sp_bayar_temp)
     Route::get('/billing-utama', [\App\Http\Controllers\BillingUtamaController::class, 'index'])->name('billing.utama');
+    
+    // Billing Periode (untuk table kecil periode)
+    Route::get('/billing-periode/summary/{bulan}/{tahun}', [\App\Http\Controllers\BillingPeriodeController::class, 'getPeriodSummary'])->name('billing.periode.summary');
+    Route::get('/billing-periode/trans-lalu/{periode}', [\App\Http\Controllers\BillingPeriodeController::class, 'transLalu'])->name('billing.periode.trans_lalu');
+    Route::get('/billing-periode/debug/{bulan}/{tahun}', [\App\Http\Controllers\BillingPeriodeController::class, 'debugPeriodData'])->name('billing.periode.debug');
+
+    // Billing Upload Excel
+    Route::post('/billing-upload/excel', [\App\Http\Controllers\BillingUploadController::class, 'uploadExcel'])->name('billing.upload.excel');
+    
+    // Billing Proceed (Process all billing data)
+    Route::post('/billing/proceed', [\App\Http\Controllers\BillingUtamaController::class, 'proceed'])->name('billing.proceed');
+    
+    // Billing Tagihan Routes
+    Route::get('/billing-tagihan', [\App\Http\Controllers\BillingTagihanController::class, 'index'])->name('billing.tagihan');
+    Route::post('/billing-tagihan/generate', [\App\Http\Controllers\BillingTagihanController::class, 'generateBilling'])->name('billing.tagihan.generate');
+    Route::post('/billing-tagihan/delete', [\App\Http\Controllers\BillingTagihanController::class, 'deleteBilling'])->name('billing.tagihan.delete');
+    Route::get('/billing-tagihan/view', [\App\Http\Controllers\BillingTagihanController::class, 'viewBilling'])->name('billing.tagihan.view');
 
     //Route untuk Pinjaman
     Route::get('/pinjaman/data_pengajuan', [DtaPengajuanController::class, 'index'])->name('pinjaman.data_pengajuan');
@@ -194,13 +219,19 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::post('/pinjaman/data_pengajuan/{id}/terlaksana', [DtaPengajuanController::class, 'terlaksana'])->name('pinjaman.data_pengajuan.terlaksana');
     Route::delete('/pinjaman/data_pengajuan/{id}', [DtaPengajuanController::class, 'destroy'])->name('pinjaman.data_pengajuan.destroy');
     Route::get('/pinjaman/data_pengajuan/{id}/cetak', [DtaPengajuanController::class, 'cetak'])->name('pinjaman.data_pengajuan.cetak');
+    Route::post('/pinjaman/data_pengajuan/{id}/update-field', [DtaPengajuanController::class, 'updateField'])->name('pinjaman.data_pengajuan.update-field');
 
     // Route untuk Data Pinjaman
     Route::get('/pinjaman/data_pinjaman', [\App\Http\Controllers\DataPinjamanController::class, 'index'])->name('pinjaman.data_pinjaman');
+    Route::get('/pinjaman/data_pinjaman/create', [\App\Http\Controllers\DataPinjamanController::class, 'create'])->name('pinjaman.data_pinjaman.create');
+    Route::post('/pinjaman/data_pinjaman', [\App\Http\Controllers\DataPinjamanController::class, 'store'])->name('pinjaman.data_pinjaman.store');
     Route::get('/pinjaman/data_pinjaman/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'show'])->name('pinjaman.data_pinjaman.show');
     Route::get('/pinjaman/data_pinjaman/{id}/edit', [\App\Http\Controllers\DataPinjamanController::class, 'edit'])->name('pinjaman.data_pinjaman.edit');
     Route::put('/pinjaman/data_pinjaman/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'update'])->name('pinjaman.data_pinjaman.update');
     Route::delete('/pinjaman/data_pinjaman/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'destroy'])->name('pinjaman.data_pinjaman.destroy');
+    Route::post('/pinjaman/data_pinjaman/bulk-delete', [\App\Http\Controllers\DataPinjamanController::class, 'bulkDestroy'])->name('pinjaman.data_pinjaman.bulk_destroy');
+    Route::get('/pinjaman/data_pinjaman/{id}/data', [\App\Http\Controllers\DataPinjamanController::class, 'getPinjamanData'])->name('pinjaman.data_pinjaman.data');
+    Route::get('/pinjaman/nota/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'nota'])->name('pinjaman.nota');
 
     // Route untuk Pengajuan Penarikan Simpanan (Admin)
     Route::prefix('pengajuan-penarikan')->group(function () {
@@ -238,6 +269,11 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::put('/pinjaman/data_angsuran/{id}', [\App\Http\Controllers\DataAngsuranController::class, 'update'])->name('pinjaman.data_angsuran.update');
     Route::delete('/pinjaman/data_angsuran/{id}', [\App\Http\Controllers\DataAngsuranController::class, 'destroy'])->name('pinjaman.data_angsuran.destroy');
     Route::get('/pinjaman/data_angsuran/{id}/cetak', [\App\Http\Controllers\DataAngsuranController::class, 'cetak'])->name('pinjaman.data_angsuran.cetak');
+
+    // Route untuk Pelunasan
+    Route::get('/pinjaman/pelunasan', [\App\Http\Controllers\PelunasanController::class, 'index'])->name('pinjaman.pelunasan');
+    Route::get('/pinjaman/pelunasan/{id}', [\App\Http\Controllers\PelunasanController::class, 'show'])->name('pinjaman.pelunasan.show');
+    Route::post('/pinjaman/pelunasan/{pinjamanId}', [\App\Http\Controllers\PelunasanController::class, 'store'])->name('pinjaman.pelunasan.store');
 
     // Route untuk Pinjaman Lunas
     Route::get('/pinjaman/lunas', [\App\Http\Controllers\DataPinjamanController::class, 'lunas'])->name('pinjaman.lunas');

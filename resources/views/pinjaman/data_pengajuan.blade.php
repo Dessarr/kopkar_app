@@ -17,29 +17,176 @@
                     <i class="fas fa-check-circle mr-2"></i>Pinjaman Lunas
                 </a>
             </div>
-            <div class="flex place-content-around items-center w-1/2">
-                <div class="bg-green-100 p-2 rounded-lg border-2 border-green-400 space-x-2 flex justify-around">
-                    <p class="text-sm">Export</p> <img
-                        src="{{ asset('img/icons-bootstrap/export/cloud-download.svg') }}" class="h-auto w-[20px]">
-                </div>
-                <div class="bg-gray-100 p-2 flex flex-row space-x-2 item-center rounded-lg border-2 border-gray-300">
-                    <i class="fa-solid fa-magnifying-glass  " style="color:gray;"></i>
-                    <p class="text-sm text-gray-500  ">Kode Pengajuan</p>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Filter Data Pengajuan</h2>
+
+            <form action="{{ route('pinjaman.data_pengajuan') }}" method="GET" id="filterForm">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <!-- Filter Tanggal -->
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Filter Tanggal</label>
+                        <div class="relative">
+                            <button type="button" id="tanggalBtn"
+                                class="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <span id="tanggalText">Semua Tanggal</span>
+                                <i class="fas fa-calendar text-gray-400"></i>
+                            </button>
+                            <div id="tanggalDropdown"
+                                class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                                <div class="p-2 space-y-1">
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="today">Hari ini</button>
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="yesterday">Kemarin</button>
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="7days">7 Hari yang lalu</button>
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="30days">30 Hari yang lalu</button>
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="thisMonth">Bulan ini</button>
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="lastMonth">Bulan kemarin</button>
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="thisYear">Tahun ini</button>
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="lastYear">Tahun kemarin</button>
+                                    <hr class="my-2">
+                                    <div class="p-2">
+                                        <div class="mb-2">
+                                            <label class="block text-xs text-gray-600 mb-1">FROM:</label>
+                                            <input type="date" id="dateFrom" name="date_from"
+                                                value="{{ request('date_from') }}"
+                                                class="w-full px-2 py-1 text-xs border border-gray-300 rounded">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="block text-xs text-gray-600 mb-1">TO:</label>
+                                            <input type="date" id="dateTo" name="date_to"
+                                                value="{{ request('date_to') }}"
+                                                class="w-full px-2 py-1 text-xs border border-gray-300 rounded">
+                                        </div>
+                                        <div class="flex space-x-1">
+                                            <button type="button" id="cancelDate"
+                                                class="flex-1 px-2 py-1 text-xs bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Cancel</button>
+                                            <button type="button" id="applyDate"
+                                                class="flex-1 px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600">Apply</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Jenis -->
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Filter Jenis</label>
+                        <div class="relative">
+                            <button type="button" id="jenisBtn"
+                                class="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <span id="jenisText">Semua Jenis</span>
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </button>
+                            <div id="jenisDropdown"
+                                class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                                <div class="p-2">
+                                    <input type="text" id="jenisSearch" placeholder="Cari jenis..."
+                                        class="w-full px-2 py-1 text-sm border border-gray-300 rounded mb-2">
+                                    <div class="space-y-1 max-h-40 overflow-y-auto">
+                                        <button type="button"
+                                            class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                            data-value="">Semua Jenis</button>
+                                        <button type="button"
+                                            class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                            data-value="1">Biasa</button>
+                                        <button type="button"
+                                            class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                            data-value="2">Barang</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="jenis" id="jenisHidden" value="{{ request('jenis') }}">
+                    </div>
+
+                    <!-- Filter Status -->
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Filter Status</label>
+                        <div class="relative">
+                            <button type="button" id="statusBtn"
+                                class="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <span id="statusText">Semua Status</span>
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </button>
+                            <div id="statusDropdown"
+                                class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                                <div class="p-2 space-y-1">
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="">Semua Status</button>
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="0">Menunggu Konfirmasi</button>
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="1">Disetujui</button>
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="2">Ditolak</button>
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="3">Sudah Terlaksana</button>
+                                    <button type="button"
+                                        class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                                        data-value="4">Batal</button>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="status" id="statusHidden" value="{{ request('status') }}">
+                    </div>
+
+                    <!-- Pencarian Anggota -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pencarian Anggota</label>
+                        <input type="text" name="anggota" id="anggotaSearch" placeholder="Anggota"
+                            value="{{ request('anggota') }}"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
                 </div>
 
-                <div class="bg-gray-100 p-3 flex flex-row item-center rounded-lg border-2 border-gray-300">
-                    <img src="{{ asset('img/icons-bootstrap/calendar/calendar4.svg') }}">
-                </div>
+                <!-- Action Buttons -->
+                <div class="flex justify-between items-center">
+                    <div class="flex space-x-2">
+                        <button type="submit"
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                            <i class="fas fa-filter mr-2"></i>FILTER
+                        </button>
+                        <button type="button" onclick="exportData()"
+                            class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                            <i class="fas fa-print mr-2"></i>CETAK
+                        </button>
+                        <button type="button" onclick="resetFilter()"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                            <i class="fas fa-refresh mr-2"></i>Reset
+                        </button>
+                    </div>
 
-                <div class="bg-green-100 py-2 px-5 rounded-lg border-2 border-green-400">
-                    <i class="fa-solid fa-ellipsis-vertical"></i>
+
                 </div>
-            </div>
+            </form>
         </div>
 
         <!-- Tabel Transaksi -->
         <div class="bg-white rounded-lg shadow overflow-hidden">
-
             <div class="p-4 border-b flex items-center justify-between">
                 <h2 class="text-lg font-semibold">Riwayat Transaksi</h2>
                 @if (session('success'))
@@ -55,25 +202,22 @@
                 <table class="w-full table-fixed border border-gray-200 text-[12px]">
                     <thead class="bg-gray-50 text-[12px] uppercase text-gray-600">
                         <tr class="w-full">
-                            <th class="py-2 px-3 border text-center w-[36px]">No</th>
-                            <th class="py-2 px-3 border text-left whitespace-nowrap w-[110px]">ID Ajuan</th>
+                            <th class="border text-center w-[90px]">ID Ajuan</th>
                             <th class="py-2 px-3 border text-left whitespace-nowrap w-[160px]">Anggota</th>
-                            <th class="py-2 px-3 border text-left w-[110px]">Tanggal Pengajuan</th>
-                            <th class="py-2 px-3 border text-left w-[80px]">Jenis</th>
+                            <th class="border text-center w-[90px]">Tanggal Pengajuan</th>
+                            <th class="border text-center w-[50px]">Jenis</th>
                             <th class="py-2 px-3 border text-center w-[110px]">Jumlah</th>
                             <th class="py-2 px-3 border text-center whitespace-nowrap w-[46px]">Bln</th>
-                            <th class="py-2 px-3 border text-left w-[180px]">Keterangan</th>
+                            <th class="py-2 px-3 border text-left w-[120px]">Keterangan</th>
                             <th class="py-2 px-3 border text-center w-[120px]">Status</th>
+                            <th class="py-2 px-3 border text-center w-[200px]">Sisa Pinjaman</th>
                             <th class="py-2 px-3 border text-center w-[160px]">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @foreach($dataPengajuan as $Pengajuan)
                         <tr class="hover:bg-gray-50">
-                            <td class="py-1 px-2 border text-center align-top">
-                                {{ ($dataPengajuan->currentPage() - 1) * $dataPengajuan->perPage() + $loop->iteration }}
-                            </td>
-                            <td class="py-1 px-2 border font-medium text-gray-800 align-top">
+                            <td class="py-1 px-2 border font-medium text-gray-800 text-center align-middle">
                                 <div class="truncate" title="{{ $Pengajuan->ajuan_id }}">{{ $Pengajuan->ajuan_id }}
                                 </div>
                             </td>
@@ -100,16 +244,45 @@
                             </td>
                             <td class="py-1 px-2 border text-right whitespace-nowrap align-top"
                                 title="Rp {{ number_format($Pengajuan->nominal, 0, ',', '.') }}">
+                                @if($Pengajuan->status == 0)
+                                <div class="truncate max-w-[120px] cursor-pointer hover:bg-yellow-50 border-b border-dashed border-yellow-300 edit-inline"
+                                    data-field="nominal" data-id="{{ $Pengajuan->id }}"
+                                    data-value="{{ $Pengajuan->nominal }}" id="nominal_{{ $Pengajuan->id }}"
+                                    title="Klik untuk edit">
+                                    Rp {{ number_format($Pengajuan->nominal, 0, ',', '.') }}
+                                </div>
+                                @else
                                 <div class="truncate max-w-[120px]"
                                     title="Rp {{ number_format($Pengajuan->nominal, 0, ',', '.') }}">
                                     Rp {{ number_format($Pengajuan->nominal, 0, ',', '.') }}
                                 </div>
+                                @endif
                             </td>
-                            <td class="py-1 px-2 border text-center align-top">{{ $Pengajuan->lama_ags }}</td>
+                            <td class="py-1 px-2 border text-center align-top">
+                                @if($Pengajuan->status == 0)
+                                <div class="cursor-pointer hover:bg-yellow-50 border-b border-dashed border-yellow-300 edit-inline"
+                                    data-field="lama_ags" data-id="{{ $Pengajuan->id }}"
+                                    data-value="{{ $Pengajuan->lama_ags }}" id="lama_ags_{{ $Pengajuan->id }}"
+                                    title="Klik untuk edit">
+                                    {{ $Pengajuan->lama_ags }}
+                                </div>
+                                @else
+                                {{ $Pengajuan->lama_ags }}
+                                @endif
+                            </td>
                             <td class="py-1 px-2 border align-top">
+                                @if($Pengajuan->status == 0)
+                                <div class="whitespace-normal break-words max-w-[180px] md:max-w-[220px] cursor-pointer hover:bg-yellow-50 border-b border-dashed border-yellow-300 edit-inline"
+                                    data-field="keterangan" data-id="{{ $Pengajuan->id }}"
+                                    data-value="{{ $Pengajuan->keterangan }}" id="keterangan_{{ $Pengajuan->id }}"
+                                    title="Klik untuk edit">
+                                    {{ $Pengajuan->keterangan }}
+                                </div>
+                                @else
                                 <div class="whitespace-normal break-words max-w-[180px] md:max-w-[220px]">
                                     {{ $Pengajuan->keterangan }}
                                 </div>
+                                @endif
                             </td>
                             <td class="py-1 px-2 border text-center align-top">
                                 @php
@@ -125,6 +298,16 @@
                                 <span
                                     class="px-1 py-0.5 text-[10px] rounded border truncate max-w-[110px] inline-block text-center {{ $cls }}"
                                     title="{{ $label }}">{{ $label }}</span>
+                            </td>
+                            <td class="py-1 px-2 border text-center align-top">
+                                <div class="text-[10px] space-y-1">
+                                    <div class="text-gray-600">Sisa Jml Pinjaman: <span
+                                            class="font-medium">{{ $Pengajuan->sisa_pinjaman }}</span></div>
+                                    <div class="text-gray-600">Sisa Jml Angsuran: <span
+                                            class="font-medium">{{ $Pengajuan->sisa_angsuran }}</span></div>
+                                    <div class="text-gray-600">Sisa Tagihan: <span class="font-medium">Rp
+                                            {{ number_format($Pengajuan->sisa_tagihan, 0, ',', '.') }}</span></div>
+                                </div>
                             </td>
                             <td class="py-1 px-2 border align-top">
                                 <div class="grid grid-cols-3 gap-1">
@@ -173,7 +356,7 @@
             </div>
         </div>
         <div class="mt-5 w-full relative px-2 py-2">
-            <div class="mx-auto w-fit">{{ $dataPengajuan->links('vendor.pagination.simple-tailwind') }}</div>
+            <div class="mt-6">{{ $dataPengajuan->links('vendor.pagination.simple-tailwind') }}</div>
 
 
             <div class="absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-sm text-gray-400">
@@ -244,6 +427,256 @@ thead,
     </style>
 
     <script>
+// Filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize current filter values
+    initializeFilters();
+
+    // Setup dropdown toggles
+    setupDropdowns();
+
+    // Setup date filter functionality
+    setupDateFilter();
+
+    // Setup jenis filter functionality
+    setupJenisFilter();
+
+    // Setup status filter functionality
+    setupStatusFilter();
+});
+
+function initializeFilters() {
+    // Set current filter values from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+
+    // Set tanggal filter
+    const dateFrom = urlParams.get('date_from');
+    const dateTo = urlParams.get('date_to');
+    if (dateFrom && dateTo) {
+        document.getElementById('tanggalText').textContent = `${dateFrom} - ${dateTo}`;
+        document.getElementById('dateFrom').value = dateFrom;
+        document.getElementById('dateTo').value = dateTo;
+    }
+
+    // Set jenis filter
+    const jenis = urlParams.get('jenis');
+    if (jenis) {
+        const jenisText = jenis === '1' ? 'Biasa' : jenis === '2' ? 'Barang' : 'Semua Jenis';
+        document.getElementById('jenisText').textContent = jenisText;
+        document.getElementById('jenisHidden').value = jenis;
+    }
+
+    // Set status filter
+    const status = urlParams.get('status');
+    if (status !== null && status !== '') {
+        const statusMap = {
+            '0': 'Menunggu Konfirmasi',
+            '1': 'Disetujui',
+            '2': 'Ditolak',
+            '3': 'Sudah Terlaksana',
+            '4': 'Batal'
+        };
+        document.getElementById('statusText').textContent = statusMap[status] || 'Semua Status';
+        document.getElementById('statusHidden').value = status;
+    }
+}
+
+function setupDropdowns() {
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.relative')) {
+            closeAllDropdowns();
+        }
+    });
+}
+
+function setupDateFilter() {
+    const tanggalBtn = document.getElementById('tanggalBtn');
+    const tanggalDropdown = document.getElementById('tanggalDropdown');
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    const applyDate = document.getElementById('applyDate');
+    const cancelDate = document.getElementById('cancelDate');
+
+    tanggalBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        tanggalDropdown.classList.toggle('hidden');
+        closeOtherDropdowns('tanggalDropdown');
+    });
+
+    // Predefined date options
+    tanggalDropdown.addEventListener('click', function(e) {
+        if (e.target.tagName === 'BUTTON' && !e.target.id) {
+            const value = e.target.dataset.value;
+            const today = new Date();
+            let fromDate, toDate;
+
+            switch (value) {
+                case 'today':
+                    fromDate = toDate = today.toISOString().split('T')[0];
+                    break;
+                case 'yesterday':
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    fromDate = toDate = yesterday.toISOString().split('T')[0];
+                    break;
+                case '7days':
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    fromDate = weekAgo.toISOString().split('T')[0];
+                    toDate = today.toISOString().split('T')[0];
+                    break;
+                case '30days':
+                    const monthAgo = new Date(today);
+                    monthAgo.setDate(monthAgo.getDate() - 30);
+                    fromDate = monthAgo.toISOString().split('T')[0];
+                    toDate = today.toISOString().split('T')[0];
+                    break;
+                case 'thisMonth':
+                    fromDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                    toDate = today.toISOString().split('T')[0];
+                    break;
+                case 'lastMonth':
+                    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    fromDate = lastMonth.toISOString().split('T')[0];
+                    toDate = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
+                    break;
+                case 'thisYear':
+                    fromDate = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+                    toDate = today.toISOString().split('T')[0];
+                    break;
+                case 'lastYear':
+                    fromDate = new Date(today.getFullYear() - 1, 0, 1).toISOString().split('T')[0];
+                    toDate = new Date(today.getFullYear() - 1, 11, 31).toISOString().split('T')[0];
+                    break;
+            }
+
+            if (fromDate && toDate) {
+                dateFrom.value = fromDate;
+                dateTo.value = toDate;
+                document.getElementById('tanggalText').textContent = `${fromDate} - ${toDate}`;
+                tanggalDropdown.classList.add('hidden');
+            }
+        }
+    });
+
+    applyDate.addEventListener('click', function() {
+        if (dateFrom.value && dateTo.value) {
+            document.getElementById('tanggalText').textContent = `${dateFrom.value} - ${dateTo.value}`;
+            tanggalDropdown.classList.add('hidden');
+        }
+    });
+
+    cancelDate.addEventListener('click', function() {
+        dateFrom.value = '';
+        dateTo.value = '';
+        document.getElementById('tanggalText').textContent = 'Semua Tanggal';
+        tanggalDropdown.classList.add('hidden');
+    });
+}
+
+function setupJenisFilter() {
+    const jenisBtn = document.getElementById('jenisBtn');
+    const jenisDropdown = document.getElementById('jenisDropdown');
+    const jenisSearch = document.getElementById('jenisSearch');
+    const jenisHidden = document.getElementById('jenisHidden');
+
+    jenisBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        jenisDropdown.classList.toggle('hidden');
+        closeOtherDropdowns('jenisDropdown');
+    });
+
+    jenisDropdown.addEventListener('click', function(e) {
+        if (e.target.tagName === 'BUTTON' && !e.target.id) {
+            const value = e.target.dataset.value;
+            const text = e.target.textContent;
+
+            jenisHidden.value = value;
+            document.getElementById('jenisText').textContent = text;
+            jenisDropdown.classList.add('hidden');
+        }
+    });
+
+    // Search functionality
+    jenisSearch.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const buttons = jenisDropdown.querySelectorAll('button');
+
+        buttons.forEach(button => {
+            const text = button.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                button.style.display = 'block';
+            } else {
+                button.style.display = 'none';
+            }
+        });
+    });
+}
+
+function setupStatusFilter() {
+    const statusBtn = document.getElementById('statusBtn');
+    const statusDropdown = document.getElementById('statusDropdown');
+    const statusHidden = document.getElementById('statusHidden');
+
+    statusBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        statusDropdown.classList.toggle('hidden');
+        closeOtherDropdowns('statusDropdown');
+    });
+
+    statusDropdown.addEventListener('click', function(e) {
+        if (e.target.tagName === 'BUTTON' && !e.target.id) {
+            const value = e.target.dataset.value;
+            const text = e.target.textContent;
+
+            statusHidden.value = value;
+            document.getElementById('statusText').textContent = text;
+            statusDropdown.classList.add('hidden');
+        }
+    });
+}
+
+function closeAllDropdowns() {
+    document.getElementById('tanggalDropdown').classList.add('hidden');
+    document.getElementById('jenisDropdown').classList.add('hidden');
+    document.getElementById('statusDropdown').classList.add('hidden');
+}
+
+function closeOtherDropdowns(currentDropdown) {
+    const dropdowns = ['tanggalDropdown', 'jenisDropdown', 'statusDropdown'];
+    dropdowns.forEach(dropdown => {
+        if (dropdown !== currentDropdown) {
+            document.getElementById(dropdown).classList.add('hidden');
+        }
+    });
+}
+
+function resetFilter() {
+    // Reset all filter values
+    document.getElementById('tanggalText').textContent = 'Semua Tanggal';
+    document.getElementById('jenisText').textContent = 'Semua Jenis';
+    document.getElementById('statusText').textContent = 'Semua Status';
+    document.getElementById('anggotaSearch').value = '';
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    document.getElementById('jenisHidden').value = '';
+    document.getElementById('statusHidden').value = '';
+
+    // Redirect to base URL
+    window.location.href = '{{ route("pinjaman.data_pengajuan") }}';
+}
+
+function exportData() {
+    // Get current filter parameters
+    const form = document.getElementById('filterForm');
+    const formData = new FormData(form);
+    const params = new URLSearchParams(formData);
+
+    // Redirect to export route with current filters
+    window.open(`{{ route('pinjaman.data_pengajuan') }}?${params.toString()}&export=pdf`, '_blank');
+}
+
 function openApproveModal(pengajuanId) {
     const modal = document.getElementById('approveModal');
     const form = document.getElementById('approveForm');
@@ -266,5 +699,295 @@ document.getElementById('approveModal').addEventListener('click', function(e) {
         closeApproveModal();
     }
 });
+
+// Edit Inline Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click event listeners for edit inline
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('edit-inline')) {
+            e.preventDefault();
+            const field = e.target.dataset.field;
+            const id = e.target.dataset.id;
+            const value = e.target.dataset.value;
+
+            editInline(field, id, value);
+        }
+    });
+});
+
+function editInline(field, id, currentValue) {
+    const element = document.getElementById(field + '_' + id);
+
+    // Create input field
+    let input;
+    if (field === 'nominal') {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.value = currentValue;
+        input.className =
+            'w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
+        input.placeholder = 'Masukkan nominal';
+    } else if (field === 'lama_ags') {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.value = currentValue;
+        input.className =
+            'w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
+        input.placeholder = 'Masukkan lama angsuran';
+    } else if (field === 'keterangan') {
+        input = document.createElement('textarea');
+        input.value = currentValue;
+        input.className =
+            'w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
+        input.placeholder = 'Masukkan keterangan';
+        input.rows = 2;
+    }
+
+    // Replace content with input
+    element.innerHTML = '';
+    element.appendChild(input);
+    input.focus();
+
+    // Handle save on blur or enter
+    function saveEdit() {
+        const newValue = input.value.trim();
+
+        if (newValue !== currentValue) {
+            // Show loading
+            element.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Menyimpan...</div>';
+
+            // Send AJAX request
+            fetch(`/pinjaman/data_pengajuan/${id}/update-field`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        field: field,
+                        value: newValue
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update display
+                        if (field === 'nominal') {
+                            element.innerHTML = `Rp ${new Intl.NumberFormat('id-ID').format(newValue)}`;
+                        } else if (field === 'lama_ags') {
+                            element.innerHTML = newValue;
+                        } else {
+                            element.innerHTML = newValue;
+                        }
+
+                        // Update data attributes
+                        element.dataset.value = newValue;
+
+                        // Show success message
+                        showNotification('Data berhasil diperbarui', 'success');
+                    } else {
+                        // Restore original value
+                        restoreOriginalValue();
+                        showNotification('Gagal memperbarui data: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    restoreOriginalValue();
+                    showNotification('Terjadi kesalahan saat memperbarui data', 'error');
+                });
+        } else {
+            // No change, restore original display
+            restoreOriginalValue();
+        }
+    }
+
+    function restoreOriginalValue() {
+        if (field === 'nominal') {
+            element.innerHTML = `Rp ${new Intl.NumberFormat('id-ID').format(currentValue)}`;
+        } else if (field === 'lama_ags') {
+            element.innerHTML = currentValue;
+        } else {
+            element.innerHTML = currentValue;
+        }
+    }
+
+    // Event listeners
+    input.addEventListener('blur', saveEdit);
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveEdit();
+        }
+    });
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            restoreOriginalValue();
+        }
+    });
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-white ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    }`;
+    notification.textContent = message;
+
+    // Add to page
+    document.body.appendChild(notification);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Edit Inline Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click event listeners for edit inline
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('edit-inline')) {
+            e.preventDefault();
+            const field = e.target.dataset.field;
+            const id = e.target.dataset.id;
+            const value = e.target.dataset.value;
+
+            editInline(field, id, value);
+        }
+    });
+});
+
+function editInline(field, id, currentValue) {
+    const element = document.getElementById(field + '_' + id);
+
+    // Create input field
+    let input;
+    if (field === 'nominal') {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.value = currentValue;
+        input.className =
+            'w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
+        input.placeholder = 'Masukkan nominal';
+    } else if (field === 'lama_ags') {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.value = currentValue;
+        input.className =
+            'w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
+        input.placeholder = 'Masukkan lama angsuran';
+    } else if (field === 'keterangan') {
+        input = document.createElement('textarea');
+        input.value = currentValue;
+        input.className =
+            'w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
+        input.placeholder = 'Masukkan keterangan';
+        input.rows = 2;
+    }
+
+    // Replace content with input
+    element.innerHTML = '';
+    element.appendChild(input);
+    input.focus();
+
+    // Handle save on blur or enter
+    function saveEdit() {
+        const newValue = input.value.trim();
+
+        if (newValue !== currentValue) {
+            // Show loading
+            element.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Menyimpan...</div>';
+
+            // Send AJAX request
+            fetch(`/pinjaman/data_pengajuan/${id}/update-field`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        field: field,
+                        value: newValue
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update display
+                        if (field === 'nominal') {
+                            element.innerHTML = `Rp ${new Intl.NumberFormat('id-ID').format(newValue)}`;
+                        } else if (field === 'lama_ags') {
+                            element.innerHTML = newValue;
+                        } else {
+                            element.innerHTML = newValue;
+                        }
+
+                        // Update data attributes
+                        element.dataset.value = newValue;
+
+                        // Show success message
+                        showNotification('Data berhasil diperbarui', 'success');
+                    } else {
+                        // Restore original value
+                        restoreOriginalValue();
+                        showNotification('Gagal memperbarui data: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    restoreOriginalValue();
+                    showNotification('Terjadi kesalahan saat memperbarui data', 'error');
+                });
+        } else {
+            // No change, restore original display
+            restoreOriginalValue();
+        }
+    }
+
+    function restoreOriginalValue() {
+        if (field === 'nominal') {
+            element.innerHTML = `Rp ${new Intl.NumberFormat('id-ID').format(currentValue)}`;
+        } else if (field === 'lama_ags') {
+            element.innerHTML = currentValue;
+        } else {
+            element.innerHTML = currentValue;
+        }
+    }
+
+    // Event listeners
+    input.addEventListener('blur', saveEdit);
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveEdit();
+        }
+    });
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            restoreOriginalValue();
+        }
+    });
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-white ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    }`;
+    notification.textContent = message;
+
+    // Add to page
+    document.body.appendChild(notification);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
     </script>
     @endsection

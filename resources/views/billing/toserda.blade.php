@@ -145,11 +145,9 @@
                 </table>
             </div>
 
-            <div class="mt-6 flex justify-center">
+            <div class="mt-6">
                 @if(method_exists($dataBilling, 'hasPages') && $dataBilling->hasPages())
-                <div class="pagination-links">
-                    {{ $dataBilling->withQueryString()->links() }}
-                </div>
+                    {{ $dataBilling->withQueryString()->links('vendor.pagination.tailwind') }}
                 @endif
             </div>
         </div>

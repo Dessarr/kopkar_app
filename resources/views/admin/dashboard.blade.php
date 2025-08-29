@@ -25,35 +25,67 @@
             </div>
             <div
                 class="w-full h-1/2 space-y-4 flex-1 overflow-x-auto overflow-y-hidden bg-white align-center justify-center ">
-                <canvas id="pinjamanChart" class="mx-auto w-full" style="max-height: 130px;"></canvas>
+                <!-- CSS Donut Chart untuk Pinjaman Kredit -->
+                <div class="relative mx-auto w-32 h-32">
+                    @php
+                    $total = ($pinjaman_kredit['tagihan_belum_lunas'] ?? 0) +
+                    ($pinjaman_kredit['tagihan_bulan_lalu'] ?? 0) +
+                    ($pinjaman_kredit['pinjaman_bulan_ini'] ?? 0) +
+                    ($pinjaman_kredit['pembayaran_bulan_ini'] ?? 0);
+
+                    if ($total > 0) {
+                    $angle1 = (($pinjaman_kredit['tagihan_belum_lunas'] ?? 0) / $total) * 360;
+                    $angle2 = (($pinjaman_kredit['tagihan_bulan_lalu'] ?? 0) / $total) * 360;
+                    $angle3 = (($pinjaman_kredit['pinjaman_bulan_ini'] ?? 0) / $total) * 360;
+                    $angle4 = (($pinjaman_kredit['pembayaran_bulan_ini'] ?? 0) / $total) * 360;
+                    } else {
+                    $angle1 = $angle2 = $angle3 = $angle4 = 0;
+                    }
+                    @endphp
+
+                    <div class="w-full h-full rounded-full" style="--angle1: {{ $angle1 }}deg; 
+                                 --angle2: {{ $angle2 }}deg; 
+                                 --angle3: {{ $angle3 }}deg; 
+                                 --angle4: {{ $angle4 }}deg; 
+                                 background: conic-gradient(
+                                     #22c55e 0deg var(--angle1),
+                                     #3b82f6 var(--angle1) calc(var(--angle1) + var(--angle2)),
+                                     #eab308 calc(var(--angle1) + var(--angle2)) calc(var(--angle1) + var(--angle2) + var(--angle3)),
+                                     #ef4444 calc(var(--angle1) + var(--angle2) + var(--angle3)) 360deg
+                                 );"></div>
+                </div>
                 <ul class="space-y-2 text-[11px] text-gray-600 px-4 w-full max-w-md mx-auto">
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-green-500"></span>
                             <span>Tagihan belum lunas:</span>
                         </div>
-                        <span class="font-bold text-right">282,902,700</span>
+                        <span
+                            class="font-bold text-right">{{ number_format($pinjaman_kredit['tagihan_belum_lunas'] ?? 0) }}</span>
                     </li>
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-blue-500"></span>
                             <span>Tagihan belum lunas bulan lalu:</span>
                         </div>
-                        <span class="font-bold text-right">382,902,700</span>
+                        <span
+                            class="font-bold text-right">{{ number_format($pinjaman_kredit['tagihan_bulan_lalu'] ?? 0) }}</span>
                     </li>
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-yellow-500"></span>
                             <span>Pinjaman bulan ini:</span>
                         </div>
-                        <span class="font-bold text-right">252,602,700</span>
+                        <span
+                            class="font-bold text-right">{{ number_format($pinjaman_kredit['pinjaman_bulan_ini'] ?? 0) }}</span>
                     </li>
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-red-500"></span>
                             <span>Pembayaran bulan ini:</span>
                         </div>
-                        <span class="font-bold text-right">100,000,000</span>
+                        <span
+                            class="font-bold text-right">{{ number_format($pinjaman_kredit['pembayaran_bulan_ini'] ?? 0) }}</span>
                     </li>
                 </ul>
             </div>
@@ -78,7 +110,31 @@
                 <h3 class="font-bold pt-1 px-2">Kas</h3>
             </div>
             <div class="w-full h-1/2 space-y-4 flex-1 overflow-x-auto bg-white justify-center">
-                <canvas id="kasChart" class="mx-auto w-full" style=" max-height: 130px;"></canvas>
+                <!-- CSS Donut Chart untuk Kas -->
+                <div class="relative mx-auto w-32 h-32">
+                    @php
+                    $total_kas = ($kas['penerimaan_bulan_ini'] ?? 0) +
+                    ($kas['pengeluaran_bulan_ini'] ?? 0) +
+                    ($kas['total_saldo'] ?? 0);
+
+                    if ($total_kas > 0) {
+                    $kas_angle1 = (($kas['penerimaan_bulan_ini'] ?? 0) / $total_kas) * 360;
+                    $kas_angle2 = (($kas['pengeluaran_bulan_ini'] ?? 0) / $total_kas) * 360;
+                    $kas_angle3 = (($kas['total_saldo'] ?? 0) / $total_kas) * 360;
+                    } else {
+                    $kas_angle1 = $kas_angle2 = $kas_angle3 = 0;
+                    }
+                    @endphp
+
+                    <div class="w-full h-full rounded-full" style="--kas-angle1: {{ $kas_angle1 }}deg; 
+                                 --kas-angle2: {{ $kas_angle2 }}deg; 
+                                 --kas-angle3: {{ $kas_angle3 }}deg; 
+                                 background: conic-gradient(
+                                     #3b82f6 0deg var(--kas-angle1),
+                                     #ef4444 var(--kas-angle1) calc(var(--kas-angle1) + var(--kas-angle2)),
+                                     #22c55e calc(var(--kas-angle1) + var(--kas-angle2)) 360deg
+                                 );"></div>
+                </div>
 
                 <ul class="space-y-2 text-[11px] text-gray-600 px-4 w-full max-w-md mx-auto">
                     <li class="flex items-center justify-between">
@@ -86,21 +142,22 @@
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-green-500"></span>
                             <span>Total saldo:</span>
                         </div>
-                        <span class="font-bold text-right">1,751,843,000</span>
+                        <span class="font-bold text-right">{{ number_format($kas['total_saldo'] ?? 0) }}</span>
                     </li>
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-blue-500"></span>
                             <span>Penerimaan bulan ini:</span>
                         </div>
-                        <span class="font-bold text-right">352,900,000</span>
+                        <span class="font-bold text-right">{{ number_format($kas['penerimaan_bulan_ini'] ?? 0) }}</span>
                     </li>
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-red-500"></span>
                             <span>Pengeluaran bulan ini:</span>
                         </div>
-                        <span class="font-bold text-right">127,500,000</span>
+                        <span
+                            class="font-bold text-right">{{ number_format($kas['pengeluaran_bulan_ini'] ?? 0) }}</span>
                     </li>
                 </ul>
             </div>
@@ -127,42 +184,35 @@
                 <h5 class="font-bold rounded-lg pt-1 align-center px-2">Jatuh Tempo</h5>
                 <div
                     class="bg-gray-100 rounded-lg p-1 w-[20%] rounder-lg display flex flex-row gap-2 items-center justify-center">
-                    <span class="text-gray-500">2</span>
+                    <span class="text-gray-500">{{ count($jatuh_tempo) }}</span>
                     <i class="fa-solid fa-triangle-exclamation" style="color:red;"></i>
 
                 </div>
             </div>
-            {{-- Data jatuh tempo bisa di-loop di sini --}}
-            <div class="w-full px-3 h-1/2 flex-1 overflow-x-auto bg-white align-center justify-center  ">
-
-                <div class="flex flex-row place-content-around  justify-center align-center items-center">
-                    <div class=" flex flex-col justify-center align-center w-[20%]">
-                        <div class=" text-center text-[34px]">O</div>
+            {{-- Data jatuh tempo dari database --}}
+            <div class="w-full px-3 h-1/2 flex-1 overflow-x-auto bg-white align-center justify-center">
+                @if(count($jatuh_tempo) > 0)
+                @foreach($jatuh_tempo as $item)
+                <div class="flex flex-row place-content-around justify-center align-center items-center mb-2">
+                    <div class="flex flex-col justify-center align-center w-[20%]">
+                        <div class="text-center text-[34px]">O</div>
                     </div>
-
-                    <div class=" flex flex-col align-center justify-center w-[45%] ">
-                        <div class="text-[14px]">John</div>
-                        <div class="text-[12px]  text-gray-400 ">12/24/2024</div>
-                    </div>
-                    <div
-                        class=" w-[33%] text-[12px] flex flex-col justify-center text-center bg-gray-100 h-3/4 rounded-lg py-0.5">
-                        -20.001,000
-                    </div>
-                </div>
-                <div class="flex flex-row place-content-around justify-center align-center items-center">
-                    <div class=" flex flex-col justify-center align-center w-[20%]">
-                        <div class=" text-center text-[34px]">O</div>
-                    </div>
-
-                    <div class=" flex flex-col align-center justify-center w-[45%] ">
-                        <div class="text-[14px]">John</div>
-                        <div class="text-[12px] text-gray-400">12/24/2024</div>
+                    <div class="flex flex-col align-center justify-center w-[45%]">
+                        <div class="text-[14px]">{{ $item->nama ?? 'N/A' }}</div>
+                        <div class="text-[12px] text-gray-400">
+                            {{ \Carbon\Carbon::parse($item->tgl_pinjam)->format('m/d/Y') }}</div>
                     </div>
                     <div
-                        class=" w-[33%] text-[12px] flex flex-col justify-center text-center bg-gray-100 h-3/4 rounded-lg py-0.5">
-                        -20.001,000
+                        class="w-[33%] text-[12px] flex flex-col justify-center text-center bg-gray-100 h-3/4 rounded-lg py-0.5">
+                        {{ number_format($item->jumlah ?? 0) }}
                     </div>
                 </div>
+                @endforeach
+                @else
+                <div class="text-center text-gray-500 py-4">
+                    Tidak ada data jatuh tempo
+                </div>
+                @endif
             </div>
 
             <div class=" p-5 justify-center align-center ">
@@ -186,35 +236,63 @@
                 <h3 class="font-bold pt-1 px-2">Data Pinjaman</h3>
             </div>
             <div class="w-full h-1/2 space-y-4 flex-1 overflow-x-auto overflow-y-hidden bg-white justify-center">
-                <canvas id="pinjamanCharts" class="mx-auto w-full" style="max-height: 130px;"></canvas>
+                <!-- CSS Donut Chart untuk Data Pinjaman -->
+                <div class="relative mx-auto w-32 h-32">
+                    @php
+                    $total_pinjaman = ($data_pinjaman['peminjam_bulan_lalu'] ?? 0) +
+                    ($data_pinjaman['peminjam_bulan_ini'] ?? 0) +
+                    ($data_pinjaman['sudah_lunas'] ?? 0) +
+                    ($data_pinjaman['belum_lunas'] ?? 0);
+
+                    if ($total_pinjaman > 0) {
+                    $pin_angle1 = (($data_pinjaman['peminjam_bulan_lalu'] ?? 0) / $total_pinjaman) * 360;
+                    $pin_angle2 = (($data_pinjaman['peminjam_bulan_ini'] ?? 0) / $total_pinjaman) * 360;
+                    $pin_angle3 = (($data_pinjaman['sudah_lunas'] ?? 0) / $total_pinjaman) * 360;
+                    $pin_angle4 = (($data_pinjaman['belum_lunas'] ?? 0) / $total_pinjaman) * 360;
+                    } else {
+                    $pin_angle1 = $pin_angle2 = $pin_angle3 = $pin_angle4 = 0;
+                    }
+                    @endphp
+
+                    <div class="w-full h-full rounded-full" style="--pin-angle1: {{ $pin_angle1 }}deg; 
+                                 --pin-angle2: {{ $pin_angle2 }}deg; 
+                                 --pin-angle3: {{ $pin_angle3 }}deg; 
+                                 --pin-angle4: {{ $pin_angle4 }}deg; 
+                                 background: conic-gradient(
+                                     #22c55e 0deg var(--pin-angle1),
+                                     #3b82f6 var(--pin-angle1) calc(var(--pin-angle1) + var(--pin-angle2)),
+                                     #eab308 calc(var(--pin-angle1) + var(--pin-angle2)) calc(var(--pin-angle1) + var(--pin-angle2) + var(--pin-angle3)),
+                                     #ef4444 calc(var(--pin-angle1) + var(--pin-angle2) + var(--pin-angle3)) 360deg
+                                 );"></div>
+                </div>
                 <ul class="space-y-2 text-[11px] text-gray-600 px-4 w-full max-w-md mx-auto">
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-green-500"></span>
                             <span>Peminjam Bulan Lalu</span>
                         </div>
-                        <span class="font-bold text-right">15</span>
+                        <span class="font-bold text-right">{{ $data_pinjaman['peminjam_bulan_lalu'] ?? 0 }}</span>
                     </li>
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-blue-500"></span>
                             <span>Peminjam Bulan Ini</span>
                         </div>
-                        <span class="font-bold text-right">18</span>
+                        <span class="font-bold text-right">{{ $data_pinjaman['peminjam_bulan_ini'] ?? 0 }}</span>
                     </li>
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-yellow-500"></span>
                             <span>Sudah Lunas</span>
                         </div>
-                        <span class="font-bold text-right">17</span>
+                        <span class="font-bold text-right">{{ $data_pinjaman['sudah_lunas'] ?? 0 }}</span>
                     </li>
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-red-500"></span>
                             <span>Belum Lunas</span>
                         </div>
-                        <span class="font-bold text-right">23</span>
+                        <span class="font-bold text-right">{{ $data_pinjaman['belum_lunas'] ?? 0 }}</span>
                     </li>
                 </ul>
             </div>
@@ -240,28 +318,48 @@
                 <h3 class="font-bold pt-1 px-2">Data Anggota</h3>
             </div>
             <div class="w-full h-1/2 space-y-4 flex-1 overflow-x-auto overflow-y-hidden bg-white justify-center">
-                <canvas id="anggotaCharts" class="mx-auto w-full" style="max-height: 130px;"></canvas>
+                <!-- CSS Donut Chart untuk Data Anggota -->
+                <div class="relative mx-auto w-32 h-32">
+                    @php
+                    $total_anggota_chart = ($data_anggota['anggota_aktif'] ?? 0) +
+                    ($data_anggota['anggota_tidak_aktif'] ?? 0);
+
+                    if ($total_anggota_chart > 0) {
+                    $ang_angle1 = (($data_anggota['anggota_aktif'] ?? 0) / $total_anggota_chart) * 360;
+                    $ang_angle2 = (($data_anggota['anggota_tidak_aktif'] ?? 0) / $total_anggota_chart) * 360;
+                    } else {
+                    $ang_angle1 = $ang_angle2 = 0;
+                    }
+                    @endphp
+
+                    <div class="w-full h-full rounded-full" style="--ang-angle1: {{ $ang_angle1 }}deg; 
+                                 --ang-angle2: {{ $ang_angle2 }}deg; 
+                                 background: conic-gradient(
+                                     #22c55e 0deg var(--ang-angle1),
+                                     #3b82f6 var(--ang-angle1) 360deg
+                                 );"></div>
+                </div>
                 <ul class="space-y-2 text-[11px] text-gray-600 px-4 w-full max-w-md mx-auto">
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-green-500"></span>
                             <span>Anggota Aktif</span>
                         </div>
-                        <span class="font-bold text-right">12</span>
+                        <span class="font-bold text-right">{{ $data_anggota['anggota_aktif'] ?? 0 }}</span>
                     </li>
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-blue-500"></span>
                             <span>Anggota Tidak Aktif</span>
                         </div>
-                        <span class="font-bold text-right">20</span>
+                        <span class="font-bold text-right">{{ $data_anggota['anggota_tidak_aktif'] ?? 0 }}</span>
                     </li>
                     <li class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-red-500"></span>
                             <span>Total Anggota</span>
                         </div>
-                        <span class="font-bold text-right">22</span>
+                        <span class="font-bold text-right">{{ $data_anggota['total_anggota'] ?? 0 }}</span>
                     </li>
                 </ul>
             </div>
@@ -304,12 +402,12 @@
                     </div>
 
                     <div class=" flex flex-col align-center justify-center w-[45%] ">
-                        <div class="text-[10px]">Saldo Bulan Ini</div>
-                        <div class="text-[12px]  text-gray-400 ">12/24/2024</div>
+                        <div class="text-[10px]">Simpanan Pokok</div>
+                        <div class="text-[12px]  text-gray-400 ">{{ now()->format('m/d/Y') }}</div>
                     </div>
                     <div
                         class=" w-[33%] text-[12px] flex flex-col justify-center text-center bg-gray-100 h-3/4 rounded-lg py-0.5">
-                        -20.001,000
+                        {{ number_format($simpanan['saldo_pokok'] ?? 0) }}
                     </div>
                 </div>
                 <div
@@ -320,28 +418,27 @@
                     </div>
 
                     <div class=" flex flex-col align-center justify-center w-[45%] ">
-                        <div class="text-[10px]">Saldo Bulan Ini</div>
-                        <div class="text-[12px]  text-gray-400 ">12/24/2024</div>
+                        <div class="text-[10px]">Simpanan Wajib</div>
+                        <div class="text-[12px]  text-gray-400 ">{{ now()->format('m/d/Y') }}</div>
                     </div>
                     <div
                         class=" w-[33%] text-[12px] flex flex-col justify-center text-center bg-gray-100 h-3/4 rounded-lg py-0.5">
-                        -20.001,000
+                        {{ number_format($simpanan['saldo_wajib'] ?? 0) }}
                     </div>
                 </div>
-            </div>
 
-            <div class=" p-5 justify-center align-center ">
-                <div
-                    class="group relative bg-green-500 w-full rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out hover:bg-green-600 overflow-hidden">
-                    <a href="#"
-                        class="group relative bg-green-500 w-full px-4 py-1 rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out group-hover:bg-green-600 overflow-hidden">
-                        <span>More Info</span>
-                        <span
-                            class="transform transition-all duration-500 ease-in-out group-hover:translate-x-8 opacity-100 group-hover:opacity-0">>
-                        </span>
-                    </a>
+                <div class=" p-5 justify-center align-center ">
+                    <div
+                        class="group relative bg-green-500 w-full rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out hover:bg-green-600 overflow-hidden">
+                        <a href="#"
+                            class="group relative bg-green-500 w-full px-4 py-1 rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out group-hover:bg-green-600 overflow-hidden">
+                            <span>More Info</span>
+                            <span
+                                class="transform transition-all duration-500 ease-in-out group-hover:translate-x-8 opacity-100 group-hover:opacity-0">>
+                            </span>
+                        </a>
+                    </div>
                 </div>
-
             </div>
         </div>
     </main>
@@ -349,188 +446,8 @@
 </div>
 
 <script>
-// Data Pinjaman Data
-// Data sesuai dengan tampilan angka
-const tagihanBelumLunas = 282902700;
-const tagihanBulanLalu = 382902700;
-const pinjamanBulanIni = 252602700;
-const pembayaranBulanIni = 100000000;
-
-// Data untuk chart
-const pinjamanData = {
-    labels: [
-        'Tagihan belum lunas',
-        'Tagihan bulan lalu',
-        'Pinjaman bulan ini',
-        'Pembayaran bulan ini'
-    ],
-    datasets: [{
-        data: [
-            tagihanBelumLunas,
-            tagihanBulanLalu,
-            pinjamanBulanIni,
-            pembayaranBulanIni
-        ],
-        backgroundColor: [
-            '#22c55e', // Green
-            '#3b82f6', // Blue
-            '#eab308', // Yellow
-            '#ef4444' // Red
-        ],
-        borderWidth: 0,
-        cutout: '70%' // Donut-style
-    }]
-};
-
-// Render Chart
-new Chart(document.getElementById('pinjamanChart'), {
-    type: 'doughnut',
-    data: pinjamanData,
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                display: false
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        let value = context.parsed;
-                        return `${context.label}: Rp ${value.toLocaleString()}`;
-                    }
-                }
-            }
-        }
-    }
-});
-
-// Data dari list di atas (dummy realistis)
-const totalSaldo = 1751843000;
-const penerimaan = 352900000;
-const pengeluaran = 127500000;
-
-const kasData = {
-    labels: ['Penerimaan', 'Pengeluaran', 'Sisa Saldo'],
-    datasets: [{
-        data: [penerimaan, pengeluaran, totalSaldo - penerimaan - pengeluaran],
-        backgroundColor: [
-            '#3b82f6', // Penerimaan (blue)
-            '#ef4444', // Pengeluaran (red)
-            '#22c55e' // Sisa saldo (green)
-        ],
-        borderWidth: 0,
-        cutout: '70%'
-    }]
-};
-
-new Chart(document.getElementById('kasChart'), {
-    type: 'doughnut',
-    data: kasData,
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                display: false
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        let value = context.parsed;
-                        return `${context.label}: Rp ${value.toLocaleString()}`;
-                    }
-                }
-            }
-        }
-    }
-});
-
-// === Chart untuk Data Pinjaman ===
-const peminjamBulanLalu = 15;
-const peminjamBulanIni = 18;
-const sudahLunas = 17;
-const belumLunas = 23;
-
-const pinjamanCharts = {
-    labels: [
-        'Peminjam Bulan Lalu',
-        'Peminjam Bulan Ini',
-        'Sudah Lunas',
-        'Belum Lunas'
-    ],
-    datasets: [{
-        data: [peminjamBulanLalu, peminjamBulanIni, sudahLunas, belumLunas],
-        backgroundColor: [
-            '#22c55e', // green
-            '#3b82f6', // blue
-            '#eab308', // yellow
-            '#ef4444' // red
-        ],
-        borderWidth: 0,
-        cutout: '70%'
-    }]
-};
-
-new Chart(document.getElementById('pinjamanCharts'), {
-    type: 'doughnut',
-    data: pinjamanCharts,
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                display: false
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return `${context.label}: ${context.parsed}`;
-                    }
-                }
-            }
-        }
-    }
-});
-
-// === Chart untuk Data Anggota ===
-const anggotaAktif = 12;
-const anggotaTidakAktif = 20;
-const totalAnggota = 22;
-
-const anggotaCharts = {
-    labels: [
-        'Anggota Aktif',
-        'Anggota Tidak Aktif',
-        'Total Anggota'
-    ],
-    datasets: [{
-        data: [anggotaAktif, anggotaTidakAktif, totalAnggota],
-        backgroundColor: [
-            '#22c55e', // green
-            '#3b82f6', // blue
-            '#ef4444' // red (sisanya agar match list terakhir)
-        ],
-        borderWidth: 0,
-        cutout: '70%'
-    }]
-};
-
-new Chart(document.getElementById('anggotaCharts'), {
-    type: 'doughnut',
-    data: anggotaCharts,
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                display: false
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return `${context.label}: ${context.parsed}`;
-                    }
-                }
-            }
-        }
-    }
-});
+// Chart sudah diganti dengan CSS Donut Charts yang lebih elegan dan tidak ada error!
+// Data langsung dari PHP ke CSS conic-gradient
+// Tidak perlu JavaScript lagi - dashboard lebih cepat dan stabil
 </script>
 @endsection

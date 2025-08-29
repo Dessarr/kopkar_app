@@ -12,9 +12,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            JnsAkunSeeder::class,
-            SukuBungaSeeder::class,
-            ActivityLogSeeder::class,
+            memberUser::class,
+            AdminUser::class,
             // Add other seeders here if needed
         ]);
     }

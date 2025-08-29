@@ -11,9 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tbl_trans_sp_temp', function (Blueprint $table) {
+        Schema::create('billing_upload_temp', function (Blueprint $table) {
             $table->id();
+            $table->date('tgl_transaksi');
+            $table->string('no_ktp');
+            $table->decimal('jumlah', 15, 2);
+            $table->string('bulan');
+            $table->string('tahun');
             $table->timestamps();
+
+            $table->index(['bulan', 'tahun']);
+            $table->index('no_ktp');
         });
     }
 
@@ -22,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tbl_trans_sp_temp');
+        Schema::dropIfExists('billing_upload_temp');
     }
 };

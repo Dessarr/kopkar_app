@@ -139,7 +139,7 @@
     <!-- Pagination -->
     @if($dataPinjamanLunas->hasPages())
     <div class="mt-6">
-        {{ $dataPinjamanLunas->links('vendor.pagination.tailwind') }}
+        <div class="mt-6">{{ $dataPinjamanLunas->links('vendor.pagination.tailwind') }}</div>
     </div>
     @endif
 

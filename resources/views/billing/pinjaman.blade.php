@@ -1,0 +1,130 @@
+@extends('layouts.app')
+
+@section('title', 'Billing Pinjaman')
+@section('sub-title', 'Tagihan Angsuran Pinjaman')
+
+@section('content')
+<div class="container mx-auto px-4">
+    @if(session('error'))
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+        <strong class="font-bold">Error!</strong>
+        <span class="block sm:inline">{!! session('error') !!}</span>
+    </div>
+    @endif
+    @if(session('success'))
+    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+        <strong class="font-bold">Success!</strong>
+        <span class="block sm:inline">{{ session('success') }}</span>
+    </div>
+    @endif
+
+    <div class="bg-white rounded-lg shadow-md mb-6">
+        <div class="border-b border-gray-200 px-6 py-4">
+            <h5 class="font-semibold text-lg">Billing Pinjaman</h5>
+        </div>
+        <div class="p-6">
+            <div class="mb-6">
+                <form action="{{ route('billing.pinjaman') }}" method="GET" class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-3">
+                        <label for="bulan" class="block text-sm font-medium text-gray-700 mb-1">Bulan</label>
+                        <select name="bulan" id="bulan"
+                            class="w-full rounded-lg border-2 border-gray-300 bg-gray-100 shadow-sm focus:border-green-500 focus:ring focus:ring-green-200 focus:ring-opacity-50 text-sm py-2 px-3">
+                            @foreach($bulanList as $key => $namaBulan)
+                            <option value="{{ $key }}" {{ (isset($bulan) && $bulan == $key) ? 'selected' : '' }}>
+                                {{ $namaBulan }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="md:col-span-3">
+                        <label for="tahun" class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
+                        <select name="tahun" id="tahun"
+                            class="w-full rounded-lg border-2 border-gray-300 bg-gray-100 shadow-sm focus:border-green-500 focus:ring focus:ring-green-200 focus:ring-opacity-50 text-sm py-2 px-3">
+                            @foreach($tahunList ?? [] as $tahunOption)
+                            <option value="{{ $tahunOption }}"
+                                {{ (isset($tahun) && $tahun == $tahunOption) ? 'selected' : '' }}>{{ $tahunOption }}
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="md:col-span-4">
+                        <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Cari Anggota</label>
+                        <div class="flex items-center bg-gray-100 p-2 rounded-lg border-2 border-gray-300">
+                            <i class="fa-solid fa-magnifying-glass mr-2 text-gray-400"></i>
+                            <input type="text"
+                                class="text-sm text-gray-500 bg-transparent border-none focus:outline-none w-full"
+                                id="search" name="search" placeholder="Nama atau No ID Koperasi"
+                                value="{{ request('search') }}">
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 flex items-end">
+                        <div class="flex space-x-2">
+                            <button type="submit"
+                                class="bg-blue-100 hover:bg-blue-200 text-blue-800 text-sm font-medium px-4 py-2 rounded-lg border-2 border-blue-300 transition">Filter</button>
+                            <a href="{{ route('billing.pinjaman') }}"
+                                class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium px-4 py-2 rounded-lg border-2 border-gray-300 transition">Reset</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Button Proses All ke Billing Utama -->
+            <div class="mb-6 flex justify-end">
+                <form action="{{ route('billing.pinjaman.process_all') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="bulan" value="{{ $bulan ?? date('m') }}">
+                    <input type="hidden" name="tahun" value="{{ $tahun ?? date('Y') }}">
+                    <button type="submit"
+                        class="inline-flex items-center gap-2 bg-green-50 border border-green-400 text-green-900 font-medium px-5 py-2 rounded-lg transition hover:bg-green-100 hover:border-green-500"
+                        onclick="return confirm('Proses semua Billing Pinjaman bulan ini ke Billing Utama?')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <span class="text-sm">Proses All ke Billing Utama</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 text-sm">
+                            <th class="px-4 py-3 border-b text-center w-12">No.</th>
+                            <th class="px-4 py-3 border-b text-center">No KTP</th>
+                            <th class="px-4 py-3 border-b text-center">Nama</th>
+                            <th class="px-4 py-3 border-b text-center">Tgl Transaksi</th>
+                            <th class="px-4 py-3 border-b text-center">Jumlah Tagihan</th>
+                            <th class="px-4 py-3 border-b text-center">Keterangan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        @forelse($dataBilling as $index => $row)
+                        <tr class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}">
+                            <td class="px-4 py-3 text-center text-sm">{{ $index + 1 }}</td>
+                            <td class="px-4 py-3 text-center text-sm">{{ $row->no_ktp }}</td>
+                            <td class="px-4 py-3 text-sm">{{ $row->nama }}</td>
+                            <td class="px-4 py-3 text-center text-sm">
+                                {{ \Carbon\Carbon::parse($row->tgl_transaksi)->format('d/m/Y') }}</td>
+                            <td class="px-4 py-3 text-right text-sm font-semibold">
+                                {{ number_format($row->jumlah ?? 0, 0, ',', '.') }}</td>
+                            <td class="px-4 py-3 text-sm">{{ $row->keterangan }}</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="px-4 py-3 text-center text-sm text-gray-500">Belum ada data Billing Pinjaman</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-6">
+                @if(method_exists($dataBilling, 'hasPages') && $dataBilling->hasPages())
+                    {{ $dataBilling->withQueryString()->links('vendor.pagination.tailwind') }}
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

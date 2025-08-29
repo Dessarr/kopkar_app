@@ -52,7 +52,20 @@ class AdminController extends Controller
 
     public function adminDashboard()
     {
-        return view('admin.dashboard');
+        // Import model DashboardData
+        $dashboardData = new \App\Models\DashboardData();
+        
+        // Ambil data real dari database
+        $data = [
+            'pinjaman_kredit' => \App\Models\DashboardData::getPinjamanKreditData(),
+            'kas' => \App\Models\DashboardData::getKasData(),
+            'data_pinjaman' => \App\Models\DashboardData::getDataPinjaman(),
+            'data_anggota' => \App\Models\DashboardData::getDataAnggota(),
+            'simpanan' => \App\Models\DashboardData::getSimpananData(),
+            'jatuh_tempo' => \App\Models\DashboardData::getJatuhTempoData()
+        ];
+        
+        return view('admin.dashboard', $data);
     }
 
     public function logout(Request $request)

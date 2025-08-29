@@ -14,6 +14,9 @@
             <a href="{{ route('pinjaman.data_pinjaman') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
                 <i class="fas fa-money-bill mr-2"></i>Data Pinjaman
             </a>
+            <a href="{{ route('pinjaman.pelunasan') }}" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                <i class="fas fa-credit-card mr-2"></i>Pelunasan
+            </a>
             <a href="{{ route('pinjaman.lunas') }}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
                 <i class="fas fa-check-circle mr-2"></i>Pinjaman Lunas
             </a>
@@ -149,7 +152,7 @@
             </table>
         </div>
         <div class="mt-5 w-full relative px-2 py-2">
-            <div class="mx-auto w-fit">{{ $dataPinjaman->links('vendor.pagination.simple-tailwind') }}</div>
+            <div class="mt-6">{{ $dataPinjaman->links('vendor.pagination.simple-tailwind') }}</div>
 
             <div class="absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-sm text-gray-400">
                 Menampilkan {{ $dataPinjaman->firstItem() }} - {{ $dataPinjaman->lastItem() }} dari

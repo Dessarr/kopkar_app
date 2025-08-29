@@ -58,171 +58,364 @@ class MemberController extends Controller
         ])->withInput($request->except('pass_word'));
     }
 
-    public function memberDashboard()
+    public function memberDashboard(Request $request)
     {
         $anggota = auth()->guard('member')->user();
+        $periode = $request->get('periode', date('Y-m'));
+        $tahun = substr($periode, 0, 4);
+        $bulan = substr($periode, 5, 2);
         
-        // Get all jenis simpanan from master data
-        $jenisSimpanan = \App\Models\jns_simpan::where('tampil', 'Y')->orderBy('urut', 'asc')->get();
+        // 1. Hitung Saldo Simpanan (konsisten dengan project lama)
+        $saldoSimpanan = $this->hitungSaldoSimpanan($anggota->no_ktp);
         
-        // Get simpanan data (setoran) from tbl_trans_sp - grouped by jenis_id
-        $setoranData = \App\Models\TblTransSp::where('no_ktp', $anggota->no_ktp)
-            ->where('akun', 'Setoran')
-            ->where('dk', 'D')
-            ->select('jenis_id', \Illuminate\Support\Facades\DB::raw('SUM(jumlah) as total'))
-            ->groupBy('jenis_id')
-            ->pluck('total', 'jenis_id')
-            ->toArray();
+
+        // 2. Hitung Tagihan Kredit
+        $tagihanKredit = $this->hitungTagihanKredit($anggota->no_ktp);
         
-        // Get penarikan data from tbl_trans_sp - grouped by jenis_id
-        $penarikanData = \App\Models\TblTransSp::where('no_ktp', $anggota->no_ktp)
-            ->where('akun', 'Penarikan')
-            ->where('dk', 'K')
-            ->select('jenis_id', \Illuminate\Support\Facades\DB::raw('SUM(jumlah) as total'))
-            ->groupBy('jenis_id')
-            ->pluck('total', 'jenis_id')
-            ->toArray();
+        // 3. Hitung Keterangan Pinjaman
+        $keteranganPinjaman = $this->hitungKeteranganPinjaman($anggota->no_ktp);
         
-        // Calculate saldo for each jenis simpanan (Setoran - Penarikan)
-        $saldoData = [];
-        foreach ($jenisSimpanan as $jenis) {
-            $setoran = $setoranData[$jenis->id] ?? 0;
-            $penarikan = $penarikanData[$jenis->id] ?? 0;
-            $saldo = $setoran - $penarikan;
-            
-            $saldoData[$jenis->id] = $saldo;
-        }
+        // 4. Ambil data tagihan simpanan untuk periode tertentu
+        $tagihanData = $this->getTagihanSimpanan($anggota->no_ktp, $tahun, $bulan);
         
-        // Calculate total saldo
-        $totalSaldo = array_sum($saldoData);
-        
-        // Prepare simpanan data for view with saldo for each type
-        $simpananList = [];
-        foreach ($jenisSimpanan as $jenis) {
-            $saldo = $saldoData[$jenis->id] ?? 0;
-            $setoran = $setoranData[$jenis->id] ?? 0;
-            $penarikan = $penarikanData[$jenis->id] ?? 0;
-            
-            $simpananList[] = [
-                'nama' => $jenis->jns_simpan,
-                'saldo' => $saldo,
-                'setoran' => $setoran,
-                'penarikan' => $penarikan,
-                'warna' => $this->getSimpananColor($jenis->jns_simpan)
-            ];
-        }
-        
-        // Get pinjaman data
-        $pinjamanData = \App\Models\TblPinjamanH::where('no_ktp', $anggota->no_ktp)
-            ->where('status', 'Aktif')
-            ->get();
-
-        $totalPinjaman = $pinjamanData->sum('jumlah_pinjaman');
-        $sisaPinjaman = $pinjamanData->sum('sisa_pinjaman');
-        $pinjamanLunas = \App\Models\TblPinjamanH::where('no_ktp', $anggota->no_ktp)
-            ->where('status', 'Lunas')
-            ->count();
-
-        // Get tagihan data
-        $tagihanData = \App\Models\billing::where('no_ktp', $anggota->no_ktp)
-            ->where('status_bayar', 'Belum Lunas')
-            ->get();
-
-        $totalTagihan = $tagihanData->sum('jumlah');
-        $tagihanBulanLalu = \App\Models\billing::where('no_ktp', $anggota->no_ktp)
-            ->where('status_bayar', 'Belum Lunas')
-            ->where('bulan', now()->subMonth()->month)
-            ->sum('jumlah');
-
-        // Get transaksi data - remove angkutan query since it doesn't have no_ktp
-        $transaksiToserda = \App\Models\TblTransToserda::where('no_ktp', $anggota->no_ktp)
-            ->where('dk', 'D')
-            ->whereMonth('tgl_transaksi', now()->month)
-            ->sum('jumlah');
-
-        // Remove angkutan query since it doesn't have no_ktp column
-        $transaksiAngkutan = 0; // Set to 0 since we can't query by no_ktp
-
-        $transaksiLainnya = \App\Models\TblTransToserda::where('no_ktp', $anggota->no_ktp)
-            ->where('dk', 'D')
-            ->where('jns_trans', '!=', 'Toserda')
-            ->whereMonth('tgl_transaksi', now()->month)
-            ->sum('jumlah');
-
-        // NOTIFIKASI: Cek pengajuan pinjaman terbaru
-        $pengajuanPinjaman = \App\Models\data_pengajuan::where('anggota_id', $anggota->id)
-            ->where('status', '!=', 4) // Bukan status batal
-            ->orderBy('tgl_input', 'DESC')
-            ->first();
-
-        // NOTIFIKASI: Cek pengajuan penarikan simpanan terbaru
-        $pengajuanPenarikan = \App\Models\data_pengajuan_penarikan::where('anggota_id', $anggota->id)
-            ->where('status', '!=', 4) // Bukan status batal
-            ->orderBy('tgl_input', 'DESC')
-            ->first();
-
-        // Prepare data for dashboard cards
-        $dashboardData = [
-            'anggota' => $anggota,
-            'simpananList' => $simpananList,
-            'totalSimpanan' => $totalSaldo, // Changed to totalSaldo
-            'totalPinjaman' => $totalPinjaman,
-            'sisaPinjaman' => $sisaPinjaman,
-            'pinjamanLunas' => $pinjamanLunas,
-            'totalTagihan' => $totalTagihan,
-            'tagihanBulanLalu' => $tagihanBulanLalu,
-            'transaksiToserda' => $transaksiToserda,
-            'transaksiAngkutan' => $transaksiAngkutan,
-            'transaksiLainnya' => $transaksiLainnya,
-            'pembayaranBulanIni' => $transaksiToserda + $transaksiAngkutan + $transaksiLainnya,
-            'pengajuanPinjaman' => $pengajuanPinjaman,
-            'pengajuanPenarikan' => $pengajuanPenarikan
+        // 5. Data simpanan list untuk dashboard
+        $simpananList = [
+            ['nama' => 'Simpanan Pokok', 'jumlah' => $tagihanData['simpanan_pokok']],
+            ['nama' => 'Simpanan Wajib', 'jumlah' => $tagihanData['simpanan_wajib']],
+            ['nama' => 'Simpanan Sukarela', 'jumlah' => $tagihanData['simpanan_sukarela']],
+            ['nama' => 'Simpanan Khusus 1', 'jumlah' => $tagihanData['simpanan_khusus_1']],
+            ['nama' => 'Simpanan Khusus 2', 'jumlah' => $tagihanData['simpanan_khusus_2']],
+            ['nama' => 'Tabungan Perumahan', 'jumlah' => $tagihanData['tab_perumahan']]
         ];
         
-        return view('member.dashboard', $dashboardData);
+        // 6. Pengajuan pinjaman terbaru
+        $pengajuanPinjaman = \App\Models\data_pengajuan::where('anggota_id', $anggota->id)
+            ->orderBy('tgl_input', 'desc')
+            ->first();
+        
+        // 7. Tagihan bulan lalu
+        $tagihanBulanLalu = $this->getTagihanBulanLalu($anggota->no_ktp, $tahun, $bulan);
+        
+        // 8. Pengajuan penarikan simpanan terbaru
+        $pengajuanPenarikan = \App\Models\data_pengajuan_penarikan::where('anggota_id', $anggota->id)
+            ->orderBy('tgl_input', 'desc')
+            ->first();
+        
+        return view('member.dashboard', compact(
+            'anggota', 
+            'saldoSimpanan', 
+            'tagihanKredit', 
+            'keteranganPinjaman',
+            'simpananList',
+            'pengajuanPinjaman',
+            'tagihanBulanLalu',
+            'pengajuanPenarikan',
+            'tagihanData',
+            'periode'
+        ));
+    }
+
+    /**
+     * Hitung saldo simpanan (konsisten dengan project lama)
+     */
+    private function hitungSaldoSimpanan($noKtp)
+    {
+        return \Illuminate\Support\Facades\DB::table('tbl_trans_sp')
+            ->selectRaw('
+                SUM(CASE WHEN jenis_id = 41 AND dk = "D" THEN jumlah ELSE 0 END) - 
+                SUM(CASE WHEN jenis_id = 41 AND dk = "K" THEN jumlah ELSE 0 END) as simpanan_wajib,
+                
+                SUM(CASE WHEN jenis_id = 32 AND dk = "D" THEN jumlah ELSE 0 END) - 
+                SUM(CASE WHEN jenis_id = 32 AND dk = "K" THEN jumlah ELSE 0 END) as simpanan_sukarela,
+                
+                SUM(CASE WHEN jenis_id = 52 AND dk = "D" THEN jumlah ELSE 0 END) - 
+                SUM(CASE WHEN jenis_id = 52 AND dk = "K" THEN jumlah ELSE 0 END) as simpanan_khusus_2,
+                
+                SUM(CASE WHEN jenis_id = 40 AND dk = "D" THEN jumlah ELSE 0 END) - 
+                SUM(CASE WHEN jenis_id = 40 AND dk = "K" THEN jumlah ELSE 0 END) as simpanan_pokok,
+                
+                SUM(CASE WHEN jenis_id = 51 AND dk = "D" THEN jumlah ELSE 0 END) - 
+                SUM(CASE WHEN jenis_id = 51 AND dk = "K" THEN jumlah ELSE 0 END) as simpanan_khusus_1,
+                
+                SUM(CASE WHEN jenis_id = 156 AND dk = "D" THEN jumlah ELSE 0 END) - 
+                SUM(CASE WHEN jenis_id = 156 AND dk = "K" THEN jumlah ELSE 0 END) as tab_perumahan
+            ')
+            ->where('no_ktp', $noKtp)
+            ->first();
+    }
+
+    /**
+     * Hitung tagihan kredit menggunakan view seperti project CI lama
+     */
+    private function hitungTagihanKredit($noKtp)
+    {
+        return \Illuminate\Support\Facades\DB::table('v_hitung_pinjaman')
+            ->selectRaw('
+                SUM(CASE WHEN jenis_pinjaman = 1 THEN jumlah ELSE 0 END) as pinjaman_biasa,
+                SUM(CASE WHEN jenis_pinjaman = 1 AND lunas = "Belum" THEN sisa_pokok ELSE 0 END) as sisa_pinjaman_biasa,
+                SUM(CASE WHEN jenis_pinjaman = 2 THEN jumlah ELSE 0 END) as pinjaman_bank,
+                SUM(CASE WHEN jenis_pinjaman = 2 AND lunas = "Belum" THEN sisa_pokok ELSE 0 END) as sisa_pinjaman_bank,
+                SUM(CASE WHEN jenis_pinjaman = 3 THEN jumlah ELSE 0 END) as pinjaman_barang,
+                SUM(CASE WHEN jenis_pinjaman = 3 AND lunas = "Belum" THEN sisa_pokok ELSE 0 END) as sisa_pinjaman_barang
+            ')
+            ->where('no_ktp', $noKtp)
+            ->where('status', '1')
+            ->first();
+    }
+
+    /**
+     * Ambil data tagihan simpanan untuk periode tertentu
+     */
+    private function getTagihanSimpanan($noKtp, $tahun, $bulan)
+    {
+        // 1. Simpanan Wajib
+        $simpananWajib = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
+            ->where('no_ktp', $noKtp)
+            ->where('jenis_id', 41)
+            ->whereYear('tgl_transaksi', $tahun)
+            ->whereMonth('tgl_transaksi', $bulan)
+            ->sum('jumlah');
+        
+        // 2. Simpanan Sukarela
+        $simpananSukarela = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
+            ->where('no_ktp', $noKtp)
+            ->where('jenis_id', 32)
+            ->whereYear('tgl_transaksi', $tahun)
+            ->whereMonth('tgl_transaksi', $bulan)
+            ->sum('jumlah');
+        
+        // 3. Simpanan Khusus 1
+        $simpananKhusus1 = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
+            ->where('no_ktp', $noKtp)
+            ->where('jenis_id', 51)
+            ->whereYear('tgl_transaksi', $tahun)
+            ->whereMonth('tgl_transaksi', $bulan)
+            ->sum('jumlah');
+        
+        // 4. Simpanan Khusus 2
+        $simpananKhusus2 = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
+            ->where('no_ktp', $noKtp)
+            ->where('jenis_id', 52)
+            ->whereYear('tgl_transaksi', $tahun)
+            ->whereMonth('tgl_transaksi', $bulan)
+            ->sum('jumlah');
+        
+        // 5. Simpanan Pokok
+        $simpananPokok = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
+            ->where('no_ktp', $noKtp)
+            ->where('jenis_id', 40)
+            ->whereYear('tgl_transaksi', $tahun)
+            ->whereMonth('tgl_transaksi', $bulan)
+            ->sum('jumlah');
+        
+        // 6. Tabungan Perumahan
+        $tabPerumahan = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
+            ->where('no_ktp', $noKtp)
+            ->where('jenis_id', 156)
+            ->whereYear('tgl_transaksi', $tahun)
+            ->whereMonth('tgl_transaksi', $bulan)
+            ->sum('jumlah');
+        
+        // 7. Pinjaman Biasa
+        $pinjamanBiasa = $this->getPinjamanData($noKtp, 'Biasa', $tahun, $bulan);
+        
+        // 8. Pinjaman Barang
+        $pinjamanBarang = $this->getPinjamanData($noKtp, 'Barang', $tahun, $bulan);
+        
+        // 9. Pinjaman Bank BSM
+        $pinjamanBank = $this->getPinjamanData($noKtp, 'Bank BSM', $tahun, $bulan);
+        
+        // 10. Toserda
+        $toserda = \Illuminate\Support\Facades\DB::table('tbl_shu')
+            ->where('no_ktp', $noKtp)
+            ->where('jns_trans', 155)
+            ->whereYear('tgl_transaksi', $tahun)
+            ->whereMonth('tgl_transaksi', $bulan)
+            ->sum('jumlah_bayar');
+        
+        // 11. Lain-lain
+        $lainLain = \Illuminate\Support\Facades\DB::table('tbl_shu')
+            ->where('no_ktp', $noKtp)
+            ->where('jns_trans', 154)
+            ->whereYear('tgl_transaksi', $tahun)
+            ->whereMonth('tgl_transaksi', $bulan)
+            ->sum('jumlah_bayar');
+        
+        // 12. Hitung summary
+        $summary = $this->calculateSummary([
+            'simpanan_wajib' => $simpananWajib,
+            'simpanan_sukarela' => $simpananSukarela,
+            'simpanan_khusus_1' => $simpananKhusus1,
+            'simpanan_khusus_2' => $simpananKhusus2,
+            'simpanan_pokok' => $simpananPokok,
+            'tab_perumahan' => $tabPerumahan,
+            'pinjaman_biasa' => $pinjamanBiasa['jumlah'],
+            'jasa_biasa' => $pinjamanBiasa['jasa'],
+            'pinjaman_barang' => $pinjamanBarang['jumlah'],
+            'jasa_barang' => $pinjamanBarang['jasa'],
+            'pinjaman_bank' => $pinjamanBank['jumlah'],
+            'jasa_bank' => $pinjamanBank['jasa'],
+            'toserda' => $toserda,
+            'lain_lain' => $lainLain
+        ], $noKtp, $tahun, $bulan);
+        
+        return [
+            'simpanan_wajib' => $simpananWajib,
+            'simpanan_sukarela' => $simpananSukarela,
+            'simpanan_khusus_1' => $simpananKhusus1,
+            'simpanan_khusus_2' => $simpananKhusus2,
+            'simpanan_pokok' => $simpananPokok,
+            'tab_perumahan' => $tabPerumahan,
+            'pinjaman_biasa' => $pinjamanBiasa,
+            'pinjaman_barang' => $pinjamanBarang,
+            'pinjaman_bank' => $pinjamanBank,
+            'toserda' => $toserda,
+            'lain_lain' => $lainLain,
+            'summary' => $summary
+        ];
     }
     
     /**
-     * Get status text for pengajuan
+     * Ambil data pinjaman untuk jenis tertentu
      */
-    private function getStatusText($status)
+    private function getPinjamanData($noKtp, $jenisPinjaman, $tahun, $bulan)
     {
-        return match($status) {
-            0 => 'Menunggu Konfirmasi',
-            2 => 'Ditolak',
-            3 => 'Terlaksana',
-            4 => 'Batal',
-            default => 'Tidak Diketahui'
-        };
+        $pinjaman = \Illuminate\Support\Facades\DB::table('tbl_pinjaman_h')
+            ->where('no_ktp', $noKtp)
+            ->where('jenis_pinjaman', $jenisPinjaman)
+            ->where('lunas', 'Belum')
+            ->first();
+        
+        if (!$pinjaman) {
+            return [
+                'jumlah' => 0,
+                'jasa' => 0,
+                'sudah_bayar' => 0,
+                'total_angsuran' => 0
+            ];
+        }
+        
+        // Hitung angsuran yang sudah dibayar
+        $sudahBayar = \Illuminate\Support\Facades\DB::table('tbl_pinjaman_d')
+            ->where('pinjam_id', $pinjaman->id)
+            ->where('status_bayar', 'Lunas')
+            ->count();
+        
+        return [
+            'jumlah' => $pinjaman->jumlah,
+            'jasa' => $pinjaman->bunga_rp,
+            'sudah_bayar' => $sudahBayar,
+            'total_angsuran' => $pinjaman->lama_angsuran
+        ];
     }
-
+    
     /**
-     * Get status badge class for pengajuan
+     * Hitung summary tagihan
      */
-    private function getStatusBadge($status)
+    private function calculateSummary($data, $noKtp, $tahun, $bulan)
     {
-        return match($status) {
-            0 => 'bg-yellow-100 text-yellow-800',
-            2 => 'bg-red-100 text-red-800',
-            3 => 'bg-green-100 text-green-800',
-            4 => 'bg-gray-100 text-gray-800',
-            default => 'bg-gray-100 text-gray-800'
-        };
+        // Hitung jumlah total
+        $jumlah = array_sum([
+            $data['simpanan_wajib'],
+            $data['simpanan_sukarela'],
+            $data['simpanan_khusus_1'],
+            $data['simpanan_khusus_2'],
+            $data['simpanan_pokok'],
+            $data['tab_perumahan'],
+            $data['pinjaman_biasa'],
+            $data['jasa_biasa'],
+            $data['pinjaman_barang'],
+            $data['jasa_barang'],
+            $data['pinjaman_bank'],
+            $data['jasa_bank'],
+            $data['toserda'],
+            $data['lain_lain']
+        ]);
+        
+        // Hitung tagihan bulan lalu
+        $bulanLalu = $this->getTagihanBulanLalu($noKtp, $tahun, $bulan);
+        
+        // Hitung potongan gaji (default 0)
+        $potGaji = 0;
+        
+        // Hitung potongan simpanan (default 0)
+        $potSimpanan = 0;
+        
+        $tagHarusDibayar = $jumlah + $bulanLalu - $potGaji - $potSimpanan;
+        
+        return [
+            'jumlah' => $jumlah,
+            'tag_bulan_lalu' => $bulanLalu,
+            'pot_gaji' => $potGaji,
+            'pot_simpanan' => $potSimpanan,
+            'tag_harus_dibayar' => $tagHarusDibayar
+        ];
     }
-
+    
     /**
-     * Get status icon for pengajuan
+     * Hitung tagihan bulan lalu
      */
-    private function getStatusIcon($status)
+    private function getTagihanBulanLalu($noKtp, $tahun, $bulan)
     {
-        return match($status) {
-            0 => 'fas fa-clock text-yellow-500',
-            2 => 'fas fa-times-circle text-red-500',
-            3 => 'fas fa-check-circle text-green-500',
-            4 => 'fas fa-ban text-gray-500',
-            default => 'fas fa-question-circle text-gray-500'
-        };
+        // Hitung bulan lalu
+        $bulanLalu = $bulan - 1;
+        $tahunLalu = $tahun;
+        
+        if ($bulanLalu == 0) {
+            $bulanLalu = 12;
+            $tahunLalu = $tahun - 1;
+        }
+        
+        return \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
+            ->where('no_ktp', $noKtp)
+            ->whereYear('tgl_transaksi', $tahunLalu)
+            ->whereMonth('tgl_transaksi', $bulanLalu)
+            ->sum('jumlah');
     }
+    
+    /**
+     * Hitung keterangan pinjaman (konsisten dengan project lama)
+     */
+    private function hitungKeteranganPinjaman($noKtp)
+    {
+        $data = \Illuminate\Support\Facades\DB::table('tbl_pinjaman_h as p')
+            ->selectRaw('
+                COUNT(*) as jumlah_pinjaman,
+                SUM(CASE WHEN p.lunas = "Lunas" THEN 1 ELSE 0 END) as pinjaman_lunas
+            ')
+            ->where('p.no_ktp', $noKtp)
+            ->where('p.status', '1')
+            ->first();
+        
+        // Logika sederhana seperti project lama
+        $statusPembayaran = 'Lancar';
+        $tanggalTempo = '-';
+        
+        if ($data->jumlah_pinjaman > 0) {
+            $pinjamanAktif = \Illuminate\Support\Facades\DB::table('tbl_pinjaman_h')
+                ->where('no_ktp', $noKtp)
+                ->where('status', '1')
+                ->where('lunas', 'Belum')
+                ->first();
+            
+            if ($pinjamanAktif) {
+                $bulanTempo = date('m', strtotime($pinjamanAktif->tgl_pinjam));
+                $bulanSekarang = date('m');
+                
+                if ($bulanSekarang > $bulanTempo) {
+                    $statusPembayaran = 'Macet';
+                }
+                
+                $tanggalTempo = date('d/m/Y', strtotime($pinjamanAktif->tgl_pinjam));
+            }
+        }
+        
+        $data->status_pembayaran = $statusPembayaran;
+        $data->tanggal_tempo = $tanggalTempo;
+        return $data;
+    }
+    
+
 
     /**
      * Get detailed simpanan data for debugging
@@ -297,6 +490,51 @@ class MemberController extends Controller
             'Simpanan Khusus 2' => 'yellow',
             'Simpanan Pokok' => 'purple',
             default => 'gray'
+        };
+    }
+
+    /**
+     * Get status text for pengajuan
+     */
+    private function getStatusText($status)
+    {
+        return match($status) {
+            0 => 'Menunggu Konfirmasi',
+            1 => 'Disetujui',
+            2 => 'Ditolak',
+            3 => 'Sudah Terlaksana',
+            4 => 'Batal',
+            default => 'Unknown'
+        };
+    }
+
+    /**
+     * Get status badge color for pengajuan
+     */
+    private function getStatusBadge($status)
+    {
+        return match($status) {
+            0 => 'bg-yellow-100 text-yellow-800 border-yellow-300',
+            1 => 'bg-green-100 text-green-800 border-green-300',
+            2 => 'bg-red-100 text-red-800 border-red-300',
+            3 => 'bg-blue-100 text-blue-800 border-blue-300',
+            4 => 'bg-gray-100 text-gray-800 border-gray-300',
+            default => 'bg-gray-100 text-gray-800 border-gray-300'
+        };
+    }
+
+    /**
+     * Get status icon for pengajuan
+     */
+    private function getStatusIcon($status)
+    {
+        return match($status) {
+            0 => '<i class="fas fa-clock text-yellow-600"></i>',
+            1 => '<i class="fas fa-check-circle text-green-600"></i>',
+            2 => '<i class="fas fa-times-circle text-red-600"></i>',
+            3 => '<i class="fas fa-rocket text-blue-600"></i>',
+            4 => '<i class="fas fa-trash text-gray-600"></i>',
+            default => '<i class="fas fa-question-circle text-gray-600"></i>'
         };
     }
 
@@ -544,102 +782,30 @@ class MemberController extends Controller
             
             $member = auth()->guard('member')->user();
             
-            if (!$member) {
-                ActivityLogService::logFailed(
-                    'create',
-                    'pengajuan_penarikan',
-                    'Gagal membuat pengajuan penarikan - Sesi member berakhir',
-                    'Member session expired',
-                    null,
-                    $request->all(),
-                    null,
-                    'data_pengajuan_penarikan'
-                );
-                
-                return redirect()->back()->withInput()
-                    ->with('error', 'Sesi Anda telah berakhir. Silakan login kembali.');
-            }
-
-            // Get last no_ajuan for current month
+            // Generate no_ajuan
             $last = \App\Models\data_pengajuan_penarikan::whereYear('tgl_input', now()->year)
                 ->whereMonth('tgl_input', now()->month)
                 ->max('no_ajuan');
             $nextNoAjuan = $last ? ((int)$last + 1) : 1;
 
-            // Generate ajuan_id: S.YY.MM.XXX
+            // Generate ajuan_id
             $yy = now()->format('y');
             $mm = now()->format('m');
             $seq = str_pad((string)$nextNoAjuan, 3, '0', STR_PAD_LEFT);
-            $ajuanId = "S.$yy.$mm.$seq";
+            $ajuanId = "S.B.$yy.$mm.$seq";
 
-            // Clean nominal input
-            $nominalRaw = (string) $request->input('nominal');
-            $nominal = (int) str_replace([',', '.'], '', $nominalRaw);
-            if (!$nominal) {
-                $nominal = (int) $request->input('nominal');
-            }
-            
-            // Validate minimum amount
-            if ($nominal < 1000) {
-                ActivityLogService::logFailed(
-                    'create',
-                    'pengajuan_penarikan',
-                    'Gagal membuat pengajuan penarikan - Nominal terlalu kecil',
-                    'Nominal minimal Rp 1.000',
-                    null,
-                    $request->all(),
-                    null,
-                    'data_pengajuan_penarikan'
-                );
-                
-                return redirect()->back()->withInput()
-                    ->with('error', 'Nominal minimal Rp 1.000');
-            }
-
-            // Validate against available balance
-            $jenisSimpanan = \App\Models\jns_simpan::find($request->jenis_simpanan);
-            $saldoSimpanan = \App\Models\TblTransSp::where('no_ktp', $member->no_ktp)
-                ->where('jenis_id', $request->jenis_simpanan)
-                ->where('akun', 'Setoran')
-                ->where('dk', 'D')
-                ->sum('jumlah');
-            
-            $totalPenarikan = \App\Models\TblTransSp::where('no_ktp', $member->no_ktp)
-                ->where('jenis_id', $request->jenis_simpanan)
-                ->where('akun', 'Penarikan')
-                ->where('dk', 'K')
-                ->sum('jumlah');
-            
-            $saldoTersedia = $saldoSimpanan - $totalPenarikan;
-
-            if ($nominal > $saldoTersedia) {
-                ActivityLogService::logFailed(
-                    'create',
-                    'pengajuan_penarikan',
-                    'Gagal membuat pengajuan penarikan - Saldo tidak mencukupi',
-                    "Saldo tidak mencukupi. Saldo tersedia: Rp " . number_format($saldoTersedia, 0, ',', '.'),
-                    null,
-                    $request->all(),
-                    null,
-                    'data_pengajuan_penarikan'
-                );
-                
-                return redirect()->back()->withInput()
-                    ->with('error', "Saldo tidak mencukupi. Saldo tersedia: Rp " . number_format($saldoTersedia, 0, ',', '.'));
-            }
-
+            // Create withdrawal application
             $pengajuan = new \App\Models\data_pengajuan_penarikan();
             $pengajuan->no_ajuan = $nextNoAjuan;
             $pengajuan->ajuan_id = $ajuanId;
             $pengajuan->anggota_id = $member->id;
             $pengajuan->tgl_input = now();
             $pengajuan->jenis = $request->jenis_simpanan;
-            $pengajuan->nominal = $nominal;
-            $pengajuan->lama_ags = 0; // Not applicable for withdrawal
-            $pengajuan->keterangan = $request->input('keterangan');
+            $pengajuan->nominal = $request->nominal;
+            $pengajuan->keterangan = $request->keterangan;
             $pengajuan->status = 0; // Pending
             $pengajuan->alasan = '';
-            $pengajuan->tgl_cair = null;
+            $pengajuan->tgl_cair = date('Y-m-d', strtotime('1970-01-01'));
             $pengajuan->tgl_update = now();
             $pengajuan->id_cabang = 1; // Default cabang ID
             $pengajuan->save();
@@ -648,7 +814,7 @@ class MemberController extends Controller
             ActivityLogService::logSuccess(
                 'create',
                 'pengajuan_penarikan',
-                "Berhasil membuat pengajuan penarikan simpanan - Ajuan ID: {$ajuanId}, Nominal: Rp " . number_format($nominal, 0, ',', '.'),
+                "Berhasil membuat pengajuan penarikan simpanan - Ajuan ID: {$ajuanId}, Nominal: Rp " . number_format($request->nominal, 0, ',', '.'),
                 null,
                 $pengajuan->toArray(),
                 $pengajuan->id,

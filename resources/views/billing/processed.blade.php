@@ -135,10 +135,7 @@
                             </td>
                             <td class="px-4 py-3 text-center text-sm">{{ $billing->jns_trans ?? 'Billing' }}</td>
                             @php
-                            $total = $billing->total_tagihan;
-                            if (empty($total) || $total == 0) {
-                            $total = $billing->jumlah;
-                            }
+                            $total = $billing->total_tagihan ?? $billing->total_billing ?? 0;
                             @endphp
                             <td class="px-4 py-3 text-right text-sm font-medium">
                                 {{ number_format($total ?? 0, 0, ',', '.') }}</td>
@@ -166,11 +163,9 @@
                 </table>
             </div>
 
-            <div class="mt-6 flex justify-center">
+            <div class="mt-6">
                 @if($dataBillingProcess->hasPages())
-                <div class="pagination-links">
-                    {{ $dataBillingProcess->withQueryString()->links() }}
-                </div>
+                    {{ $dataBillingProcess->withQueryString()->links('vendor.pagination.tailwind') }}
                 @endif
             </div>
         </div>
