@@ -11,6 +11,7 @@ use App\Models\JnsPinjaman;
 use Carbon\Carbon;
 use App\Http\Requests\StorePengajuanPinjamanRequest;
 use App\Models\data_pengajuan;
+use App\Services\ActivityLogService;
 
 
 class MemberController extends Controller
@@ -64,8 +65,8 @@ class MemberController extends Controller
         // Get all jenis simpanan from master data
         $jenisSimpanan = \App\Models\jns_simpan::where('tampil', 'Y')->orderBy('urut', 'asc')->get();
         
-        // Get simpanan data from tbl_trans_sp - grouped by jenis_id
-        $simpananData = \App\Models\TblTransSp::where('no_ktp', $anggota->no_ktp)
+        // Get simpanan data (setoran) from tbl_trans_sp - grouped by jenis_id
+        $setoranData = \App\Models\TblTransSp::where('no_ktp', $anggota->no_ktp)
             ->where('akun', 'Setoran')
             ->where('dk', 'D')
             ->select('jenis_id', \Illuminate\Support\Facades\DB::raw('SUM(jumlah) as total'))
@@ -73,16 +74,40 @@ class MemberController extends Controller
             ->pluck('total', 'jenis_id')
             ->toArray();
         
-        // Calculate total simpanan
-        $totalSimpanan = array_sum($simpananData);
+        // Get penarikan data from tbl_trans_sp - grouped by jenis_id
+        $penarikanData = \App\Models\TblTransSp::where('no_ktp', $anggota->no_ktp)
+            ->where('akun', 'Penarikan')
+            ->where('dk', 'K')
+            ->select('jenis_id', \Illuminate\Support\Facades\DB::raw('SUM(jumlah) as total'))
+            ->groupBy('jenis_id')
+            ->pluck('total', 'jenis_id')
+            ->toArray();
         
-        // Prepare simpanan data for view with specific amounts for each type
+        // Calculate saldo for each jenis simpanan (Setoran - Penarikan)
+        $saldoData = [];
+        foreach ($jenisSimpanan as $jenis) {
+            $setoran = $setoranData[$jenis->id] ?? 0;
+            $penarikan = $penarikanData[$jenis->id] ?? 0;
+            $saldo = $setoran - $penarikan;
+            
+            $saldoData[$jenis->id] = $saldo;
+        }
+        
+        // Calculate total saldo
+        $totalSaldo = array_sum($saldoData);
+        
+        // Prepare simpanan data for view with saldo for each type
         $simpananList = [];
         foreach ($jenisSimpanan as $jenis) {
-            $jumlah = $simpananData[$jenis->id] ?? 0;
+            $saldo = $saldoData[$jenis->id] ?? 0;
+            $setoran = $setoranData[$jenis->id] ?? 0;
+            $penarikan = $penarikanData[$jenis->id] ?? 0;
+            
             $simpananList[] = [
                 'nama' => $jenis->jns_simpan,
-                'jumlah' => $jumlah,
+                'saldo' => $saldo,
+                'setoran' => $setoran,
+                'penarikan' => $penarikan,
                 'warna' => $this->getSimpananColor($jenis->jns_simpan)
             ];
         }
@@ -124,11 +149,23 @@ class MemberController extends Controller
             ->whereMonth('tgl_transaksi', now()->month)
             ->sum('jumlah');
 
+        // NOTIFIKASI: Cek pengajuan pinjaman terbaru
+        $pengajuanPinjaman = \App\Models\data_pengajuan::where('anggota_id', $anggota->id)
+            ->where('status', '!=', 4) // Bukan status batal
+            ->orderBy('tgl_input', 'DESC')
+            ->first();
+
+        // NOTIFIKASI: Cek pengajuan penarikan simpanan terbaru
+        $pengajuanPenarikan = \App\Models\data_pengajuan_penarikan::where('anggota_id', $anggota->id)
+            ->where('status', '!=', 4) // Bukan status batal
+            ->orderBy('tgl_input', 'DESC')
+            ->first();
+
         // Prepare data for dashboard cards
         $dashboardData = [
             'anggota' => $anggota,
             'simpananList' => $simpananList,
-            'totalSimpanan' => $totalSimpanan,
+            'totalSimpanan' => $totalSaldo, // Changed to totalSaldo
             'totalPinjaman' => $totalPinjaman,
             'sisaPinjaman' => $sisaPinjaman,
             'pinjamanLunas' => $pinjamanLunas,
@@ -137,10 +174,116 @@ class MemberController extends Controller
             'transaksiToserda' => $transaksiToserda,
             'transaksiAngkutan' => $transaksiAngkutan,
             'transaksiLainnya' => $transaksiLainnya,
-            'pembayaranBulanIni' => $transaksiToserda + $transaksiAngkutan + $transaksiLainnya
+            'pembayaranBulanIni' => $transaksiToserda + $transaksiAngkutan + $transaksiLainnya,
+            'pengajuanPinjaman' => $pengajuanPinjaman,
+            'pengajuanPenarikan' => $pengajuanPenarikan
         ];
         
         return view('member.dashboard', $dashboardData);
+    }
+    
+    /**
+     * Get status text for pengajuan
+     */
+    private function getStatusText($status)
+    {
+        return match($status) {
+            0 => 'Menunggu Konfirmasi',
+            2 => 'Ditolak',
+            3 => 'Terlaksana',
+            4 => 'Batal',
+            default => 'Tidak Diketahui'
+        };
+    }
+
+    /**
+     * Get status badge class for pengajuan
+     */
+    private function getStatusBadge($status)
+    {
+        return match($status) {
+            0 => 'bg-yellow-100 text-yellow-800',
+            2 => 'bg-red-100 text-red-800',
+            3 => 'bg-green-100 text-green-800',
+            4 => 'bg-gray-100 text-gray-800',
+            default => 'bg-gray-100 text-gray-800'
+        };
+    }
+
+    /**
+     * Get status icon for pengajuan
+     */
+    private function getStatusIcon($status)
+    {
+        return match($status) {
+            0 => 'fas fa-clock text-yellow-500',
+            2 => 'fas fa-times-circle text-red-500',
+            3 => 'fas fa-check-circle text-green-500',
+            4 => 'fas fa-ban text-gray-500',
+            default => 'fas fa-question-circle text-gray-500'
+        };
+    }
+
+    /**
+     * Get detailed simpanan data for debugging
+     */
+    public function getDetailSimpanan()
+    {
+        $anggota = auth()->guard('member')->user();
+        
+        // Get all jenis simpanan from master data
+        $jenisSimpanan = \App\Models\jns_simpan::where('tampil', 'Y')->orderBy('urut', 'asc')->get();
+        
+        // Get setoran data
+        $setoranData = \App\Models\TblTransSp::where('no_ktp', $anggota->no_ktp)
+            ->where('akun', 'Setoran')
+            ->where('dk', 'D')
+            ->select('jenis_id', \Illuminate\Support\Facades\DB::raw('SUM(jumlah) as total'))
+            ->groupBy('jenis_id')
+            ->pluck('total', 'jenis_id')
+            ->toArray();
+        
+        // Get penarikan data
+        $penarikanData = \App\Models\TblTransSp::where('no_ktp', $anggota->no_ktp)
+            ->where('akun', 'Penarikan')
+            ->where('dk', 'K')
+            ->select('jenis_id', \Illuminate\Support\Facades\DB::raw('SUM(jumlah) as total'))
+            ->groupBy('jenis_id')
+            ->pluck('total', 'jenis_id')
+            ->toArray();
+        
+        // Get all transactions for debugging
+        $allTransactions = \App\Models\TblTransSp::where('no_ktp', $anggota->no_ktp)
+            ->orderBy('tgl_transaksi', 'desc')
+            ->get();
+        
+        $detailData = [];
+        foreach ($jenisSimpanan as $jenis) {
+            $setoran = $setoranData[$jenis->id] ?? 0;
+            $penarikan = $penarikanData[$jenis->id] ?? 0;
+            $saldo = $setoran - $penarikan;
+            
+            $detailData[] = [
+                'jenis_id' => $jenis->id,
+                'nama' => $jenis->jns_simpan,
+                'setoran' => $setoran,
+                'penarikan' => $penarikan,
+                'saldo' => $saldo
+            ];
+        }
+        
+        return response()->json([
+            'anggota' => [
+                'id' => $anggota->id,
+                'no_ktp' => $anggota->no_ktp,
+                'nama' => $anggota->nama
+            ],
+            'detail_simpanan' => $detailData,
+            'all_transactions' => $allTransactions->take(10), // Last 10 transactions
+            'total_setoran' => array_sum($setoranData),
+            'total_penarikan' => array_sum($penarikanData),
+            'total_saldo' => array_sum($setoranData) - array_sum($penarikanData)
+        ]);
     }
     
     /**
@@ -362,34 +505,280 @@ class MemberController extends Controller
     {
         $member = auth()->guard('member')->user();
         $jenisSimpanan = \App\Models\jns_simpan::where('tampil', 'Y')->get();
-        return view('member.pengajuan_penarikan', compact('member', 'jenisSimpanan'));
+        
+        // Get pengajuan data for this member
+        $dataPengajuan = \App\Models\data_pengajuan_penarikan::where('anggota_id', $member->id)
+            ->orderByDesc('tgl_input')
+            ->paginate(10);
+            
+        return view('member.pengajuan_penarikan', compact('member', 'jenisSimpanan', 'dataPengajuan'));
+    }
+
+    public function formPengajuanPenarikan()
+    {
+        $member = auth()->guard('member')->user();
+        $jenisSimpanan = \App\Models\jns_simpan::where('tampil', 'Y')->get();
+        
+        return view('member.form_pengajuan_penarikan', compact('member', 'jenisSimpanan'));
     }
 
     public function storePengajuanPenarikan(Request $request)
     {
-        $request->validate([
-            'jenis_simpanan' => 'required',
-            'jumlah_penarikan' => 'required|numeric|min:1000',
-            'alasan' => 'required|string|max:500'
-        ]);
-
         try {
+        $request->validate([
+                'jenis_simpanan' => 'required|exists:jns_simpan,id',
+                'nominal' => 'required|string|min:1',
+                'keterangan' => 'required|string|max:500'
+            ]);
+            
+            // Log activity start
+            ActivityLogService::logPending(
+                'create',
+                'pengajuan_penarikan',
+                'Memulai pengajuan penarikan simpanan',
+                null,
+                $request->all(),
+                null,
+                'data_pengajuan_penarikan'
+            );
+            
             $member = auth()->guard('member')->user();
             
-            // Create withdrawal application
+            if (!$member) {
+                ActivityLogService::logFailed(
+                    'create',
+                    'pengajuan_penarikan',
+                    'Gagal membuat pengajuan penarikan - Sesi member berakhir',
+                    'Member session expired',
+                    null,
+                    $request->all(),
+                    null,
+                    'data_pengajuan_penarikan'
+                );
+                
+                return redirect()->back()->withInput()
+                    ->with('error', 'Sesi Anda telah berakhir. Silakan login kembali.');
+            }
+
+            // Get last no_ajuan for current month
+            $last = \App\Models\data_pengajuan_penarikan::whereYear('tgl_input', now()->year)
+                ->whereMonth('tgl_input', now()->month)
+                ->max('no_ajuan');
+            $nextNoAjuan = $last ? ((int)$last + 1) : 1;
+
+            // Generate ajuan_id: S.YY.MM.XXX
+            $yy = now()->format('y');
+            $mm = now()->format('m');
+            $seq = str_pad((string)$nextNoAjuan, 3, '0', STR_PAD_LEFT);
+            $ajuanId = "S.$yy.$mm.$seq";
+
+            // Clean nominal input
+            $nominalRaw = (string) $request->input('nominal');
+            $nominal = (int) str_replace([',', '.'], '', $nominalRaw);
+            if (!$nominal) {
+                $nominal = (int) $request->input('nominal');
+            }
+            
+            // Validate minimum amount
+            if ($nominal < 1000) {
+                ActivityLogService::logFailed(
+                    'create',
+                    'pengajuan_penarikan',
+                    'Gagal membuat pengajuan penarikan - Nominal terlalu kecil',
+                    'Nominal minimal Rp 1.000',
+                    null,
+                    $request->all(),
+                    null,
+                    'data_pengajuan_penarikan'
+                );
+                
+                return redirect()->back()->withInput()
+                    ->with('error', 'Nominal minimal Rp 1.000');
+            }
+
+            // Validate against available balance
+            $jenisSimpanan = \App\Models\jns_simpan::find($request->jenis_simpanan);
+            $saldoSimpanan = \App\Models\TblTransSp::where('no_ktp', $member->no_ktp)
+                ->where('jenis_id', $request->jenis_simpanan)
+                ->where('akun', 'Setoran')
+                ->where('dk', 'D')
+                ->sum('jumlah');
+            
+            $totalPenarikan = \App\Models\TblTransSp::where('no_ktp', $member->no_ktp)
+                ->where('jenis_id', $request->jenis_simpanan)
+                ->where('akun', 'Penarikan')
+                ->where('dk', 'K')
+                ->sum('jumlah');
+            
+            $saldoTersedia = $saldoSimpanan - $totalPenarikan;
+
+            if ($nominal > $saldoTersedia) {
+                ActivityLogService::logFailed(
+                    'create',
+                    'pengajuan_penarikan',
+                    'Gagal membuat pengajuan penarikan - Saldo tidak mencukupi',
+                    "Saldo tidak mencukupi. Saldo tersedia: Rp " . number_format($saldoTersedia, 0, ',', '.'),
+                    null,
+                    $request->all(),
+                    null,
+                    'data_pengajuan_penarikan'
+                );
+                
+                return redirect()->back()->withInput()
+                    ->with('error', "Saldo tidak mencukupi. Saldo tersedia: Rp " . number_format($saldoTersedia, 0, ',', '.'));
+            }
+
             $pengajuan = new \App\Models\data_pengajuan_penarikan();
-            $pengajuan->no_ktp = $member->no_ktp;
-            $pengajuan->jenis_simpanan = $request->jenis_simpanan;
-            $pengajuan->jumlah_penarikan = $request->jumlah_penarikan;
-            $pengajuan->alasan = $request->alasan;
-            $pengajuan->status = 'Pending';
-            $pengajuan->tgl_pengajuan = now();
+            $pengajuan->no_ajuan = $nextNoAjuan;
+            $pengajuan->ajuan_id = $ajuanId;
+            $pengajuan->anggota_id = $member->id;
+            $pengajuan->tgl_input = now();
+            $pengajuan->jenis = $request->jenis_simpanan;
+            $pengajuan->nominal = $nominal;
+            $pengajuan->lama_ags = 0; // Not applicable for withdrawal
+            $pengajuan->keterangan = $request->input('keterangan');
+            $pengajuan->status = 0; // Pending
+            $pengajuan->alasan = '';
+            $pengajuan->tgl_cair = null;
+            $pengajuan->tgl_update = now();
+            $pengajuan->id_cabang = 1; // Default cabang ID
             $pengajuan->save();
 
-            return redirect()->route('member.pengajuan.penarikan')->with('success', 'Pengajuan penarikan simpanan berhasil dikirim');
+            // Log successful creation
+            ActivityLogService::logSuccess(
+                'create',
+                'pengajuan_penarikan',
+                "Berhasil membuat pengajuan penarikan simpanan - Ajuan ID: {$ajuanId}, Nominal: Rp " . number_format($nominal, 0, ',', '.'),
+                null,
+                $pengajuan->toArray(),
+                $pengajuan->id,
+                'data_pengajuan_penarikan'
+            );
+
+            return redirect()->route('member.pengajuan.penarikan')
+                ->with('success', 'Pengajuan penarikan simpanan berhasil dikirim');
+        } catch (\Throwable $e) {
+            // Log error
+            ActivityLogService::logFailed(
+                'create',
+                'pengajuan_penarikan',
+                'Gagal menyimpan pengajuan penarikan simpanan - Error sistem',
+                $e->getMessage(),
+                null,
+                $request->all(),
+                null,
+                'data_pengajuan_penarikan'
+            );
+
+            return redirect()->back()->withInput()
+                ->with('error', 'Pengajuan gagal disimpan: '.$e->getMessage());
+        }
+    }
+
+    public function cancelPengajuanPenarikan(string $id)
+    {
+        try {
+            $member = auth()->guard('member')->user();
+            $pengajuan = \App\Models\data_pengajuan_penarikan::where('anggota_id', $member->id)->findOrFail($id);
+
+            if ((int)$pengajuan->status !== 0) {
+                ActivityLogService::logFailed(
+                    'cancel',
+                    'pengajuan_penarikan',
+                    'Gagal membatalkan pengajuan penarikan - Status tidak valid',
+                    'Pengajuan tidak dapat dibatalkan karena status bukan pending',
+                    $pengajuan->toArray(),
+                    null,
+                    $pengajuan->id,
+                    'data_pengajuan_penarikan'
+                );
+                
+                return redirect()->back()->with('error', 'Pengajuan tidak dapat dibatalkan.');
+            }
+
+            // Store old values for logging
+            $oldValues = $pengajuan->toArray();
+
+            $pengajuan->status = 4; // Batal
+            $pengajuan->tgl_update = now();
+            $pengajuan->save();
+
+            // Log successful cancellation
+            ActivityLogService::logSuccess(
+                'cancel',
+                'pengajuan_penarikan',
+                "Berhasil membatalkan pengajuan penarikan - Ajuan ID: {$pengajuan->ajuan_id}",
+                $oldValues,
+                $pengajuan->toArray(),
+                $pengajuan->id,
+                'data_pengajuan_penarikan'
+            );
+
+            return redirect()->route('member.pengajuan.penarikan')->with('success', 'Pengajuan berhasil dibatalkan');
+        } catch (\Throwable $e) {
+            // Log error
+            ActivityLogService::logFailed(
+                'cancel',
+                'pengajuan_penarikan',
+                'Gagal membatalkan pengajuan penarikan - Error sistem',
+                $e->getMessage(),
+                null,
+                null,
+                $id,
+                'data_pengajuan_penarikan'
+            );
+            
+            return redirect()->back()->with('error', 'Gagal membatalkan pengajuan: '.$e->getMessage());
+        }
+    }
+
+    public function getSaldoSimpanan(Request $request)
+    {
+        try {
+            $member = auth()->guard('member')->user();
+            $jenisId = $request->jenis_id;
+
+            $saldoSimpanan = \App\Models\TblTransSp::where('no_ktp', $member->no_ktp)
+                ->where('jenis_id', $jenisId)
+                ->where('akun', 'Setoran')
+                ->where('dk', 'D')
+                ->sum('jumlah');
+            
+            $totalPenarikan = \App\Models\TblTransSp::where('no_ktp', $member->no_ktp)
+                ->where('jenis_id', $jenisId)
+                ->where('akun', 'Penarikan')
+                ->where('dk', 'K')
+                ->sum('jumlah');
+            
+            $saldoTersedia = $saldoSimpanan - $totalPenarikan;
+
+            return response()->json([
+                'success' => true,
+                'saldo_tersedia' => $saldoTersedia,
+                'saldo_formatted' => number_format($saldoTersedia, 0, ',', '.')
+            ]);
         } catch (\Exception $e) {
-            Log::error('Error in storePengajuanPenarikan: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function showPengajuanPenarikan(string $id)
+    {
+        try {
+            $member = auth()->guard('member')->user();
+            $pengajuan = \App\Models\data_pengajuan_penarikan::with(['jenisSimpanan'])
+                ->where('anggota_id', $member->id)
+                ->findOrFail($id);
+            
+            return view('member.detail_pengajuan_penarikan', compact('pengajuan', 'member'));
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengajuan tidak ditemukan'
+            ], 404);
         }
     }
 

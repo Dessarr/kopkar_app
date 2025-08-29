@@ -315,6 +315,15 @@ class SimpananController extends Controller
     {
         // Contoh: ambil data pengajuan penarikan dari model terkait (misal: data_pengajuan_penarikan)
         $dataPengajuan = \App\Models\data_pengajuan_penarikan::paginate(10);
-        return view('simpanan.pengajuan_penarikan', compact('dataPengajuan'));
+        
+        // Get jenis simpanan for filter dropdown - always get this
+        try {
+            $jenisSimpanan = \App\Models\jns_simpan::where('tampil', 'Y')->get();
+        } catch (\Exception $e) {
+            // If there's an error, provide empty collection
+            $jenisSimpanan = collect([]);
+        }
+        
+        return view('simpanan.pengajuan_penarikan', compact('dataPengajuan', 'jenisSimpanan'));
     }
 }

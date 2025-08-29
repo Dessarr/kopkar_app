@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\NamaKasTbl;
 
 class transaksi_kas extends Model
 {
@@ -16,19 +17,27 @@ class transaksi_kas extends Model
         'akun',
         'dari_kas_id',
         'untuk_kas_id',
+        'jns_trans',
+        'dk',
         'no_polisi',
         'update_data',
         'id_cabang',
         'user_name',
     ];
 
+    protected $casts = [
+        'tgl_catat' => 'datetime',
+        'update_data' => 'datetime',
+        'jumlah' => 'decimal:2',
+    ];
+
     public function dariKas()
     {
-         return $this->belongsTo(DataKas::class, 'dari_kas_id', 'id');
+         return $this->belongsTo(NamaKasTbl::class, 'dari_kas_id', 'id');
     }
 
     public function untukKas()
     {
-        return $this->belongsTo(DataKas::class, 'untuk_kas_id', 'id');
+        return $this->belongsTo(NamaKasTbl::class, 'untuk_kas_id', 'id');
     }
 }

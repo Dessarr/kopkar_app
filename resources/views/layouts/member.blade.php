@@ -147,7 +147,7 @@
                                     class="dropdown-item block px-4 py-2 text-sm text-gray-700 whitespace-nowrap">Data
                                     Pengajuan
                                     Penarikan</a>
-                                <a href="{{ route('member.laporan.simpanan') }}"
+                                <a href="{{ route('member.pengajuan.penarikan.form') }}"
                                     class="dropdown-item block px-4 py-2 text-sm text-gray-700 whitespace-nowrap">Tambah
                                     Pengajuan
                                     Penarikan Baru</a>

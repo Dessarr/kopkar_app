@@ -51,7 +51,7 @@ class TblTransToserda extends Model
      */
     public function barang()
     {
-        return $this->belongsTo(data_barang::class, 'id_barang', 'id');
+        return $this->belongsTo(data_barang::class, 'jenis_id', 'id');
     }
     
     /**

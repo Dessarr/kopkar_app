@@ -16,11 +16,11 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && Auth::user()->role == 'admin') {
+        if (Auth::guard('admin')->check()) {
             return $next($request);
         }
 
-        Auth::logout();
-        return redirect('/admin/login')->withErrors(['username' => 'You are not authorized to access this page.']);
+        Auth::guard('admin')->logout();
+        return redirect('/admin/login')->withErrors(['login' => 'You are not authorized to access this page.']);
     }
 }

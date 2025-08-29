@@ -57,15 +57,15 @@ class TblTransSp extends Table_Base
      */
     public function anggota()
     {
-        return $this->belongsTo(data_anggota::class, 'anggota_id');
+        return $this->belongsTo(data_anggota::class, 'no_ktp', 'no_ktp');
     }
 
     /**
-     * Get the related jenis simpanan.
+     * Get the related jenis transaksi.
      */
-    public function jenis_simpanan()
+    public function jenis_transaksi()
     {
-        return $this->belongsTo(jns_simpan::class, 'jenis_id');
+        return $this->belongsTo(jns_akun::class, 'jenis_id');
     }
 
     /**
@@ -73,7 +73,7 @@ class TblTransSp extends Table_Base
      */
     public function kas()
     {
-        return $this->belongsTo(DataKas::class, 'kas_id');
+        return $this->belongsTo(NamaKasTbl::class, 'kas_id');
     }
 
     /**

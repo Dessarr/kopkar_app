@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\NamaKasTbl;
+
 class View_Transaksi extends View_Base
 {
     protected $table = 'v_transaksi';
@@ -14,11 +16,11 @@ class View_Transaksi extends View_Base
 
     public function kasAsal()
     {
-        return $this->belongsTo(DataKas::class, 'dari_kas', 'id');
+        return $this->belongsTo(NamaKasTbl::class, 'dari_kas', 'id');
     }
 
     public function kasTujuan()
     {
-        return $this->belongsTo(DataKas::class, 'untuk_kas', 'id');
+        return $this->belongsTo(NamaKasTbl::class, 'untuk_kas', 'id');
     }
 } 

@@ -131,9 +131,9 @@
                 </svg>
             </button>
             <div x-show="isMenuOpen('anggota')" class="pl-8 space-y-1 mt-1" x-transition>
-                <a href="#"
+                <a href="{{ route('anggota.shu') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">SHU</a>
-                <a href="{{ route('anggota.bayar.toserda') }}"
+                <a href="{{ route('anggota.toserda') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">Bayar
                     Toserda/Lain-lain</a>
             </div>
