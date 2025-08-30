@@ -2,43 +2,28 @@
 
 namespace App\Models;
 
-class Pekerjaan extends Table_Base
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Pekerjaan extends Model
 {
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
+    use HasFactory;
+
     protected $table = 'pekerjaan';
+    protected $primaryKey = 'id';
+    public $timestamps = true;
 
-    /**
-     * The primary key for the model.
-     *
-     * @var string
-     */
-    protected $primaryKey = 'id_kerja';
-
-    /**
-     * The "type" of the primary key ID.
-     *
-     * @var string
-     */
-    protected $keyType = 'string';
-
-    /**
-     * Indicates if the IDs are auto-incrementing.
-     *
-     * @var bool
-     */
-    public $incrementing = false;
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
-        'id_kerja',
-        'jenis_kerja',
+        'nama_pekerjaan',
+        'keterangan',
+        'status'
     ];
+
+    /**
+     * Get the anggota for this pekerjaan
+     */
+    public function anggota()
+    {
+        return $this->hasMany(data_anggota::class, 'pekerjaan_id', 'id');
+    }
 } 

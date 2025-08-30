@@ -311,6 +311,7 @@ Route::prefix('toserda')->group(function () {
     Route::get('/pembelian', [ToserdaController::class, 'pembelian'])->name('toserda.pembelian');
     Route::get('/biaya-usaha', [ToserdaController::class, 'biayaUsaha'])->name('toserda.biaya-usaha');
     Route::get('/lain-lain', [ToserdaController::class, 'lainLain'])->name('toserda.lain-lain');
+
     Route::post('/penjualan', [ToserdaController::class, 'storePenjualan'])->name('toserda.store.penjualan');
     Route::post('/pembelian', [ToserdaController::class, 'storePembelian'])->name('toserda.store.pembelian');
     Route::post('/biaya-usaha', [ToserdaController::class, 'storeBiayaUsaha'])->name('toserda.store.biaya-usaha');

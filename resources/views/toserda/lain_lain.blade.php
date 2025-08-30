@@ -17,6 +17,12 @@
     </div>
     @endif
 
+    @if(isset($error))
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+        <span class="block sm:inline">{{ $error }}</span>
+    </div>
+    @endif
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Upload File Excel -->
         <div class="md:col-span-1 bg-white rounded-lg shadow-lg p-6">
@@ -96,6 +102,8 @@
         </div>
     </div>
 
+
+
     <!-- Tabel Transaksi -->
     <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
         <h2 class="text-lg font-semibold mb-4">Data Transaksi Toserda</h2>
@@ -168,20 +176,26 @@
                 <tbody>
                     @forelse($transaksi as $tr)
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-2 border-b">{{ $tr->tgl_transaksi->format('d/m/Y') }}</td>
-                        <td class="px-4 py-2 border-b">{{ $tr->no_ktp }}</td>
-                        <td class="px-4 py-2 border-b">{{ number_format($tr->jumlah, 0, ',', '.') }}</td>
                         <td class="px-4 py-2 border-b">
-                            @if($tr->status_billing == 'Y')
+                            @if(isset($tr->tgl_transaksi) && $tr->tgl_transaksi)
+                                {{ is_object($tr->tgl_transaksi) ? $tr->tgl_transaksi->format('d/m/Y') : $tr->tgl_transaksi }}
+                            @else
+                                <span class="text-gray-400">N/A</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-2 border-b">{{ $tr->no_ktp ?? 'N/A' }}</td>
+                        <td class="px-4 py-2 border-b">{{ number_format($tr->jumlah ?? 0, 0, ',', '.') }}</td>
+                        <td class="px-4 py-2 border-b">
+                            @if(isset($tr->status_billing) && $tr->status_billing == 'Y')
                             <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs text-nowrap">Sudah Billing</span>
                             @else
                             <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs text-nowrap">Belum Billing</span>
                             @endif
                         </td>
                         <td class="px-4 py-2 border-b">
-                            @if($tr->status_billing == 'Y' && $tr->tgl_bayar)
+                            @if(isset($tr->status_billing) && $tr->status_billing == 'Y' && isset($tr->tgl_bayar) && $tr->tgl_bayar)
                             <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Sudah Bayar</span>
-                            @elseif($tr->status_billing == 'Y')
+                            @elseif(isset($tr->status_billing) && $tr->status_billing == 'Y')
                             <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Belum Bayar</span>
                             @else
                             <span class="px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs">Belum Ditagih</span>
@@ -199,7 +213,11 @@
 
         <!-- Pagination -->
         <div class="mt-4">
-            {{ $transaksi->links() }}
+            @if($transaksi && method_exists($transaksi, 'links'))
+                {{ $transaksi->links() }}
+            @else
+                <p class="text-gray-500 text-center">Pagination not available</p>
+            @endif
         </div>
     </div>
 </div>

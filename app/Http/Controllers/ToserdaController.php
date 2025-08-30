@@ -259,45 +259,69 @@ class ToserdaController extends Controller
     
     public function lainLain(Request $request)
     {
+        // Inisialisasi $bulanList di awal untuk memastikan selalu terdefinisi
+        $bulanList = $this->bulanList;
+        
         try {
             $bulan = $request->get('bulan', date('m'));
             $tahun = $request->get('tahun', date('Y'));
             $search = $request->get('search');
             $billingStatus = $request->get('billing_status');
 
-            $query = transaksi_kas::query();
+            // Simple query first - just get basic data
+            $query = DB::table('tbl_trans_toserda as t')
+                ->select('t.*')
+                ->orderBy('t.tgl_transaksi', 'desc');
 
             // Filter by month and year
             if ($bulan && $tahun) {
-                $query->whereYear('tgl_catat', $tahun)
-                      ->whereMonth('tgl_catat', $bulan);
+                $query->whereYear('t.tgl_transaksi', $tahun)
+                      ->whereMonth('t.tgl_transaksi', $bulan);
             }
 
             // Filter by search
             if ($search) {
                 $query->where(function($q) use ($search) {
-                    $q->where('keterangan', 'like', "%{$search}%")
-                      ->orWhere('no_polisi', 'like', "%{$search}%");
+                    $q->where('t.no_ktp', 'like', "%{$search}%");
                 });
             }
 
             // Filter by billing status
             if ($billingStatus) {
                 if ($billingStatus === 'billed') {
-                    $query->whereNotNull('jns_trans');
+                    $query->where('t.status_billing', 'Y');
                 } elseif ($billingStatus === 'unbilled') {
-                    $query->whereNull('jns_trans');
+                    $query->where('t.status_billing', '!=', 'Y');
                 }
             }
 
-            $transaksi = $query->orderBy('tgl_catat', 'desc')->paginate(15);
+            $transaksi = $query->paginate(15);
+
+            // Debug: Log the query and data
+            \Log::info('Toserda Lain-lain Query: ' . $query->toSql());
+            \Log::info('Toserda Lain-lain Data Count: ' . $transaksi->count());
+
+            // Test: Check if data exists
+            if ($transaksi->count() == 0) {
+                \Log::warning('No data found in tbl_trans_toserda');
+            }
 
             return view('toserda.lain_lain', compact('transaksi', 'bulanList'));
         } catch (\Exception $e) {
             \Log::error('Error in lain lain: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            \Log::error('Error Stack: ' . $e->getTraceAsString());
+            
+            // Return simple error view instead of redirect
+            $emptyPaginator = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15);
+            return view('toserda.lain_lain', [
+                'transaksi' => $emptyPaginator,
+                'bulanList' => $bulanList,
+                'error' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
         }
     }
+
+
 
     // Export methods
     public function exportPenjualan(Request $request)
