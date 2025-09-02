@@ -17,6 +17,8 @@ use App\Imports\ToserdaImport;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ToserdaController extends Controller
 {
@@ -41,147 +43,109 @@ class ToserdaController extends Controller
             $kas = NamaKasTbl::all();
             
             // Query for penjualan transactions (jns_trans: 112,113,114,115,116)
-            $query = transaksi_kas::with(['untukKas', 'dariKas'])
+            $query = transaksi_kas::with(['untukKas'])
                 ->where('akun', 'Pemasukan')
                 ->whereIn('jns_trans', ['112', '113', '114', '115', '116'])
                 ->orderBy('tgl_catat', 'desc');
             
-            // 1. Filter Search (Multi-field)
-            if ($request->filled('search')) {
-                $search = trim($request->search);
-                $query->where(function($q) use ($search) {
-                    $q->where('keterangan', 'like', "%{$search}%")
-                      ->orWhere('user_name', 'like', "%{$search}%");
-                });
-            }
-
-            // 2. Filter Kas (Multiple Selection)
-            if ($request->filled('kas_filter')) {
-                $kasArray = is_array($request->kas_filter) ? $request->kas_filter : [$request->kas_filter];
-                $query->whereIn('untuk_kas_id', $kasArray);
-            }
-
-            // 3. Filter User (Multiple Selection)
-            if ($request->filled('user_filter')) {
-                $userArray = is_array($request->user_filter) ? $request->user_filter : [$request->user_filter];
-                $query->whereIn('user_name', $userArray);
-            }
-
-            // 4. Filter Date Range
-            if ($request->filled('date_from')) {
-                $query->whereDate('tgl_catat', '>=', $request->date_from);
-            }
-            if ($request->filled('date_to')) {
-                $query->whereDate('tgl_catat', '<=', $request->date_to);
-            }
-
-            // 5. Filter Periode Bulan (21-20)
-            if ($request->filled('periode_bulan')) {
-                $periode = $request->periode_bulan;
-                $tglDari = date('Y-m-21', strtotime($periode . '-01 -1 month'));
-                $tglSampai = $periode . '-20';
-                $query->whereDate('tgl_catat', '>=', $tglDari)
-                      ->whereDate('tgl_catat', '<=', $tglSampai);
-            }
-
-            // 6. Filter Nominal Range
-            if ($request->filled('nominal_min')) {
-                $query->where('jumlah', '>=', $request->nominal_min);
-            }
-            if ($request->filled('nominal_max')) {
-                $query->where('jumlah', '<=', $request->nominal_max);
-            }
+            // Apply simple filters like transaksi kas
+            $query = $this->applyPenjualanFilters($query, $request);
             
             $transaksi = $query->paginate(15);
             
-            // Get unique users for filter dropdown
-            $users = transaksi_kas::where('akun', 'Pemasukan')
-                ->whereIn('jns_trans', ['112', '113', '114', '115', '116'])
-                ->whereNotNull('user_name')
-                ->distinct()
-                ->pluck('user_name')
-                ->filter()
-                ->values();
+            // Calculate totals
+            $totalPenjualan = $transaksi->sum('jumlah');
+            $totalRecords = $transaksi->total();
             
-            return view('toserda.penjualan', compact('kas', 'transaksi', 'users'));
+            return view('toserda.penjualan', compact('kas', 'transaksi', 'totalPenjualan', 'totalRecords'));
         } catch (\Exception $e) {
-            \Log::error('Error in penjualan: ' . $e->getMessage());
+            Log::error('Error in penjualan: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
+    }
+
+    private function applyPenjualanFilters($query, $request)
+    {
+        // Priority 1: Kode Transaksi
+        if ($request->filled('kode_transaksi')) {
+            $kodeTransaksi = trim($request->kode_transaksi);
+            $kodeTransaksi = str_replace(['TKD', 'tkd'], '', $kodeTransaksi);
+            $kodeTransaksi = ltrim($kodeTransaksi, '0');
+            $kodeTransaksi = (int)$kodeTransaksi;
+            $query->where('id', 'LIKE', $kodeTransaksi);
+            return $query;
+        }
+
+        // Priority 2: Date Range
+        if ($request->filled('tgl_dari') && $request->filled('tgl_sampai')) {
+            $query->whereDate('tgl_catat', '>=', $request->tgl_dari)
+                  ->whereDate('tgl_catat', '<=', $request->tgl_sampai);
+        }
+
+        return $query;
     }
 
     public function pembelian(Request $request)
     {
         try {
             $kas = NamaKasTbl::all();
-            $barang = data_barang::all(); // Add this line for pembelian view
             
             // Query for pembelian transactions (jns_trans: 9,117,118,119,120,121)
-            $query = transaksi_kas::with(['dariKas', 'untukKas'])
+            $query = transaksi_kas::with(['dariKas'])
                 ->whereIn('jns_trans', ['9', '117', '118', '119', '120', '121'])
                 ->orderBy('tgl_catat', 'desc');
             
-            // 1. Filter Search (Multi-field)
-            if ($request->filled('search')) {
-                $search = trim($request->search);
-                $query->where(function($q) use ($search) {
-                    $q->where('keterangan', 'like', "%{$search}%")
-                      ->orWhere('user_name', 'like', "%{$search}%");
-                });
-            }
-
-            // 2. Filter Kas (Multiple Selection)
-            if ($request->filled('kas_filter')) {
-                $kasArray = is_array($request->kas_filter) ? $request->kas_filter : [$request->kas_filter];
-                $query->whereIn('dari_kas_id', $kasArray);
-            }
-
-            // 3. Filter User (Multiple Selection)
-            if ($request->filled('user_filter')) {
-                $userArray = is_array($request->user_filter) ? $request->user_filter : [$request->user_filter];
-                $query->whereIn('user_name', $userArray);
-            }
-
-            // 4. Filter Date Range
-            if ($request->filled('date_from')) {
-                $query->whereDate('tgl_catat', '>=', $request->date_from);
-            }
-            if ($request->filled('date_to')) {
-                $query->whereDate('tgl_catat', '<=', $request->date_to);
-            }
-
-            // 5. Filter Periode Bulan (21-20)
-            if ($request->filled('periode_bulan')) {
-                $periode = $request->periode_bulan;
-                $tglDari = date('Y-m-21', strtotime($periode . '-01 -1 month'));
-                $tglSampai = $periode . '-20';
-                $query->whereDate('tgl_catat', '>=', $tglDari)
-                      ->whereDate('tgl_catat', '<=', $tglSampai);
-            }
-
-            // 6. Filter Nominal Range
-            if ($request->filled('nominal_min')) {
-                $query->where('jumlah', '>=', $request->nominal_min);
-            }
-            if ($request->filled('nominal_max')) {
-                $query->where('jumlah', '<=', $request->nominal_max);
-            }
+            // Apply simple filters like transaksi kas
+            $query = $this->applyPembelianFilters($query, $request);
             
             $transaksi = $query->paginate(15);
             
-            // Get unique users for filter dropdown
-            $users = transaksi_kas::whereIn('jns_trans', ['9', '117', '118', '119', '120', '121'])
-                ->whereNotNull('user_name')
-                ->distinct()
-                ->pluck('user_name')
-                ->filter()
-                ->values();
-            
-            return view('toserda.pembelian', compact('kas', 'barang', 'transaksi', 'users'));
+            return view('toserda.pembelian', compact('kas', 'transaksi'));
         } catch (\Exception $e) {
-            \Log::error('Error in pembelian: ' . $e->getMessage());
+            Log::error('Error in pembelian: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
+    }
+
+    private function applyPembelianFilters($query, $request)
+    {
+        // Priority 1: Kode Transaksi
+        if ($request->filled('kode_transaksi')) {
+            $kodeTransaksi = trim($request->kode_transaksi);
+            $kodeTransaksi = str_replace(['TKD', 'tkd'], '', $kodeTransaksi);
+            $kodeTransaksi = ltrim($kodeTransaksi, '0');
+            $kodeTransaksi = (int)$kodeTransaksi;
+            $query->where('id', 'LIKE', $kodeTransaksi);
+            return $query;
+        }
+
+        // Priority 2: Date Range
+        if ($request->filled('tgl_dari') && $request->filled('tgl_sampai')) {
+            $query->whereDate('tgl_catat', '>=', $request->tgl_dari)
+                  ->whereDate('tgl_catat', '<=', $request->tgl_sampai);
+        }
+
+        return $query;
+    }
+
+    private function applyBiayaUsahaFilters($query, $request)
+    {
+        // Priority 1: Kode Transaksi
+        if ($request->filled('kode_transaksi')) {
+            $kodeTransaksi = trim($request->kode_transaksi);
+            $kodeTransaksi = str_replace(['TKD', 'tkd'], '', $kodeTransaksi);
+            $kodeTransaksi = ltrim($kodeTransaksi, '0');
+            $kodeTransaksi = (int)$kodeTransaksi;
+            $query->where('id', 'LIKE', $kodeTransaksi);
+            return $query;
+        }
+
+        // Priority 2: Date Range
+        if ($request->filled('tgl_dari') && $request->filled('tgl_sampai')) {
+            $query->whereDate('tgl_catat', '>=', $request->tgl_dari)
+                  ->whereDate('tgl_catat', '<=', $request->tgl_sampai);
+        }
+        return $query;
     }
 
     public function biayaUsaha(Request $request)
@@ -189,70 +153,19 @@ class ToserdaController extends Controller
         try {
             $kas = NamaKasTbl::all();
             
-            // Query for biaya usaha transactions (jns_trans: 122,123,124,152)
-            $query = transaksi_kas::with(['dariKas', 'untukKas'])
-                ->whereIn('jns_trans', ['122', '123', '124', '152'])
+            // Query for biaya usaha transactions (jns_trans: 122,123,124,125)
+            $query = transaksi_kas::with(['dariKas'])
+                ->whereIn('jns_trans', ['122', '123', '124', '125'])
                 ->orderBy('tgl_catat', 'desc');
             
-            // 1. Filter Search (Multi-field)
-            if ($request->filled('search')) {
-                $search = trim($request->search);
-                $query->where(function($q) use ($search) {
-                    $q->where('keterangan', 'like', "%{$search}%")
-                      ->orWhere('user_name', 'like', "%{$search}%");
-                });
-            }
-
-            // 2. Filter Kas (Multiple Selection)
-            if ($request->filled('kas_filter')) {
-                $kasArray = is_array($request->kas_filter) ? $request->kas_filter : [$request->kas_filter];
-                $query->whereIn('dari_kas_id', $kasArray);
-            }
-
-            // 3. Filter User (Multiple Selection)
-            if ($request->filled('user_filter')) {
-                $userArray = is_array($request->user_filter) ? $request->user_filter : [$request->user_filter];
-                $query->whereIn('user_name', $userArray);
-            }
-
-            // 4. Filter Date Range
-            if ($request->filled('date_from')) {
-                $query->whereDate('tgl_catat', '>=', $request->date_from);
-            }
-            if ($request->filled('date_to')) {
-                $query->whereDate('tgl_catat', '<=', $request->date_to);
-            }
-
-            // 5. Filter Periode Bulan (21-20)
-            if ($request->filled('periode_bulan')) {
-                $periode = $request->periode_bulan;
-                $tglDari = date('Y-m-21', strtotime($periode . '-01 -1 month'));
-                $tglSampai = $periode . '-20';
-                $query->whereDate('tgl_catat', '>=', $tglDari)
-                      ->whereDate('tgl_catat', '<=', $tglSampai);
-            }
-
-            // 6. Filter Nominal Range
-            if ($request->filled('nominal_min')) {
-                $query->where('jumlah', '>=', $request->nominal_min);
-            }
-            if ($request->filled('nominal_max')) {
-                $query->where('jumlah', '<=', $request->nominal_max);
-            }
+            // Apply simple filters like pembelian
+            $query = $this->applyBiayaUsahaFilters($query, $request);
             
             $transaksi = $query->paginate(15);
             
-            // Get unique users for filter dropdown
-            $users = transaksi_kas::whereIn('jns_trans', ['122', '123', '124', '152'])
-                ->whereNotNull('user_name')
-                ->distinct()
-                ->pluck('user_name')
-                ->filter()
-                ->values();
-            
-            return view('toserda.biaya_usaha', compact('kas', 'transaksi', 'users'));
+            return view('toserda.biaya_usaha', compact('kas', 'transaksi'));
         } catch (\Exception $e) {
-            \Log::error('Error in biaya usaha: ' . $e->getMessage());
+            Log::error('Error in biaya usaha: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -298,18 +211,18 @@ class ToserdaController extends Controller
             $transaksi = $query->paginate(15);
 
             // Debug: Log the query and data
-            \Log::info('Toserda Lain-lain Query: ' . $query->toSql());
-            \Log::info('Toserda Lain-lain Data Count: ' . $transaksi->count());
+            Log::info('Toserda Lain-lain Query: ' . $query->toSql());
+            Log::info('Toserda Lain-lain Data Count: ' . $transaksi->count());
 
             // Test: Check if data exists
             if ($transaksi->count() == 0) {
-                \Log::warning('No data found in tbl_trans_toserda');
+                Log::warning('No data found in tbl_trans_toserda');
             }
 
             return view('toserda.lain_lain', compact('transaksi', 'bulanList'));
         } catch (\Exception $e) {
-            \Log::error('Error in lain lain: ' . $e->getMessage());
-            \Log::error('Error Stack: ' . $e->getTraceAsString());
+            Log::error('Error in lain lain: ' . $e->getMessage());
+            Log::error('Error Stack: ' . $e->getTraceAsString());
             
             // Return simple error view instead of redirect
             $emptyPaginator = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15);
@@ -407,7 +320,7 @@ class ToserdaController extends Controller
             $writer->save('php://output');
             exit;
         } catch (\Exception $e) {
-            \Log::error('Error in export penjualan: ' . $e->getMessage());
+            Log::error('Error in export penjualan: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan saat export: ' . $e->getMessage());
         }
     }
@@ -494,7 +407,7 @@ class ToserdaController extends Controller
             $writer->save('php://output');
             exit;
         } catch (\Exception $e) {
-            \Log::error('Error in export pembelian: ' . $e->getMessage());
+            Log::error('Error in export pembelian: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan saat export: ' . $e->getMessage());
         }
     }
@@ -503,7 +416,7 @@ class ToserdaController extends Controller
     {
         try {
             $query = transaksi_kas::with(['dariKas', 'untukKas'])
-                ->whereIn('jns_trans', ['122', '123', '124', '152'])
+                ->whereIn('jns_trans', ['122', '123', '124', '125'])
                 ->orderBy('tgl_catat', 'desc');
 
             // Apply same filters as index method
@@ -581,8 +494,42 @@ class ToserdaController extends Controller
             $writer->save('php://output');
             exit;
         } catch (\Exception $e) {
-            \Log::error('Error in export biaya usaha: ' . $e->getMessage());
+            Log::error('Error in export biaya usaha: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan saat export: ' . $e->getMessage());
+        }
+    }
+
+    public function exportBiayaUsahaPdf(Request $request)
+    {
+        try {
+            $query = transaksi_kas::with(['dariKas'])
+                ->whereIn('jns_trans', ['122', '123', '124', '125'])
+                ->orderBy('tgl_catat', 'desc');
+            
+            // Apply filters (kode_transaksi, tgl_dari, tgl_sampai)
+            if ($request->filled('kode_transaksi')) {
+                $kodeTransaksi = trim($request->kode_transaksi);
+                $kodeTransaksi = str_replace(['TKD', 'tkd'], '', $kodeTransaksi);
+                $kodeTransaksi = ltrim($kodeTransaksi, '0');
+                $kodeTransaksi = (int)$kodeTransaksi;
+                $query->where('id', 'LIKE', $kodeTransaksi);
+            }
+            
+            if ($request->filled('tgl_dari') && $request->filled('tgl_sampai')) {
+                $query->whereDate('tgl_catat', '>=', $request->tgl_dari)
+                      ->whereDate('tgl_catat', '<=', $request->tgl_sampai);
+            }
+            
+            $dataKas = $query->get();
+            $totalBiayaUsaha = $dataKas->sum('jumlah');
+            
+            $pdf = Pdf::loadView('toserda.pdf.biaya_usaha', compact('dataKas', 'totalBiayaUsaha'));
+            $pdf->setPaper('A4', 'landscape');
+            
+            return $pdf->download('laporan_biaya_usaha_toserda_' . date('Ymd') . '.pdf');
+        } catch (\Exception $e) {
+            Log::error('Error in export biaya usaha PDF: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat export PDF: ' . $e->getMessage());
         }
     }
 
@@ -591,28 +538,142 @@ class ToserdaController extends Controller
     {
         try {
             $request->validate([
+                'tgl_catat' => 'required|date',
                 'keterangan' => 'required|string',
-                'jumlah' => 'required|numeric|min:0',
+                'jumlah' => 'required|numeric|min:1',
                 'untuk_kas_id' => 'required|exists:nama_kas_tbl,id',
                 'jns_trans' => 'required|in:112,113,114,115,116'
             ]);
 
             transaksi_kas::create([
-                'tgl_catat' => now(),
+                'tgl_catat' => $request->tgl_catat,
                 'jumlah' => $request->jumlah,
                 'keterangan' => $request->keterangan,
                 'akun' => 'Pemasukan',
                 'untuk_kas_id' => $request->untuk_kas_id,
                 'jns_trans' => $request->jns_trans,
+                'no_polisi' => '',
                 'dk' => 'D',
                 'user_name' => Auth::user()->name ?? 'admin',
+                'id_cabang' => '1',
                 'update_data' => now()
             ]);
 
             return response()->json(['success' => true, 'message' => 'Data penjualan berhasil disimpan']);
         } catch (\Exception $e) {
-            \Log::error('Error in store penjualan: ' . $e->getMessage());
+            Log::error('Error in store penjualan: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
+        }
+    }
+
+    public function updatePenjualan(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'tgl_catat' => 'required|date',
+                'keterangan' => 'required|string',
+                'jumlah' => 'required|numeric|min:1',
+                'untuk_kas_id' => 'required|exists:nama_kas_tbl,id',
+                'jns_trans' => 'required|in:112,113,114,115,116'
+            ]);
+
+            $transaksi = transaksi_kas::findOrFail($id);
+            $transaksi->update([
+                'tgl_catat' => $request->tgl_catat,
+                'jumlah' => $request->jumlah,
+                'keterangan' => $request->keterangan,
+                'untuk_kas_id' => $request->untuk_kas_id,
+                'jns_trans' => $request->jns_trans,
+                'user_name' => Auth::user()->name ?? 'admin',
+                'update_data' => now()
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Data penjualan berhasil diupdate']);
+        } catch (\Exception $e) {
+            Log::error('Error in update penjualan: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
+        }
+    }
+
+    public function destroyPenjualan($id)
+    {
+        try {
+            $transaksi = transaksi_kas::findOrFail($id);
+            $transaksi->delete();
+
+            return response()->json(['success' => true, 'message' => 'Data penjualan berhasil dihapus']);
+        } catch (\Exception $e) {
+            Log::error('Error in destroy penjualan: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
+        }
+    }
+
+    public function exportPenjualanPdf(Request $request)
+    {
+        try {
+            $query = transaksi_kas::with(['untukKas'])
+                ->where('akun', 'Pemasukan')
+                ->whereIn('jns_trans', ['112', '113', '114', '115', '116'])
+                ->orderBy('tgl_catat', 'desc');
+
+            // Apply filters
+            if ($request->filled('kode_transaksi')) {
+                $kodeTransaksi = trim($request->kode_transaksi);
+                $kodeTransaksi = str_replace(['TKD', 'tkd'], '', $kodeTransaksi);
+                $kodeTransaksi = ltrim($kodeTransaksi, '0');
+                $kodeTransaksi = (int)$kodeTransaksi;
+                $query->where('id', 'LIKE', $kodeTransaksi);
+            }
+
+            if ($request->filled('tgl_dari') && $request->filled('tgl_sampai')) {
+                $query->whereDate('tgl_catat', '>=', $request->tgl_dari)
+                      ->whereDate('tgl_catat', '<=', $request->tgl_sampai);
+            }
+
+            $dataKas = $query->get();
+            $totalPenjualan = $dataKas->sum('jumlah');
+
+            $pdf = Pdf::loadView('toserda.pdf.penjualan', compact('dataKas', 'totalPenjualan'));
+            $pdf->setPaper('A4', 'landscape');
+
+            return $pdf->download('laporan_penjualan_toserda_' . date('Ymd') . '.pdf');
+        } catch (\Exception $e) {
+            Log::error('Error in export penjualan PDF: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat export PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function exportPembelianPdf(Request $request)
+    {
+        try {
+            $query = transaksi_kas::with(['dariKas'])
+                ->whereIn('jns_trans', ['9', '117', '118', '119', '120', '121'])
+                ->orderBy('tgl_catat', 'desc');
+
+            // Apply filters
+            if ($request->filled('kode_transaksi')) {
+                $kodeTransaksi = trim($request->kode_transaksi);
+                $kodeTransaksi = str_replace(['TKD', 'tkd'], '', $kodeTransaksi);
+                $kodeTransaksi = ltrim($kodeTransaksi, '0');
+                $kodeTransaksi = (int)$kodeTransaksi;
+                $query->where('id', 'LIKE', $kodeTransaksi);
+            }
+
+            if ($request->filled('tgl_dari') && $request->filled('tgl_sampai')) {
+                $query->whereDate('tgl_catat', '>=', $request->tgl_dari)
+                      ->whereDate('tgl_catat', '<=', $request->tgl_sampai);
+            }
+
+            $dataKas = $query->get();
+            $totalPembelian = $dataKas->sum('jumlah');
+
+            $pdf = Pdf::loadView('toserda.pdf.pembelian', compact('dataKas', 'totalPembelian'));
+            $pdf->setPaper('A4', 'landscape');
+
+            return $pdf->download('laporan_pembelian_toserda_' . date('Ymd') . '.pdf');
+        } catch (\Exception $e) {
+            Log::error('Error in export pembelian PDF: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat export PDF: ' . $e->getMessage());
         }
     }
 
@@ -634,13 +695,53 @@ class ToserdaController extends Controller
                 'dari_kas_id' => $request->dari_kas_id,
                 'jns_trans' => $request->jns_trans,
                 'dk' => 'K',
+                'no_polisi' => '',
                 'user_name' => Auth::user()->name ?? 'admin',
                 'update_data' => now()
             ]);
 
             return response()->json(['success' => true, 'message' => 'Data pembelian berhasil disimpan']);
         } catch (\Exception $e) {
-            \Log::error('Error in store pembelian: ' . $e->getMessage());
+            Log::error('Error in store pembelian: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
+        }
+    }
+
+    public function updatePembelian(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'keterangan' => 'required|string',
+                'jumlah' => 'required|numeric|min:0',
+                'dari_kas_id' => 'required|exists:nama_kas_tbl,id',
+                'jns_trans' => 'required|in:9,117,118,119,120,121'
+            ]);
+
+            $transaksi = transaksi_kas::findOrFail($id);
+            $transaksi->update([
+                'jumlah' => $request->jumlah,
+                'keterangan' => $request->keterangan,
+                'dari_kas_id' => $request->dari_kas_id,
+                'jns_trans' => $request->jns_trans,
+                'update_data' => now()
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Data pembelian berhasil diupdate']);
+        } catch (\Exception $e) {
+            Log::error('Error in update pembelian: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
+        }
+    }
+
+    public function destroyPembelian($id)
+    {
+        try {
+            $transaksi = transaksi_kas::findOrFail($id);
+            $transaksi->delete();
+
+            return response()->json(['success' => true, 'message' => 'Data pembelian berhasil dihapus']);
+        } catch (\Exception $e) {
+            Log::error('Error in destroy pembelian: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
         }
     }
@@ -652,7 +753,7 @@ class ToserdaController extends Controller
                 'keterangan' => 'required|string',
                 'jumlah' => 'required|numeric|min:0',
                 'dari_kas_id' => 'required|exists:nama_kas_tbl,id',
-                'jns_trans' => 'required|in:122,123,124,152'
+                'jns_trans' => 'required|in:122,123,124,125'
             ]);
 
             transaksi_kas::create([
@@ -663,13 +764,56 @@ class ToserdaController extends Controller
                 'dari_kas_id' => $request->dari_kas_id,
                 'jns_trans' => $request->jns_trans,
                 'dk' => 'K',
+                'no_polisi' => '',
                 'user_name' => Auth::user()->name ?? 'admin',
                 'update_data' => now()
             ]);
 
             return response()->json(['success' => true, 'message' => 'Data biaya usaha berhasil disimpan']);
         } catch (\Exception $e) {
-            \Log::error('Error in store biaya usaha: ' . $e->getMessage());
+            Log::error('Error in store biaya usaha: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
+        }
+    }
+
+    public function updateBiayaUsaha(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'tgl_catat' => 'required|date',
+                'keterangan' => 'required|string',
+                'jumlah' => 'required|numeric|min:1',
+                'dari_kas_id' => 'required|exists:nama_kas_tbl,id',
+                'jns_trans' => 'required|in:122,123,124,125'
+            ]);
+
+            $transaksi = transaksi_kas::findOrFail($id);
+            
+            $transaksi->update([
+                'tgl_catat' => $request->tgl_catat,
+                'jumlah' => $request->jumlah,
+                'keterangan' => $request->keterangan,
+                'dari_kas_id' => $request->dari_kas_id,
+                'jns_trans' => $request->jns_trans,
+                'update_data' => now()
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Data biaya usaha berhasil diupdate']);
+        } catch (\Exception $e) {
+            Log::error('Error in update biaya usaha: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
+        }
+    }
+
+    public function destroyBiayaUsaha($id)
+    {
+        try {
+            $transaksi = transaksi_kas::findOrFail($id);
+            $transaksi->delete();
+
+            return response()->json(['success' => true, 'message' => 'Data biaya usaha berhasil dihapus']);
+        } catch (\Exception $e) {
+            Log::error('Error in destroy biaya usaha: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
         }
     }
@@ -685,7 +829,7 @@ class ToserdaController extends Controller
 
             return redirect()->back()->with('success', 'Data berhasil diupload');
         } catch (\Exception $e) {
-            \Log::error('Error in upload toserda: ' . $e->getMessage());
+            Log::error('Error in upload toserda: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan saat upload: ' . $e->getMessage());
         }
     }
@@ -701,7 +845,7 @@ class ToserdaController extends Controller
 
             return redirect()->back()->with('success', 'Billing bulanan berhasil diproses');
         } catch (\Exception $e) {
-            \Log::error('Error in process billing: ' . $e->getMessage());
+            Log::error('Error in process billing: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan saat memproses billing: ' . $e->getMessage());
         }
     }
@@ -732,7 +876,7 @@ class ToserdaController extends Controller
             $writer->save('php://output');
             exit;
         } catch (\Exception $e) {
-            \Log::error('Error in download template: ' . $e->getMessage());
+            Log::error('Error in download template: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan saat download template: ' . $e->getMessage());
         }
     }

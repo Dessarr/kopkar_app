@@ -319,16 +319,25 @@ Route::prefix('toserda')->group(function () {
     Route::get('/lain-lain', [ToserdaController::class, 'lainLain'])->name('toserda.lain-lain');
 
     Route::post('/penjualan', [ToserdaController::class, 'storePenjualan'])->name('toserda.store.penjualan');
+    Route::put('/penjualan/{id}', [ToserdaController::class, 'updatePenjualan'])->name('toserda.penjualan.update');
+    Route::delete('/penjualan/{id}', [ToserdaController::class, 'destroyPenjualan'])->name('toserda.penjualan.destroy');
     Route::post('/pembelian', [ToserdaController::class, 'storePembelian'])->name('toserda.store.pembelian');
+    Route::put('/pembelian/{id}', [ToserdaController::class, 'updatePembelian'])->name('toserda.pembelian.update');
+    Route::delete('/pembelian/{id}', [ToserdaController::class, 'destroyPembelian'])->name('toserda.pembelian.destroy');
     Route::post('/biaya-usaha', [ToserdaController::class, 'storeBiayaUsaha'])->name('toserda.store.biaya-usaha');
+    Route::put('/biaya-usaha/{id}', [ToserdaController::class, 'updateBiayaUsaha'])->name('toserda.biaya-usaha.update');
+    Route::delete('/biaya-usaha/{id}', [ToserdaController::class, 'destroyBiayaUsaha'])->name('toserda.biaya-usaha.destroy');
     Route::post('/upload', [ToserdaController::class, 'storeUploadToserda'])->name('toserda.upload.store');
     Route::post('/billing/process', [ToserdaController::class, 'processMonthlyBilling'])->name('toserda.billing.process');
     Route::get('/template/download', [ToserdaController::class, 'downloadTemplate'])->name('toserda.template.download');
     
     // Export routes
     Route::get('/penjualan/export', [ToserdaController::class, 'exportPenjualan'])->name('toserda.penjualan.export');
+    Route::get('/penjualan/export/pdf', [ToserdaController::class, 'exportPenjualanPdf'])->name('toserda.penjualan.export.pdf');
     Route::get('/pembelian/export', [ToserdaController::class, 'exportPembelian'])->name('toserda.pembelian.export');
+    Route::get('/pembelian/export/pdf', [ToserdaController::class, 'exportPembelianPdf'])->name('toserda.pembelian.export.pdf');
     Route::get('/biaya-usaha/export', [ToserdaController::class, 'exportBiayaUsaha'])->name('toserda.biaya-usaha.export');
+    Route::get('/biaya-usaha/export/pdf', [ToserdaController::class, 'exportBiayaUsahaPdf'])->name('toserda.biaya-usaha.export.pdf');
 });
 
     // Angkutan Routes

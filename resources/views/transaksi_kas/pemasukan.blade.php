@@ -67,7 +67,7 @@
                         <!-- Hidden inputs untuk form submission -->
                         <input type="hidden" name="tgl_dari" id="tgl_dari" value="{{ request('tgl_dari') }}">
                         <input type="hidden" name="tgl_sampai" id="tgl_sampai" value="{{ request('tgl_sampai') }}">
-                    </div>
+                </div>
 
                     <!-- 2. Search Kode Transaksi -->
                     <div class="flex items-center space-x-2">
@@ -76,7 +76,7 @@
                             value="{{ request('kode_transaksi') }}" placeholder="[Kode Transaksi]"
                             class="px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm w-36"
                             onkeypress="if(event.key==='Enter'){doSearch();}">
-                    </div>
+                </div>
 
                     <!-- 3. Button Filter -->
                     <button type="button" onclick="doSearch()" id="searchBtn"
@@ -634,7 +634,7 @@ document.getElementById('addForm').addEventListener('submit', function(e) {
 
 // Edit form submission
 document.getElementById('editForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+            e.preventDefault();
 
     if (!selectedRowData) {
         alert('Tidak ada data yang dipilih untuk diedit');
@@ -669,19 +669,19 @@ document.getElementById('editForm').addEventListener('submit', function(e) {
 });
 
 // Keyboard shortcuts
-document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function(e) {
     // Ctrl+Enter atau Cmd+Enter: Trigger search
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
         doSearch();
-    }
+        }
 
     // Escape: Clear filters
-    if (e.key === 'Escape') {
+        if (e.key === 'Escape') {
         e.preventDefault();
-        clearFilters();
-    }
-});
+            clearFilters();
+        }
+    });
 
 // Auto-focus pada kode transaksi jika URL parameter ada
 document.addEventListener('DOMContentLoaded', function() {

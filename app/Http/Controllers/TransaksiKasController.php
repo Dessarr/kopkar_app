@@ -499,11 +499,11 @@ class TransaksiKasController extends Controller
                   ->whereDate('tgl', '<=', $request->tgl_sampai);
         } else {
             // Fallback ke date_from/date_to untuk kompatibilitas
-            if ($request->filled('date_from')) {
-                $query->whereDate('tgl', '>=', $request->date_from);
-            }
-            if ($request->filled('date_to')) {
-                $query->whereDate('tgl', '<=', $request->date_to);
+        if ($request->filled('date_from')) {
+            $query->whereDate('tgl', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('tgl', '<=', $request->date_to);
             }
         }
 
@@ -601,11 +601,11 @@ class TransaksiKasController extends Controller
                   ->whereDate('tgl_catat', '<=', $request->tgl_sampai);
         } else {
             // Fallback ke date_from/date_to untuk kompatibilitas
-            if ($request->filled('date_from')) {
-                $query->whereDate('tgl_catat', '>=', $request->date_from);
-            }
-            if ($request->filled('date_to')) {
-                $query->whereDate('tgl_catat', '<=', $request->date_to);
+        if ($request->filled('date_from')) {
+            $query->whereDate('tgl_catat', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('tgl_catat', '<=', $request->date_to);
             }
         }
 
@@ -777,5 +777,5 @@ class TransaksiKasController extends Controller
         $pdf->setPaper('A4', 'landscape');
 
         return $pdf->download('laporan_transfer_kas_' . date('Ymd') . '.pdf');
-    }
+}
 }

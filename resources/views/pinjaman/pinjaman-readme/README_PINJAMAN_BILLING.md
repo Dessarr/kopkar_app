@@ -229,10 +229,10 @@ private function generateBillingPinjamanOtomatis($bulan, $tahun)
 {
     try {
         // 1. Generate billing pinjaman untuk bulan tertentu
-        $this->generateBillingPinjaman($bulan, $tahun);
-        
+    $this->generateBillingPinjaman($bulan, $tahun);
+    
         // 2. Proses ke tabel utama
-        $this->processBillingPinjamanToMain($bulan, $tahun);
+    $this->processBillingPinjamanToMain($bulan, $tahun);
         
         Log::info("Billing pinjaman berhasil di-generate untuk {$bulan}-{$tahun}");
         
@@ -406,16 +406,16 @@ private function processBillingPinjamanToMain($bulan, $tahun)
 {
     try {
         // 1. Ambil data tagihan pinjaman dari tbl_trans_tagihan
-        $tagihanPinjaman = DB::table('tbl_trans_tagihan')
-            ->select('no_ktp', DB::raw('SUM(jumlah) as total_pinjaman'))
-            ->where('jenis_id', 999) // ID untuk pinjaman
-            ->whereMonth('tgl_transaksi', $bulan)
-            ->whereYear('tgl_transaksi', $tahun)
-            ->groupBy('no_ktp')
-            ->get();
-        
-        // 2. Update atau insert ke tabel utama
-        foreach ($tagihanPinjaman as $tagihan) {
+    $tagihanPinjaman = DB::table('tbl_trans_tagihan')
+        ->select('no_ktp', DB::raw('SUM(jumlah) as total_pinjaman'))
+        ->where('jenis_id', 999) // ID untuk pinjaman
+        ->whereMonth('tgl_transaksi', $bulan)
+        ->whereYear('tgl_transaksi', $tahun)
+        ->groupBy('no_ktp')
+        ->get();
+    
+    // 2. Update atau insert ke tabel utama
+    foreach ($tagihanPinjaman as $tagihan) {
             $this->updateMainBillingTable($tagihan, $bulan, $tahun);
         }
         
@@ -437,14 +437,14 @@ private function updateMainBillingTable($tagihan, $bulan, $tahun)
 {
     $tglTransaksi = Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth()->toDateString();
     
-    DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
-        [
+        DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
+            [
             'tgl_transaksi' => $tglTransaksi,
-            'no_ktp' => $tagihan->no_ktp
-        ],
-        [
-            'tagihan_pinjaman' => $tagihan->total_pinjaman,
-            'total_tagihan_simpanan' => DB::raw('COALESCE(tagihan_simpanan_wajib, 0) + COALESCE(tagihan_simpanan_sukarela, 0) + COALESCE(tagihan_simpanan_khusus_2, 0)'),
+                'no_ktp' => $tagihan->no_ktp
+            ],
+            [
+                'tagihan_pinjaman' => $tagihan->total_pinjaman,
+                'total_tagihan_simpanan' => DB::raw('COALESCE(tagihan_simpanan_wajib, 0) + COALESCE(tagihan_simpanan_sukarela, 0) + COALESCE(tagihan_simpanan_khusus_2, 0)'),
             'total_tagihan' => DB::raw('COALESCE(tagihan_simpanan_wajib, 0) + COALESCE(tagihan_simpanan_sukarela, 0) + COALESCE(tagihan_simpanan_khusus_2, 0) + COALESCE(tagihan_pinjaman, 0) + COALESCE(tagihan_toserda, 0)'),
             'updated_at' => now()
         ]
