@@ -4,7 +4,7 @@
 @section('sub-title', 'Form Biaya Usaha')
 
 @section('content')
-image.png<div class="px-1 justify-center flex flex-col">
+<div class="px-1 justify-center flex flex-col">
 
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
