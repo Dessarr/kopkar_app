@@ -5,23 +5,6 @@
 
 @section('content')
 <div class="px-1 justify-center flex flex-col">
-    <!-- Header Section -->
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-800">Data Transaksi Transfer Kas</h1>
-            <p class="text-gray-600 mt-1">Kelola semua transaksi transfer kas dengan sistem filter lengkap</p>
-        </div>
-        <div class="flex space-x-3">
-            <button onclick="openModal('addModal')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-                <i class="fas fa-plus"></i>
-                <span>Tambah Transfer</span>
-            </button>
-            <div class="bg-blue-100 p-2 rounded-lg border-2 border-blue-400 space-x-2 flex justify-around cursor-pointer" onclick="exportData()">
-                <p class="text-sm">Export</p> 
-                <img src="{{ asset('img/icons-bootstrap/export/cloud-download.svg') }}" class="h-auto w-[20px]">
-            </div>
-        </div>
-    </div>
 
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -32,7 +15,8 @@
                 </div>
                 <div class="ml-4">
                     <p class="text-sm font-medium text-gray-600">Total Transfer</p>
-                    <p class="text-2xl font-semibold text-gray-900">Rp{{ number_format($totalTransfer, 0, ',', '.') }}</p>
+                    <p class="text-2xl font-semibold text-gray-900">Rp{{ number_format($totalTransfer, 0, ',', '.') }}
+                    </p>
                 </div>
             </div>
         </div>
@@ -60,105 +44,59 @@
         </div>
     </div>
 
-    <!-- Filter Section -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-800">Filter Transfer Kas</h3>
-            <button type="button" onclick="resetAllFilters()" class="text-red-600 hover:text-red-800 text-sm">
-                <i class="fas fa-times mr-1"></i>Reset Semua Filter
-            </button>
+    <!-- Simple Filter Section -->
+    <div class="bg-white rounded-lg shadow-md p-3 mb-4">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-base font-semibold text-gray-800">Filter Transfer Kas</h3>
         </div>
 
         <form method="GET" action="{{ route('admin.transaksi.transfer') }}" id="filterForm">
-            <!-- Row 1: Search dan User -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <!-- Search Input -->
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Pencarian</label>
-                    <input type="text" name="search" value="{{ request('search') }}"
-                        placeholder="Keterangan, user..."
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <!-- User Filter -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">User</label>
-                    <select name="user_filter[]" multiple class="w-full px-3 py-2 border border-gray-300 rounded-lg" size="4">
-                        @foreach($users as $user)
-                            <option value="{{ $user }}" {{ in_array($user, request('user_filter', [])) ? 'selected' : '' }}>
-                                {{ $user }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-
-            <!-- Row 2: Tanggal dan Periode -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <!-- Date Range -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Rentang Tanggal</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                        <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <!-- Simple Filter Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-2 py-2 px-2 bg-gray-50 rounded-lg">
+                <!-- Left Side: Filter Controls -->
+                <div class="flex items-center space-x-3">
+                    <!-- 1. Tanggal -->
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Tanggal:</label>
+                        <button type="button" id="daterange-btn"
+                            class="px-3 py-1.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            <i class="fas fa-calendar mr-1"></i>
+                            <span id="daterange-text">Pilih Tanggal</span>
+                            <i class="fas fa-chevron-down ml-1"></i>
+                        </button>
+                        <!-- Hidden inputs untuk form submission -->
+                        <input type="hidden" name="tgl_dari" id="tgl_dari" value="{{ request('tgl_dari') }}">
+                        <input type="hidden" name="tgl_sampai" id="tgl_sampai" value="{{ request('tgl_sampai') }}">
                     </div>
-                </div>
 
-                <!-- Periode Bulan -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Periode Bulan (21-20)</label>
-                    <input type="month" name="periode_bulan" value="{{ request('periode_bulan') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    <p class="text-xs text-gray-500 mt-1">Periode dari tanggal 21 bulan sebelumnya sampai 20 bulan berjalan</p>
-                </div>
-
-                <!-- Nominal Range -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Rentang Nominal</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="number" name="nominal_min" value="{{ request('nominal_min') }}" placeholder="Min" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                        <input type="number" name="nominal_max" value="{{ request('nominal_max') }}" placeholder="Max" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <!-- 2. Search Kode Transaksi -->
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Cari:</label>
+                        <input type="text" name="kode_transaksi" id="kode_transaksi"
+                            value="{{ request('kode_transaksi') }}" placeholder="[Kode Transaksi]"
+                            class="px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-36"
+                            onkeypress="if(event.key==='Enter'){doSearch();}">
                     </div>
-                </div>
-            </div>
 
-            <!-- Row 3: Kas Asal dan Kas Tujuan -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <!-- Kas Asal Filter -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kas Asal</label>
-                    <select name="kas_asal_filter[]" multiple class="w-full px-3 py-2 border border-gray-300 rounded-lg" size="4">
-                        @foreach($listKas as $kas)
-                            <option value="{{ $kas->id }}" {{ in_array($kas->id, request('kas_asal_filter', [])) ? 'selected' : '' }}>
-                                {{ $kas->nama }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <!-- Kas Tujuan Filter -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kas Tujuan</label>
-                    <select name="kas_tujuan_filter[]" multiple class="w-full px-3 py-2 border border-gray-300 rounded-lg" size="4">
-                        @foreach($listKas as $kas)
-                            <option value="{{ $kas->id }}" {{ in_array($kas->id, request('kas_tujuan_filter', [])) ? 'selected' : '' }}>
-                                {{ $kas->nama }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex justify-between items-center pt-4 border-t border-gray-200">
-                <div class="text-sm text-gray-600">
-                    <span id="filterCount">0</span> filter aktif
-                </div>
-                <div class="flex space-x-3">
-                    <button type="button" onclick="clearFilters()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
-                        <i class="fas fa-times mr-2"></i>Bersihkan
+                    <!-- 3. Button Filter -->
+                    <button type="button" onclick="doSearch()" id="searchBtn"
+                        class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                        <i class="fas fa-search mr-1"></i>Cari
                     </button>
-                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                        <i class="fas fa-filter mr-2"></i>Terapkan Filter
+                </div>
+
+                <!-- Right Side: Action Buttons -->
+                <div class="flex items-center space-x-2">
+                    <!-- 4. Button Cetak Laporan -->
+                    <button type="button" onclick="cetakLaporan()"
+                        class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                        <i class="fas fa-print mr-1"></i>Cetak Laporan
+                    </button>
+
+                    <!-- 5. Button Hapus Filter -->
+                    <button type="button" onclick="clearFilters()"
+                        class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                        <i class="fas fa-times mr-1"></i>Hapus Filter
                     </button>
                 </div>
             </div>
@@ -167,8 +105,25 @@
 
     <!-- Data Table -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="p-4 border-b bg-gray-50">
+        <div class="flex justify-between items-center mb-2 p-4">
             <h2 class="text-lg font-semibold text-gray-800">Data Transfer Kas</h2>
+            <div class="flex space-x-3">
+                <button onclick="openModal('addModal')"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-plus"></i>
+                    <span>Tambah</span>
+                </button>
+                <button onclick="editData()"
+                    class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-edit"></i>
+                    <span>Edit</span>
+                </button>
+                <button onclick="deleteData()"
+                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-trash"></i>
+                    <span>Hapus</span>
+                </button>
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="table-auto w-full border border-gray-300 text-center">
@@ -182,12 +137,16 @@
                         <th class="py-3 border px-4">Ke Kas</th>
                         <th class="py-3 border px-4">Jumlah</th>
                         <th class="py-3 border px-4">User</th>
-                        <th class="py-3 border px-4">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($dataKas as $kas)
-                    <tr class="text-sm align-middle hover:bg-gray-50">
+                    <tr class="text-sm align-middle hover:bg-gray-50 cursor-pointer row-selectable"
+                        data-id="{{ $kas->id }}" data-kode="TRF{{ str_pad($kas->id, 5, '0', STR_PAD_LEFT) }}"
+                        data-tanggal="{{ $kas->tgl_catat }}" data-keterangan="{{ $kas->keterangan }}"
+                        data-dari-kas-id="{{ $kas->dari_kas_id }}" data-dari-kas-nama="{{ $kas->dariKas->nama ?? '-' }}"
+                        data-untuk-kas-id="{{ $kas->untuk_kas_id }}" data-untuk-kas-nama="{{ $kas->untukKas->nama ?? '-' }}"
+                        data-jumlah="{{ $kas->jumlah }}" data-user="{{ $kas->user_name }}">
                         <td class="py-3 border px-4">
                             {{ ($dataKas->currentPage() - 1) * $dataKas->perPage() + $loop->iteration }}
                         </td>
@@ -196,7 +155,7 @@
                                 {{ 'TRF' . str_pad($kas->id, 5, '0', STR_PAD_LEFT) }}
                             </span>
                         </td>
-                        <td class="py-3 border px-4">{{ \Carbon\Carbon::parse($kas->tgl_catat)->format('d/m/Y') }}</td>
+                        <td class="py-3 border px-4">{{ \Carbon\Carbon::parse($kas->tgl_catat)->format('d/m/Y H:i') }}</td>
                         <td class="py-3 border px-4 text-left">{{ $kas->keterangan }}</td>
                         <td class="py-3 border px-4">{{ $kas->dariKas->nama ?? '-' }}</td>
                         <td class="py-3 border px-4">{{ $kas->untukKas->nama ?? '-' }}</td>
@@ -204,19 +163,6 @@
                             Rp{{ number_format($kas->jumlah, 0, ',', '.') }}
                         </td>
                         <td class="py-3 border px-4">{{ $kas->user_name }}</td>
-                        <td class="py-3 border px-4">
-                            <div class="flex space-x-2 justify-center">
-                                <button onclick="viewDetail({{ $kas->id }})" class="text-blue-600 hover:text-blue-800">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button onclick="editData({{ $kas->id }})" class="text-yellow-600 hover:text-yellow-800">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="deleteData({{ $kas->id }})" class="text-red-600 hover:text-red-800">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
                     </tr>
                     @empty
                     <tr>
@@ -234,11 +180,14 @@
     <!-- Pagination -->
     <div class="mt-5 w-full relative px-2 py-2">
         <div class="mx-auto w-fit">
-            <div class="bg-white px-4 py-1 flex flex-row rounded-full justify-center items-center space-x-2 border border-gray-300 shadow-sm">
+            <div
+                class="bg-white px-4 py-1 flex flex-row rounded-full justify-center items-center space-x-2 border border-gray-300 shadow-sm">
                 @for ($i = 1; $i <= $dataKas->lastPage(); $i++)
-                    @if ($i == 1 || $i == $dataKas->lastPage() || ($i >= $dataKas->currentPage() - 1 && $i <= $dataKas->currentPage() + 1))
+                    @if ($i == 1 || $i == $dataKas->lastPage() || ($i >= $dataKas->currentPage() - 1 && $i <= $dataKas->
+                        currentPage() + 1))
                         <a href="{{ $dataKas->url($i) }}">
-                            <div class="rounded-md px-2 py-0.5 text-sm border border-gray-300 {{ $dataKas->currentPage() == $i ? 'bg-gray-100 font-bold' : '' }}">
+                            <div
+                                class="rounded-md px-2 py-0.5 text-sm border border-gray-300 {{ $dataKas->currentPage() == $i ? 'bg-gray-100 font-bold' : '' }}">
                                 {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
                             </div>
                         </a>
@@ -269,22 +218,25 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Transaksi</label>
-                        <input type="datetime-local" name="tgl_catat" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <input type="datetime-local" name="tgl_catat" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
-                        <input type="number" name="jumlah" min="0" step="1000" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <input type="number" name="jumlah" min="1" step="1" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
-                        <textarea name="keterangan" required rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
+                        <textarea name="keterangan" required rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Kas Asal</label>
                         <select name="dari_kas_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                             <option value="">Pilih Kas Asal</option>
                             @foreach($listKas as $kas)
-                                <option value="{{ $kas->id }}">{{ $kas->nama }}</option>
+                            <option value="{{ $kas->id }}">{{ $kas->nama }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -293,13 +245,14 @@
                         <select name="untuk_kas_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                             <option value="">Pilih Kas Tujuan</option>
                             @foreach($listKas as $kas)
-                                <option value="{{ $kas->id }}">{{ $kas->nama }}</option>
+                            <option value="{{ $kas->id }}">{{ $kas->nama }}</option>
                             @endforeach
                         </select>
                     </div>
                 </div>
                 <div class="flex justify-end space-x-3 mt-6">
-                    <button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    <button type="button" onclick="closeModal('addModal')"
+                        class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
                         Batal
                     </button>
                     <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
@@ -311,167 +264,446 @@
     </div>
 </div>
 
+<!-- Edit Modal -->
+<div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h3 class="text-lg font-semibold">Edit Transfer Kas</h3>
+                <button onclick="closeModal('editModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="editForm" class="p-4">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Transaksi</label>
+                        <input type="datetime-local" name="tgl_catat" id="edit_tgl_catat" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
+                        <input type="number" name="jumlah" id="edit_jumlah" min="1" step="1" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
+                        <textarea name="keterangan" id="edit_keterangan" required rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Kas Asal</label>
+                        <select name="dari_kas_id" id="edit_dari_kas_id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            <option value="">Pilih Kas Asal</option>
+                            @foreach($listKas as $kas)
+                            <option value="{{ $kas->id }}">{{ $kas->nama }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Kas Tujuan</label>
+                        <select name="untuk_kas_id" id="edit_untuk_kas_id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            <option value="">Pilih Kas Tujuan</option>
+                            @foreach($listKas as $kas)
+                            <option value="{{ $kas->id }}">{{ $kas->nama }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('editModal')"
+                        class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
+                        Update
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Include required libraries -->
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+<script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
 <script>
-// Fungsi untuk menghitung jumlah filter aktif
-function updateFilterCount() {
+// Simple Filter System
+$(document).ready(function() {
+    // Initialize Date Range Picker
+    initializeDateRangePicker();
+    
+    // Add click event listener for row selection
+    $(document).on('click', '.row-selectable', function() {
+        selectRow(this, $(this).data('id'));
+    });
+});
+
+// Initialize Date Range Picker with Preset Ranges
+function initializeDateRangePicker() {
+    $('#daterange-btn').daterangepicker({
+        ranges: {
+            'Hari ini': [moment(), moment()],
+            'Kemarin': [moment().subtract('days', 1), moment().subtract('days', 1)],
+            '7 Hari yang lalu': [moment().subtract('days', 6), moment()],
+            '30 Hari yang lalu': [moment().subtract('days', 29), moment()],
+            'Bulan ini': [moment().startOf('month'), moment().endOf('month')],
+            'Bulan kemarin': [moment().subtract('month', 1).startOf('month'), moment().subtract('month', 1)
+                .endOf('month')
+            ],
+            'Tahun ini': [moment().startOf('year'), moment().endOf('year')],
+            'Tahun kemarin': [moment().subtract('year', 1).startOf('year'), moment().subtract('year', 1).endOf(
+                'year')]
+        },
+        showDropdowns: true,
+        format: 'YYYY-MM-DD',
+        startDate: moment().startOf('year'),
+        endDate: moment().endOf('year'),
+        autoApply: true,
+        locale: {
+            format: 'DD/MM/YYYY',
+            separator: ' - ',
+            applyLabel: 'Terapkan',
+            cancelLabel: 'Batal',
+            fromLabel: 'Dari',
+            toLabel: 'Sampai',
+            customRangeLabel: 'Pilih Manual',
+            weekLabel: 'W',
+            daysOfWeek: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+            monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ],
+            firstDay: 1
+        }
+    }, function(start, end, label) {
+        // Update hidden inputs
+        $('#tgl_dari').val(start.format('YYYY-MM-DD'));
+        $('#tgl_sampai').val(end.format('YYYY-MM-DD'));
+
+        // Update display text
+        $('#daterange-text').text(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
+    });
+}
+
+// Main Search Function
+function doSearch() {
     const form = document.getElementById("filterForm");
     const formData = new FormData(form);
-    let activeFilters = 0;
 
-    const filters = [
-        "search", "user_filter", "date_from", "date_to",
-        "periode_bulan", "nominal_min", "nominal_max",
-        "kas_asal_filter", "kas_tujuan_filter"
-    ];
+    // Build query parameters
+    const params = new URLSearchParams();
 
-    filters.forEach((filter) => {
-        const value = formData.get(filter);
-        if (value && value !== "" && value !== "0") {
-            activeFilters++;
+    // PRIORITAS 1: Kode Transaksi (Jika diisi, abaikan filter tanggal)
+    const kodeTransaksi = formData.get('kode_transaksi');
+    if (kodeTransaksi && kodeTransaksi.trim() !== '') {
+        let cleanCode = kodeTransaksi.replace(/TRF/gi, '').replace(/^0+/, '');
+        params.append('kode_transaksi', cleanCode);
+    } else {
+        // PRIORITAS 2: Date Range (Hanya jika kode transaksi kosong)
+        const tglDari = formData.get('tgl_dari');
+        const tglSampai = formData.get('tgl_sampai');
+        if (tglDari && tglSampai) {
+            params.append('tgl_dari', tglDari);
+            params.append('tgl_sampai', tglSampai);
         }
-    });
-
-    const multipleFilters = ["user_filter", "kas_asal_filter", "kas_tujuan_filter"];
-    multipleFilters.forEach((filter) => {
-        const values = formData.getAll(filter);
-        if (values.length > 0 && values.some((v) => v !== "")) {
-            activeFilters++;
-        }
-    });
-
-    document.getElementById("filterCount").textContent = activeFilters;
-}
-
-// Fungsi untuk validasi form
-function validateFilterForm() {
-    const form = document.getElementById("filterForm");
-    const dateFrom = form.querySelector('input[name="date_from"]').value;
-    const dateTo = form.querySelector('input[name="date_to"]').value;
-    const nominalMin = form.querySelector('input[name="nominal_min"]').value;
-    const nominalMax = form.querySelector('input[name="nominal_max"]').value;
-
-    if (dateFrom && dateTo && dateFrom > dateTo) {
-        alert("Tanggal awal tidak boleh lebih besar dari tanggal akhir");
-        return false;
     }
 
-    if (nominalMin && nominalMax && parseInt(nominalMin) > parseInt(nominalMax)) {
-        alert("Nominal minimum tidak boleh lebih besar dari nominal maksimum");
-        return false;
-    }
-
-    return true;
+    // Redirect with parameters
+    window.location.href = "{{ route('admin.transaksi.transfer') }}?" + params.toString();
 }
 
-// Fungsi untuk reset semua filter
+// Clear all filters
+function clearFilters() {
+    // Reset date range picker
+    $('#daterange-text').text('Pilih Tanggal');
+    $('#tgl_dari').val('');
+    $('#tgl_sampai').val('');
+
+    // Reset kode transaksi
+    $('#kode_transaksi').val('');
+
+    // Reload page
+    window.location.href = "{{ route('admin.transaksi.transfer') }}";
+}
+
+// Reset all filters
 function resetAllFilters() {
     if (confirm('Apakah Anda yakin ingin mereset semua filter?')) {
         window.location.href = "{{ route('admin.transaksi.transfer') }}";
     }
 }
 
-// Fungsi untuk bersihkan filter
-function clearFilters() {
-    const form = document.getElementById("filterForm");
-    form.reset();
-    updateFilterCount();
-}
 
-// Fungsi untuk export data
-function exportData() {
+
+// Cetak Laporan PDF
+function cetakLaporan() {
     const form = document.getElementById("filterForm");
     const formData = new FormData(form);
-    const params = new URLSearchParams(formData);
-    
-    window.open("{{ route('admin.transaksi.transfer.export') }}?" + params.toString(), '_blank');
+
+    const params = new URLSearchParams();
+
+    // Apply same priority logic for PDF export
+    const kodeTransaksi = formData.get('kode_transaksi');
+    if (kodeTransaksi && kodeTransaksi.trim() !== '') {
+        let cleanCode = kodeTransaksi.replace(/TRF/gi, '').replace(/^0+/, '');
+        params.append('kode_transaksi', cleanCode);
+    } else {
+        // Include date range for PDF export if no specific code search
+        const tglDari = formData.get('tgl_dari');
+        const tglSampai = formData.get('tgl_sampai');
+        if (tglDari && tglSampai) {
+            params.append('tgl_dari', tglDari);
+            params.append('tgl_sampai', tglSampai);
+        }
+    }
+
+    window.open("{{ route('admin.transaksi.transfer.export.pdf') }}?" + params.toString(), '_blank');
 }
 
 // Modal functions
 function openModal(modalId) {
     document.getElementById(modalId).classList.remove('hidden');
+    
+    // Set default values untuk form add
+    if (modalId === 'addModal') {
+        // Set tanggal sekarang sebagai default
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        const datetimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+        document.querySelector('#addModal input[name="tgl_catat"]').value = datetimeString;
+        
+        // Reset form
+        document.getElementById('addForm').reset();
+        document.querySelector('#addModal input[name="tgl_catat"]').value = datetimeString;
+    }
 }
 
 function closeModal(modalId) {
     document.getElementById(modalId).classList.add('hidden');
 }
 
+// Global variable untuk menyimpan data row yang dipilih
+let selectedRowData = null;
+
+// Function untuk select row (click to edit)
+function selectRow(row, id) {
+    // Remove highlight dari semua row
+    document.querySelectorAll('tbody tr').forEach(r => {
+        r.classList.remove('bg-yellow-100', 'border-yellow-300');
+        r.classList.add('hover:bg-gray-50');
+    });
+    
+    // Add highlight ke row yang dipilih
+    row.classList.remove('hover:bg-gray-50');
+    row.classList.add('bg-yellow-100', 'border-yellow-300');
+    
+    // Simpan data row yang dipilih
+    selectedRowData = {
+        id: row.dataset.id,
+        kode: row.dataset.kode,
+        tanggal: row.dataset.tanggal,
+        keterangan: row.dataset.keterangan,
+        dari_kas_id: row.dataset.dariKasId,
+        dari_kas_nama: row.dataset.dariKasNama,
+        untuk_kas_id: row.dataset.untukKasId,
+        untuk_kas_nama: row.dataset.untukKasNama,
+        jumlah: row.dataset.jumlah,
+        user: row.dataset.user
+    };
+}
+
 // CRUD functions
-function viewDetail(id) {
-    // Implementasi view detail
-    alert('View detail untuk ID: ' + id);
+function editData() {
+    if (!selectedRowData) {
+        alert('Pilih data yang akan diedit terlebih dahulu!');
+        return;
+    }
+    
+    // Buka modal edit dengan data terisi
+    openModal('editModal');
+    
+    // Populate form dengan data yang dipilih
+    // Format tanggal untuk input datetime-local
+    const tanggal = new Date(selectedRowData.tanggal);
+    const formattedDate = tanggal.toISOString().slice(0, 16);
+    
+    document.getElementById('edit_tgl_catat').value = formattedDate;
+    document.getElementById('edit_jumlah').value = selectedRowData.jumlah;
+    document.getElementById('edit_keterangan').value = selectedRowData.keterangan;
+    document.getElementById('edit_dari_kas_id').value = selectedRowData.dari_kas_id;
+    document.getElementById('edit_untuk_kas_id').value = selectedRowData.untuk_kas_id;
 }
 
-function editData(id) {
-    // Implementasi edit data
-    alert('Edit data untuk ID: ' + id);
-}
-
-function deleteData(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-        // Implementasi delete data
-        alert('Delete data untuk ID: ' + id);
+function deleteData() {
+    if (!selectedRowData) {
+        alert('Pilih data yang akan dihapus terlebih dahulu!');
+        return;
+    }
+    
+    if (confirm(`Apakah Anda yakin ingin menghapus data kode transaksi: ${selectedRowData.kode}?`)) {
+        // Kirim request delete
+        const deleteUrl = `{{ url('transaksi-kas/transfer') }}/${selectedRowData.id}`;
+        fetch(deleteUrl, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Data berhasil dihapus');
+                    location.reload();
+                } else {
+                    alert('Gagal menghapus data: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menghapus data');
+            });
     }
 }
 
-// Form submission
+// Form submission dengan validasi lengkap
 document.getElementById('addForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
+    // Validasi form
     const formData = new FormData(this);
-    const dariKasId = formData.get('dari_kas_id');
-    const untukKasId = formData.get('untuk_kas_id');
+    const data = Object.fromEntries(formData);
     
-    if (dariKasId === untukKasId) {
+    // Validasi required fields
+    if (!data.tgl_catat) {
+        alert('Tanggal Transaksi harus diisi');
+        return;
+    }
+    
+    if (!data.jumlah || data.jumlah <= 0) {
+        alert('Jumlah harus diisi dan lebih dari 0');
+        return;
+    }
+    
+    if (!data.keterangan) {
+        alert('Keterangan harus diisi');
+        return;
+    }
+    
+    if (!data.dari_kas_id || data.dari_kas_id === '') {
+        alert('Kas Asal harus dipilih');
+        return;
+    }
+    
+    if (!data.untuk_kas_id || data.untuk_kas_id === '') {
+        alert('Kas Tujuan harus dipilih');
+        return;
+    }
+    
+    if (data.dari_kas_id === data.untuk_kas_id) {
         alert('Kas asal dan kas tujuan tidak boleh sama');
         return;
     }
     
+    // Submit data
     fetch("{{ route('admin.transaksi.transfer.store') }}", {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(Object.fromEntries(formData))
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Data berhasil disimpan');
-            closeModal('addModal');
-            location.reload();
-        } else {
-            alert('Gagal menyimpan data: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat menyimpan data');
-    });
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Data berhasil disimpan');
+                closeModal('addModal');
+                location.reload();
+            } else {
+                alert('Gagal menyimpan data: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat menyimpan data');
+        });
 });
 
-// Event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    updateFilterCount();
+// Edit form submission
+document.getElementById('editForm').addEventListener('submit', function(e) {
+    e.preventDefault();
     
-    document.getElementById("filterForm").addEventListener('submit', function(e) {
-        if (!validateFilterForm()) {
-            e.preventDefault();
-        }
-    });
+    if (!selectedRowData) {
+        alert('Tidak ada data yang dipilih untuk diedit');
+        return;
+    }
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    
+    // Validasi kas asal dan tujuan tidak boleh sama
+    if (data.dari_kas_id === data.untuk_kas_id) {
+        alert('Kas asal dan kas tujuan tidak boleh sama');
+        return;
+    }
+    
+    const updateUrl = `{{ url('transaksi-kas/transfer') }}/${selectedRowData.id}`;
+    fetch(updateUrl, {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Data berhasil diupdate');
+                closeModal('editModal');
+                location.reload();
+            } else {
+                alert('Gagal mengupdate data: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat mengupdate data');
+        });
+});
 
-    document.addEventListener('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-            document.getElementById("filterForm").submit();
-        }
-        if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
-            e.preventDefault();
-            resetAllFilters();
-        }
-        if (e.key === 'Escape') {
-            clearFilters();
-        }
-    });
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl+Enter atau Cmd+Enter: Trigger search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        doSearch();
+    }
+
+    // Escape: Clear filters
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        clearFilters();
+    }
+});
+
+// Auto-focus pada kode transaksi jika URL parameter ada
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('kode_transaksi')) {
+        document.getElementById('kode_transaksi').focus();
+    }
 });
 </script>
 @endsection

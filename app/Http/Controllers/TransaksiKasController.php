@@ -12,8 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+
 
 class TransaksiKasController extends Controller
 {
@@ -22,19 +21,28 @@ class TransaksiKasController extends Controller
      */
     public function pemasukan(Request $request)
     {
-        $query = View_Transaksi::where('transaksi', '48')
-            ->with('kasTujuan');
+        // Ambil semua jenis akun yang bisa untuk pemasukan
+        $akunPemasukanIds = jns_akun::where('aktif', 'Y')
+            ->where('pemasukan', 'Y')
+            ->pluck('id')
+            ->toArray();
+            
+        $query = View_Transaksi::where('tbl', 'D')
+            ->whereIn('transaksi', $akunPemasukanIds) // Semua jenis akun untuk pemasukan
+            ->with(['kasTujuan', 'jenisAkun']);
 
         // Filter berdasarkan request
         $query = $this->applyFilters($query, $request);
 
         $dataKas = $query->orderBy('tgl', 'desc')->paginate(15);
 
-        // Data untuk filter dropdowns
-        $listKas = NamaKasTbl::where('aktif', 'Y')
+        // Data untuk dropdowns
+        $kasOptions = NamaKasTbl::where('aktif', 'Y')
             ->where('tmpl_pemasukan', 'Y')
             ->get();
-        $jenisAkun = jns_akun::where('pemasukan', 'Y')->get();
+        $akunOptions = jns_akun::where('aktif', 'Y')
+            ->where('pemasukan', 'Y')
+            ->get();
         $users = View_Transaksi::select('user')->distinct()->whereNotNull('user')->pluck('user');
 
         // Statistik
@@ -43,9 +51,9 @@ class TransaksiKasController extends Controller
 
         return view('transaksi_kas.pemasukan', compact(
             'dataKas', 
-            'listKas', 
+            'kasOptions', 
             'users', 
-            'jenisAkun',
+            'akunOptions',
             'totalPemasukan',
             'totalRecords'
         ));
@@ -56,23 +64,32 @@ class TransaksiKasController extends Controller
      */
     public function pengeluaran(Request $request)
     {
-        $query = View_Transaksi::where('transaksi', '7')
-            ->with('kasAsal');
+        // Ambil semua jenis akun yang bisa untuk pengeluaran
+        $akunPengeluaranIds = jns_akun::where('aktif', 'Y')
+            ->where('pengeluaran', 'Y')
+            ->pluck('id')
+            ->toArray();
+            
+        $query = transaksi_kas::where('akun', 'Pengeluaran')
+            ->whereIn('jns_trans', $akunPengeluaranIds)
+            ->with(['dariKas', 'jenisAkun']);
 
         // Filter berdasarkan request
-        $query = $this->applyFilters($query, $request);
+        $query = $this->applyPengeluaranFilters($query, $request);
 
-        $dataKas = $query->orderBy('tgl', 'desc')->paginate(15);
+        $dataKas = $query->orderBy('tgl_catat', 'desc')->paginate(15);
 
         // Data untuk filter dropdowns
         $listKas = NamaKasTbl::where('aktif', 'Y')
             ->where('tmpl_pengeluaran', 'Y')
             ->get();
-        $jenisAkun = jns_akun::where('pengeluaran', 'Y')->get();
-        $users = View_Transaksi::select('user')->distinct()->whereNotNull('user')->pluck('user');
+        $jenisAkun = jns_akun::where('aktif', 'Y')
+            ->where('pengeluaran', 'Y')
+            ->get();
+        $users = transaksi_kas::select('user_name')->distinct()->whereNotNull('user_name')->pluck('user_name');
 
         // Statistik
-        $totalPengeluaran = $query->sum('kredit');
+        $totalPengeluaran = $query->sum('jumlah');
         $totalRecords = $query->count();
 
         return view('transaksi_kas.pengeluaran', compact(
@@ -90,7 +107,8 @@ class TransaksiKasController extends Controller
      */
     public function transfer(Request $request)
     {
-        $query = transaksi_kas::with(['dariKas', 'untukKas']);
+        $query = transaksi_kas::where('akun', 'Transfer')
+            ->with(['dariKas', 'untukKas']);
 
         // Filter berdasarkan request untuk transfer
         $query = $this->applyTransferFilters($query, $request);
@@ -136,13 +154,15 @@ class TransaksiKasController extends Controller
             $transaksi->tgl_catat = $request->tgl_catat;
             $transaksi->jumlah = $request->jumlah;
             $transaksi->keterangan = $request->keterangan;
-            $transaksi->akun = $request->akun;
+            $transaksi->akun = 'Pemasukan'; // Fixed value untuk pemasukan
             $transaksi->untuk_kas_id = $request->untuk_kas_id;
-            $transaksi->jns_trans = 'Pemasukan Kas';
+            $transaksi->jns_trans = $request->akun; // ID jenis akun dari dropdown
+            $transaksi->dari_kas_id = null; // NULL untuk pemasukan
+            $transaksi->no_polisi = ''; // Kosong untuk pemasukan kas
             $transaksi->dk = 'D'; // Debit untuk pemasukan
             $transaksi->update_data = now();
-            $transaksi->user_name = Auth::user()->name ?? 'admin';
-            $transaksi->id_cabang = 1; // Sesuaikan dengan sistem cabang yang ada
+            $transaksi->user_name = auth('admin')->user()->name ?? 'admin';
+            $transaksi->id_cabang = '1'; // Sesuaikan dengan sistem cabang yang ada
             $transaksi->save();
 
             DB::commit();
@@ -182,13 +202,14 @@ class TransaksiKasController extends Controller
             $transaksi->tgl_catat = $request->tgl_catat;
             $transaksi->jumlah = $request->jumlah;
             $transaksi->keterangan = $request->keterangan;
-            $transaksi->akun = $request->akun;
+            $transaksi->akun = 'Pengeluaran'; // Enum value untuk pengeluaran
             $transaksi->dari_kas_id = $request->dari_kas_id;
-            $transaksi->jns_trans = 'Pengeluaran Kas';
+            $transaksi->jns_trans = $request->akun; // ID dari jns_akun
+            $transaksi->no_polisi = ''; // Required field
             $transaksi->dk = 'K'; // Kredit untuk pengeluaran
             $transaksi->update_data = now();
-            $transaksi->user_name = Auth::user()->name ?? 'admin';
-            $transaksi->id_cabang = 1; // Sesuaikan dengan sistem cabang yang ada
+            $transaksi->user_name = auth('admin')->user()->name ?? 'admin';
+            $transaksi->id_cabang = '1'; // String value
             $transaksi->save();
 
             DB::commit();
@@ -205,6 +226,96 @@ class TransaksiKasController extends Controller
                 'success' => false,
                 'message' => 'Gagal menyimpan pengeluaran kas: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Update transaksi pengeluaran kas
+     */
+    public function updatePengeluaran(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'tgl_catat' => 'required|date',
+                'jumlah' => 'required|numeric|min:1',
+                'keterangan' => 'required|string',
+                'dari_kas_id' => 'required|exists:nama_kas_tbl,id',
+                'akun' => 'required|exists:jns_akun,id'
+            ]);
+
+            $transaksi = transaksi_kas::findOrFail($id);
+            $transaksi->update([
+                'tgl_catat' => $request->tgl_catat,
+                'jumlah' => $request->jumlah,
+                'keterangan' => $request->keterangan,
+                'dari_kas_id' => $request->dari_kas_id,
+                'jns_trans' => $request->akun, // ID dari jns_akun
+                'akun' => 'Pengeluaran', // Enum value untuk pengeluaran
+                'user_name' => auth('admin')->user()->name ?? 'admin'
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Data berhasil diupdate']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Gagal mengupdate data: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete transaksi pengeluaran kas
+     */
+    public function destroyPengeluaran($id)
+    {
+        try {
+            $transaksi = transaksi_kas::findOrFail($id);
+            $transaksi->delete();
+            return response()->json(['success' => true, 'message' => 'Data berhasil dihapus']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Gagal menghapus data: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Update transaksi transfer kas
+     */
+    public function updateTransfer(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'tgl_catat' => 'required|date',
+                'jumlah' => 'required|numeric|min:1',
+                'keterangan' => 'required|string',
+                'dari_kas_id' => 'required|exists:nama_kas_tbl,id',
+                'untuk_kas_id' => 'required|exists:nama_kas_tbl,id|different:dari_kas_id'
+            ]);
+
+            $transaksi = transaksi_kas::findOrFail($id);
+            $transaksi->update([
+                'tgl_catat' => $request->tgl_catat,
+                'jumlah' => $request->jumlah,
+                'keterangan' => $request->keterangan,
+                'dari_kas_id' => $request->dari_kas_id,
+                'untuk_kas_id' => $request->untuk_kas_id,
+                'akun' => 'Transfer', // Enum value untuk transfer
+                'user_name' => auth('admin')->user()->name ?? 'admin'
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Data berhasil diupdate']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Gagal mengupdate data: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete transaksi transfer kas
+     */
+    public function destroyTransfer($id)
+    {
+        try {
+            $transaksi = transaksi_kas::findOrFail($id);
+            $transaksi->delete();
+            return response()->json(['success' => true, 'message' => 'Data berhasil dihapus']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Gagal menghapus data: ' . $e->getMessage()], 500);
         }
     }
 
@@ -228,13 +339,15 @@ class TransaksiKasController extends Controller
             $transaksi->tgl_catat = $request->tgl_catat;
             $transaksi->jumlah = $request->jumlah;
             $transaksi->keterangan = $request->keterangan;
+            $transaksi->akun = 'Transfer'; // Enum value untuk transfer
             $transaksi->dari_kas_id = $request->dari_kas_id;
             $transaksi->untuk_kas_id = $request->untuk_kas_id;
-            $transaksi->jns_trans = 'Transfer Kas';
-            $transaksi->dk = 'T'; // Transfer
+            $transaksi->jns_trans = null; // Transfer tidak memerlukan jns_trans
+            $transaksi->no_polisi = ''; // Required field
+            $transaksi->dk = null; // Transfer tidak memerlukan dk
             $transaksi->update_data = now();
-            $transaksi->user_name = Auth::user()->name ?? 'admin';
-            $transaksi->id_cabang = 1; // Sesuaikan dengan sistem cabang yang ada
+            $transaksi->user_name = auth('admin')->user()->name ?? 'admin';
+            $transaksi->id_cabang = '1'; // String value
             $transaksi->save();
 
             DB::commit();
@@ -325,11 +438,85 @@ class TransaksiKasController extends Controller
     }
 
     /**
-     * Filter untuk pemasukan dan pengeluaran kas
+     * Apply filters to pengeluaran query (transaksi_kas model)
+     */
+    private function applyPengeluaranFilters($query, $request)
+    {
+        // PRIORITAS 1: Kode Transaksi (Jika diisi, abaikan filter tanggal)
+        if ($request->filled('kode_transaksi')) {
+            $kodeTransaksi = trim($request->kode_transaksi);
+            
+            // Bersihkan prefix TKK dan leading zeros
+            $kodeTransaksi = str_replace(['TKK', 'tkk'], '', $kodeTransaksi);
+            $kodeTransaksi = ltrim($kodeTransaksi, '0');
+            $kodeTransaksi = (int)$kodeTransaksi;
+            
+            // Cari berdasarkan ID transaksi
+            $query->where('id', 'LIKE', $kodeTransaksi);
+            
+            return $query;
+        }
+
+        // PRIORITAS 2: Filter Tanggal (Hanya jika kode transaksi kosong)
+        if ($request->filled('tgl_dari') && $request->filled('tgl_sampai')) {
+            $query->whereDate('tgl_catat', '>=', $request->tgl_dari)
+                  ->whereDate('tgl_catat', '<=', $request->tgl_sampai);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Filter untuk pemasukan dan pengeluaran kas dengan prioritas yang efisien
+     * Mengikuti logika: Kode Transaksi > Date Range > Filter Lainnya
      */
     private function applyFilters($query, $request)
     {
-        // 1. Filter Pencarian
+        // PRIORITAS 1: Kode Transaksi (Jika diisi, abaikan filter tanggal)
+        if ($request->filled('kode_transaksi')) {
+            $kodeTransaksi = trim($request->kode_transaksi);
+            
+            // Bersihkan prefix TKD dan leading zeros
+            $kodeTransaksi = str_replace(['TKD', 'tkd'], '', $kodeTransaksi);
+            $kodeTransaksi = ltrim($kodeTransaksi, '0');
+            $kodeTransaksi = (int)$kodeTransaksi;
+            
+            // Cari berdasarkan ID transaksi menggunakan LIKE untuk fleksibilitas
+            $query->where('id', 'LIKE', $kodeTransaksi);
+            
+            // Return langsung, abaikan filter lainnya kecuali user dan kas untuk keamanan
+            if ($request->filled('user_filter')) {
+                $userArray = is_array($request->user_filter) ? $request->user_filter : [$request->user_filter];
+                $query->whereIn('user', $userArray);
+            }
+            
+            return $query;
+        }
+
+        // PRIORITAS 2: Filter Tanggal (Hanya jika kode transaksi kosong)
+        if ($request->filled('tgl_dari') && $request->filled('tgl_sampai')) {
+            $query->whereDate('tgl', '>=', $request->tgl_dari)
+                  ->whereDate('tgl', '<=', $request->tgl_sampai);
+        } else {
+            // Fallback ke date_from/date_to untuk kompatibilitas
+            if ($request->filled('date_from')) {
+                $query->whereDate('tgl', '>=', $request->date_from);
+            }
+            if ($request->filled('date_to')) {
+                $query->whereDate('tgl', '<=', $request->date_to);
+            }
+        }
+
+        // PRIORITAS 3: Filter Periode Bulan (21-20)
+        if ($request->filled('periode_bulan')) {
+            $periode = $request->periode_bulan;
+            $tglDari = date('Y-m-21', strtotime($periode . '-01 -1 month'));
+            $tglSampai = $periode . '-20';
+            $query->whereDate('tgl', '>=', $tglDari)
+                  ->whereDate('tgl', '<=', $tglSampai);
+        }
+
+        // PRIORITAS 4: Filter Pencarian Umum
         if ($request->filled('search')) {
             $search = trim($request->search);
             $query->where(function($q) use ($search) {
@@ -339,24 +526,7 @@ class TransaksiKasController extends Controller
             });
         }
 
-        // 2. Filter Tanggal
-        if ($request->filled('date_from')) {
-            $query->whereDate('tgl', '>=', $request->date_from);
-        }
-        if ($request->filled('date_to')) {
-            $query->whereDate('tgl', '<=', $request->date_to);
-        }
-
-        // 3. Filter Periode Bulan (21-20)
-        if ($request->filled('periode_bulan')) {
-            $periode = $request->periode_bulan;
-            $tglDari = date('Y-m-21', strtotime($periode . '-01 -1 month'));
-            $tglSampai = $periode . '-20';
-            $query->whereDate('tgl', '>=', $tglDari)
-                  ->whereDate('tgl', '<=', $tglSampai);
-        }
-
-        // 4. Filter Nominal Range - disesuaikan berdasarkan jenis transaksi
+        // PRIORITAS 5: Filter Nominal Range - disesuaikan berdasarkan jenis transaksi
         if ($request->filled('nominal_min')) {
             if ($query->getModel() instanceof View_Transaksi) {
                 $transaksiType = $query->getQuery()->wheres[0]['value'] ?? null;
@@ -378,51 +548,68 @@ class TransaksiKasController extends Controller
             }
         }
 
-        // 5. Filter Kas (Multiple Selection) - disesuaikan berdasarkan jenis transaksi
+        // PRIORITAS 6: Filter Kas (Single Selection) - disesuaikan berdasarkan jenis transaksi
         if ($request->filled('kas_filter')) {
-            $kasArray = is_array($request->kas_filter) ? $request->kas_filter : [$request->kas_filter];
             if ($query->getModel() instanceof View_Transaksi) {
                 $transaksiType = $query->getQuery()->wheres[0]['value'] ?? null;
                 if ($transaksiType === '48') { // Pemasukan
-                    $query->whereIn('untuk_kas', $kasArray);
+                    $query->where('untuk_kas', $request->kas_filter);
                 } else { // Pengeluaran
-                    $query->whereIn('dari_kas', $kasArray);
+                    $query->where('dari_kas', $request->kas_filter);
                 }
             }
         }
 
-        // 6. Filter User (Multiple Selection)
+        // PRIORITAS 7: Filter User (Single Selection)
         if ($request->filled('user_filter')) {
-            $userArray = is_array($request->user_filter) ? $request->user_filter : [$request->user_filter];
-            $query->whereIn('user', $userArray);
+            $query->where('user', $request->user_filter);
         }
 
         return $query;
     }
 
     /**
-     * Filter untuk transfer kas
+     * Filter untuk transfer kas dengan prioritas yang efisien
+     * Mengikuti logika: Kode Transaksi > Date Range > Filter Lainnya
      */
     private function applyTransferFilters($query, $request)
     {
-        // 1. Filter Pencarian
-        if ($request->filled('search')) {
-            $search = trim($request->search);
-            $query->where(function($q) use ($search) {
-                $q->where('keterangan', 'like', "%{$search}%")
-                  ->orWhere('user_name', 'like', "%{$search}%");
-            });
+        // PRIORITAS 1: Kode Transaksi (Jika diisi, abaikan filter tanggal)
+        if ($request->filled('kode_transaksi')) {
+            $kodeTransaksi = trim($request->kode_transaksi);
+            
+            // Bersihkan prefix TRF dan leading zeros
+            $kodeTransaksi = str_replace(['TRF', 'trf'], '', $kodeTransaksi);
+            $kodeTransaksi = ltrim($kodeTransaksi, '0');
+            $kodeTransaksi = (int)$kodeTransaksi;
+            
+            // Cari berdasarkan ID transaksi menggunakan LIKE untuk fleksibilitas
+            $query->where('id', 'LIKE', $kodeTransaksi);
+            
+            // Return langsung, abaikan filter lainnya kecuali user untuk keamanan
+            if ($request->filled('user_filter')) {
+                $userArray = is_array($request->user_filter) ? $request->user_filter : [$request->user_filter];
+                $query->whereIn('user_name', $userArray);
+            }
+            
+            return $query;
         }
 
-        // 2. Filter Tanggal
-        if ($request->filled('date_from')) {
-            $query->whereDate('tgl_catat', '>=', $request->date_from);
-        }
-        if ($request->filled('date_to')) {
-            $query->whereDate('tgl_catat', '<=', $request->date_to);
+        // PRIORITAS 2: Filter Tanggal (Hanya jika kode transaksi kosong)
+        if ($request->filled('tgl_dari') && $request->filled('tgl_sampai')) {
+            $query->whereDate('tgl_catat', '>=', $request->tgl_dari)
+                  ->whereDate('tgl_catat', '<=', $request->tgl_sampai);
+        } else {
+            // Fallback ke date_from/date_to untuk kompatibilitas
+            if ($request->filled('date_from')) {
+                $query->whereDate('tgl_catat', '>=', $request->date_from);
+            }
+            if ($request->filled('date_to')) {
+                $query->whereDate('tgl_catat', '<=', $request->date_to);
+            }
         }
 
-        // 3. Filter Periode Bulan (21-20)
+        // PRIORITAS 3: Filter Periode Bulan (21-20)
         if ($request->filled('periode_bulan')) {
             $periode = $request->periode_bulan;
             $tglDari = date('Y-m-21', strtotime($periode . '-01 -1 month'));
@@ -431,7 +618,16 @@ class TransaksiKasController extends Controller
                   ->whereDate('tgl_catat', '<=', $tglSampai);
         }
 
-        // 4. Filter Nominal Range
+        // PRIORITAS 4: Filter Pencarian Umum
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function($q) use ($search) {
+                $q->where('keterangan', 'like', "%{$search}%")
+                  ->orWhere('user_name', 'like', "%{$search}%");
+            });
+        }
+
+        // PRIORITAS 5: Filter Nominal Range
         if ($request->filled('nominal_min')) {
             $query->where('jumlah', '>=', $request->nominal_min);
         }
@@ -439,25 +635,87 @@ class TransaksiKasController extends Controller
             $query->where('jumlah', '<=', $request->nominal_max);
         }
 
-        // 5. Filter Kas Asal (Multiple Selection)
+        // PRIORITAS 6: Filter Kas Asal (Single Selection)
         if ($request->filled('kas_asal_filter')) {
-            $kasArray = is_array($request->kas_asal_filter) ? $request->kas_asal_filter : [$request->kas_asal_filter];
-            $query->whereIn('dari_kas_id', $kasArray);
+            $query->where('dari_kas_id', $request->kas_asal_filter);
         }
 
-        // 6. Filter Kas Tujuan (Multiple Selection)
+        // PRIORITAS 7: Filter Kas Tujuan (Single Selection)
         if ($request->filled('kas_tujuan_filter')) {
-            $kasArray = is_array($request->kas_tujuan_filter) ? $request->kas_tujuan_filter : [$request->kas_tujuan_filter];
-            $query->whereIn('untuk_kas_id', $kasArray);
+            $query->where('untuk_kas_id', $request->kas_tujuan_filter);
         }
 
-        // 7. Filter User (Multiple Selection)
+        // PRIORITAS 8: Filter User (Single Selection)
         if ($request->filled('user_filter')) {
-            $userArray = is_array($request->user_filter) ? $request->user_filter : [$request->user_filter];
-            $query->whereIn('user_name', $userArray);
+            $query->where('user_name', $request->user_filter);
         }
 
         return $query;
+    }
+
+
+
+
+
+    /**
+     * Update data pemasukan kas
+     */
+    public function updatePemasukan(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'tgl_catat' => 'required|date',
+                'jumlah' => 'required|numeric|min:1',
+                'keterangan' => 'required|string',
+                'untuk_kas_id' => 'required|exists:nama_kas_tbl,id',
+                'akun' => 'required|exists:jns_akun,id'
+            ]);
+
+            $transaksi = transaksi_kas::findOrFail($id);
+            
+            $transaksi->update([
+                'tgl_catat' => $request->tgl_catat,
+                'jumlah' => $request->jumlah,
+                'keterangan' => $request->keterangan,
+                'untuk_kas_id' => $request->untuk_kas_id,
+                'jns_trans' => $request->akun, // ID dari jns_akun
+                'akun' => 'Pemasukan', // Enum value untuk pemasukan
+                'user_name' => auth('admin')->user()->name ?? 'admin'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data berhasil diupdate'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengupdate data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete data pemasukan kas
+     */
+    public function destroyPemasukan($id)
+    {
+        try {
+            $transaksi = transaksi_kas::findOrFail($id);
+            $transaksi->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data berhasil dihapus'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -485,14 +743,15 @@ class TransaksiKasController extends Controller
      */
     public function exportPengeluaranPdf(Request $request)
     {
-        $query = View_Transaksi::where('transaksi', '7')
-            ->with('kasAsal');
+        $query = transaksi_kas::where('akun', 'Pengeluaran')
+            ->whereIn('jns_trans', jns_akun::where('aktif', 'Y')->where('pengeluaran', 'Y')->pluck('id')->toArray())
+            ->with(['dariKas', 'jenisAkun']);
 
-        $query = $this->applyFilters($query, $request);
-        $dataKas = $query->orderBy('tgl', 'desc')->get();
+        $query = $this->applyPengeluaranFilters($query, $request);
+        $dataKas = $query->orderBy('tgl_catat', 'desc')->get();
 
         $periode = $request->filled('periode_bulan') ? $request->periode_bulan : date('Y-m');
-        $totalPengeluaran = $dataKas->sum('kredit');
+        $totalPengeluaran = $dataKas->sum('jumlah');
 
         $pdf = PDF::loadView('transaksi_kas.pdf.pengeluaran', compact('dataKas', 'periode', 'totalPengeluaran'));
         $pdf->setPaper('A4', 'landscape');
@@ -505,7 +764,8 @@ class TransaksiKasController extends Controller
      */
     public function exportTransferPdf(Request $request)
     {
-        $query = transaksi_kas::with(['dariKas', 'untukKas']);
+        $query = transaksi_kas::where('akun', 'Transfer')
+            ->with(['dariKas', 'untukKas']);
 
         $query = $this->applyTransferFilters($query, $request);
         $dataKas = $query->orderBy('tgl_catat', 'desc')->get();
@@ -518,85 +778,4 @@ class TransaksiKasController extends Controller
 
         return $pdf->download('laporan_transfer_kas_' . date('Ymd') . '.pdf');
     }
-
-    /**
-     * Export data ke Excel
-     */
-    public function exportPemasukan(Request $request)
-    {
-        $query = View_Transaksi::where('transaksi', '48')
-            ->with('kasTujuan');
-
-        $query = $this->applyFilters($query, $request);
-        $dataKas = $query->orderBy('tgl', 'desc')->get();
-
-        return $this->exportToExcel($dataKas, 'Pemasukan Kas', $request);
-    }
-
-    public function exportPengeluaran(Request $request)
-    {
-        $query = View_Transaksi::where('transaksi', '7')
-            ->with('kasAsal');
-
-        $query = $this->applyFilters($query, $request);
-        $dataKas = $query->orderBy('tgl', 'desc')->get();
-
-        return $this->exportToExcel($dataKas, 'Pengeluaran Kas', $request);
-    }
-
-    public function exportTransfer(Request $request)
-    {
-        $query = transaksi_kas::with(['dariKas', 'untukKas']);
-
-        $query = $this->applyTransferFilters($query, $request);
-        $dataKas = $query->orderBy('tgl_catat', 'desc')->get();
-
-        return $this->exportToExcel($dataKas, 'Transfer Kas', $request);
-    }
-
-    /**
-     * Helper method untuk export ke Excel
-     */
-    private function exportToExcel($data, $type, $request)
-    {
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-
-        // Set header
-        $sheet->setCellValue('A1', 'Laporan ' . $type);
-        $sheet->setCellValue('A2', 'Periode: ' . ($request->filled('periode_bulan') ? $request->periode_bulan : date('Y-m')));
-
-        // Set column headers
-        $headers = ['No', 'Tanggal', 'Keterangan', 'Jumlah', 'Kas', 'User'];
-        foreach ($headers as $key => $header) {
-            $sheet->setCellValue(chr(65 + $key) . '4', $header);
-        }
-
-        // Fill data
-        $row = 5;
-        foreach ($data as $index => $item) {
-            $sheet->setCellValue('A' . $row, $index + 1);
-            $sheet->setCellValue('B' . $row, $item->tgl ?? $item->tgl_catat);
-            $sheet->setCellValue('C' . $row, $item->keterangan);
-            $sheet->setCellValue('D' . $row, $item->debet ?? $item->kredit ?? $item->jumlah);
-            $sheet->setCellValue('E' . $row, $item->kasTujuan->nama ?? $item->kasAsal->nama ?? $item->dariKas->nama);
-            $sheet->setCellValue('F' . $row, $item->user ?? $item->user_name);
-            $row++;
-        }
-
-        // Auto size columns
-        foreach (range('A', 'F') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
-
-        $writer = new Xlsx($spreadsheet);
-        $filename = 'laporan_' . strtolower(str_replace(' ', '_', $type)) . '_' . date('Ymd') . '.xlsx';
-        
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
-        
-        $writer->save('php://output');
-        exit;
-}
 }

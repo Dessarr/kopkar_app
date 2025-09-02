@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\NamaKasTbl;
+use App\Models\jns_akun;
 
 class transaksi_kas extends Model
 {
     protected $table = 'tbl_trans_kas';
+    public $timestamps = false; // Disable timestamps karena table tidak memiliki created_at dan updated_at
 
     protected $fillable = [
         'id',
@@ -39,5 +41,10 @@ class transaksi_kas extends Model
     public function untukKas()
     {
         return $this->belongsTo(NamaKasTbl::class, 'untuk_kas_id', 'id');
+    }
+
+    public function jenisAkun()
+    {
+        return $this->belongsTo(jns_akun::class, 'jns_trans', 'id');
     }
 }

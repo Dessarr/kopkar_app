@@ -134,20 +134,26 @@ Route::middleware(['auth:admin'])->group(function () {
         // Pemasukan Kas
         Route::get('/pemasukan', [TransaksiKasController::class, 'pemasukan'])->name('admin.transaksi.pemasukan');
         Route::post('/pemasukan', [TransaksiKasController::class, 'storePemasukan'])->name('admin.transaksi.pemasukan.store');
-        Route::get('/pemasukan/export', [TransaksiKasController::class, 'exportPemasukan'])->name('admin.transaksi.pemasukan.export');
+        Route::put('/pemasukan/{id}', [TransaksiKasController::class, 'updatePemasukan'])->name('admin.transaksi.pemasukan.update');
+        Route::delete('/pemasukan/{id}', [TransaksiKasController::class, 'destroyPemasukan'])->name('admin.transaksi.pemasukan.destroy');
         Route::get('/pemasukan/export/pdf', [TransaksiKasController::class, 'exportPemasukanPdf'])->name('admin.transaksi.pemasukan.export.pdf');
+
         
         // Pengeluaran Kas
         Route::get('/pengeluaran', [TransaksiKasController::class, 'pengeluaran'])->name('admin.transaksi.pengeluaran');
         Route::post('/pengeluaran', [TransaksiKasController::class, 'storePengeluaran'])->name('admin.transaksi.pengeluaran.store');
-        Route::get('/pengeluaran/export', [TransaksiKasController::class, 'exportPengeluaran'])->name('admin.transaksi.pengeluaran.export');
+        Route::put('/pengeluaran/{id}', [TransaksiKasController::class, 'updatePengeluaran'])->name('admin.transaksi.pengeluaran.update');
+        Route::delete('/pengeluaran/{id}', [TransaksiKasController::class, 'destroyPengeluaran'])->name('admin.transaksi.pengeluaran.destroy');
         Route::get('/pengeluaran/export/pdf', [TransaksiKasController::class, 'exportPengeluaranPdf'])->name('admin.transaksi.pengeluaran.export.pdf');
+
         
         // Transfer Kas
         Route::get('/transfer', [TransaksiKasController::class, 'transfer'])->name('admin.transaksi.transfer');
         Route::post('/transfer', [TransaksiKasController::class, 'storeTransfer'])->name('admin.transaksi.transfer.store');
-        Route::get('/transfer/export', [TransaksiKasController::class, 'exportTransfer'])->name('admin.transaksi.transfer.export');
+        Route::put('/transfer/{id}', [TransaksiKasController::class, 'updateTransfer'])->name('admin.transaksi.transfer.update');
+        Route::delete('/transfer/{id}', [TransaksiKasController::class, 'destroyTransfer'])->name('admin.transaksi.transfer.destroy');
         Route::get('/transfer/export/pdf', [TransaksiKasController::class, 'exportTransferPdf'])->name('admin.transaksi.transfer.export.pdf');
+
         
         // CRUD Operations
         Route::get('/{id}', [TransaksiKasController::class, 'show'])->name('admin.transaksi.show');
