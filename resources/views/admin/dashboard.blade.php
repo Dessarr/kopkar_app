@@ -16,10 +16,10 @@
 @endsection
 
 @section('content')
-<div class="w-full rows-2 flex flex-col lg:flex-row gap-4">
-    <main class="w-full grid grid-cols-1 lg:grid-cols-3 gap-7">
-        <!-- Card Pinjaman Kredit -->
-        <div class="bg-white shadow-md rounded-lg flex flex-col">
+<div class="w-full">
+    <main class="w-full grid grid-cols-3 grid-rows-7 gap-4">
+        <!-- Card Pinjaman Kredit - Row Span 2 -->
+        <div class="bg-white shadow-md rounded-lg flex flex-col row-span-2">
             <div class="ww-full p-2 mt-2 mb-3 display flex-none flex flex-row place-content-between  rounded-lg">
                 <h3 class="font-bold rounded-lg pt-1 align-center px-2 ">Pinjaman Kredit</h3>
             </div>
@@ -104,8 +104,8 @@
             </div>
         </div>
 
-        <!-- Card Kas -->
-        <div class="bg-white shadow-md rounded-lg flex flex-col">
+        <!-- Card Kas - Row Span 2 -->
+        <div class="bg-white shadow-md rounded-lg flex flex-col row-span-2">
             <div class="w-full p-2 mt-2 mb-3 flex-none flex flex-row place-content-between rounded-lg">
                 <h3 class="font-bold pt-1 px-2">Kas</h3>
             </div>
@@ -177,8 +177,8 @@
         </div>
 
 
-        <!-- Card Jatuh Tempo -->
-        <div class="bg-white shadow-md rounded-lg flex flex-col ">
+        <!-- Card Jatuh Tempo - Row Span 4, Col Start 3, Row Start 1 -->
+        <div class="bg-white shadow-md rounded-lg flex flex-col col-start-3 row-start-1 row-span-4">
 
             <div class="w-full p-2 mt-2 mb-3 display flex-none flex flex-row place-content-between  rounded-lg">
                 <h5 class="font-bold rounded-lg pt-1 align-center px-2">Jatuh Tempo</h5>
@@ -189,18 +189,53 @@
 
                 </div>
             </div>
+
             {{-- Data jatuh tempo dari database --}}
-            <div class="w-full px-3 h-1/2 flex-1 overflow-x-auto bg-white align-center justify-center">
+            <div class="w-full px-3 flex-grow overflow-y-auto bg-white align-center justify-center jatuh-tempo-scroll"
+                style="min-height: 400px;">
+                <style>
+                .jatuh-tempo-scroll::-webkit-scrollbar {
+                    width: 6px;
+                }
+
+                .jatuh-tempo-scroll::-webkit-scrollbar-track {
+                    background: #f1f1f1;
+                    border-radius: 3px;
+                }
+
+                .jatuh-tempo-scroll::-webkit-scrollbar-thumb {
+                    background: #c1c1c1;
+                    border-radius: 3px;
+                }
+
+                .jatuh-tempo-scroll::-webkit-scrollbar-thumb:hover {
+                    background: #a8a8a8;
+                }
+                </style>
+
                 @if(count($jatuh_tempo) > 0)
                 @foreach($jatuh_tempo as $item)
                 <div class="flex flex-row place-content-around justify-center align-center items-center mb-2">
                     <div class="flex flex-col justify-center align-center w-[20%]">
-                        <div class="text-center text-[34px]">O</div>
+                        @if($item->file_pic && Storage::disk('public')->exists('anggota/' . $item->file_pic))
+                        <img src="{{ asset('storage/anggota/' . $item->file_pic) }}"
+                            alt="Foto {{ $item->nama ?? 'N/A' }}"
+                            class="w-8 h-8 rounded-full object-cover border-2 border-gray-200">
+                        @else
+                        <div
+                            class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
+                            <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                            </svg>
+                        </div>
+                        @endif
                     </div>
                     <div class="flex flex-col align-center justify-center w-[45%]">
-                        <div class="text-[14px]">{{ $item->nama ?? 'N/A' }}</div>
+                        <div class="text-[14px] font-semibold">{{ $item->nama ?? 'N/A' }}</div>
                         <div class="text-[12px] text-gray-400">
-                            {{ \Carbon\Carbon::parse($item->tgl_pinjam)->format('m/d/Y') }}</div>
+                            Jatuh tempo: {{ \Carbon\Carbon::parse($item->tgl_pinjam)->format('d M Y') }}
+                        </div>
                     </div>
                     <div
                         class="w-[33%] text-[12px] flex flex-col justify-center text-center bg-gray-100 h-3/4 rounded-lg py-0.5">
@@ -208,6 +243,8 @@
                     </div>
                 </div>
                 @endforeach
+
+
                 @else
                 <div class="text-center text-gray-500 py-4">
                     Tidak ada data jatuh tempo
@@ -215,23 +252,22 @@
                 @endif
             </div>
 
-            <div class=" p-5 justify-center align-center ">
+            <div class="p-3 justify-center align-center">
                 <div
                     class="group relative bg-green-500 w-full rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out hover:bg-green-600 overflow-hidden">
-                    <a href="#"
-                        class="group relative bg-green-500 w-full px-4 py-1 rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out group-hover:bg-green-600 overflow-hidden">
+                    <a href="{{ route('pinjaman.data_angsuran') }}"
+                        class="group relative bg-green-500 w-full px-4 py-2 rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out group-hover:bg-green-600 overflow-hidden">
                         <span>More Info</span>
                         <span
                             class="transform transition-all duration-500 ease-in-out group-hover:translate-x-8 opacity-100 group-hover:opacity-0">>
                         </span>
                     </a>
                 </div>
-
             </div>
         </div>
 
-        <!-- Card Data Pinjaman -->
-        <div class="bg-white shadow-md rounded-lg flex flex-col">
+        <!-- Card Data Pinjaman - Row Span 2, Col Start 1, Row Start 3 -->
+        <div class="bg-white shadow-md rounded-lg flex flex-col col-start-1 row-start-3 row-span-2">
             <div class="w-full p-2 mt-2 mb-3 flex-none flex flex-row place-content-between rounded-lg">
                 <h3 class="font-bold pt-1 px-2">Data Pinjaman</h3>
             </div>
@@ -312,8 +348,8 @@
         </div>
 
 
-        <!-- Card Data Anggota -->
-        <div class="bg-white shadow-md rounded-lg flex flex-col">
+        <!-- Card Data Anggota - Row Span 2, Col Start 2, Row Start 3 -->
+        <div class="bg-white shadow-md rounded-lg flex flex-col col-start-2 row-start-3 row-span-2">
             <div class="w-full p-2 mt-2 mb-3 flex-none flex flex-row place-content-between rounded-lg">
                 <h3 class="font-bold pt-1 px-2">Data Anggota</h3>
             </div>
@@ -380,64 +416,117 @@
 
 
 
-        <!-- Card Simpanan -->
-        <div class="bg-white shadow-md rounded-lg flex flex-col">
+        <!-- Card Simpanan - Col Span 3, Row Span 2, Row Start 5 -->
+        <div class="bg-white shadow-md rounded-lg flex flex-col col-span-3 row-start-5 row-span-2">
 
             <div class="border-b-2 p-2 mt-2 h-[15%] flex flex-col justify-center">
                 <h3 class="font-bold">Simpanan</h3>
             </div>
 
-            <div class="w-full p-2 display flex-none flex flex-row place-content-around  rounded-lg mt-2  ">
-                <h5 class="rounded-lg pt-1 align-center">Jenis Simpanan</h5>
-                <h5 class="pt-1 align-center">Info Total</h5>
+            <!-- Header Tabel Simpanan -->
+            <div class="w-full p-4">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs uppercase bg-blue-600 text-white">
+                            <tr>
+                                <th class="px-4 py-3">Jenis Simpanan</th>
+                                <th class="px-4 py-3 text-center">Tagihan Bulan Lalu</th>
+                                <th class="px-4 py-3 text-center">Tab. Perumahan</th>
+                                <th class="px-4 py-3 text-center">Simpanan Sukarela</th>
+                                <th class="px-4 py-3 text-center">Simpanan Pokok</th>
+                                <th class="px-4 py-3 text-center">Simpanan Wajib</th>
+                                <th class="px-4 py-3 text-center">Simpanan Khusus I</th>
+                                <th class="px-4 py-3 text-center">Simpanan Khusus II</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-800">
+                            <!-- Saldo Bulan Lalu -->
+                            <tr class="bg-blue-50 border-b">
+                                <td class="px-4 py-3 font-semibold">Saldo Bulan Lalu</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['tagihan_bulan_lalu'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">{{ number_format($simpanan['tab_perumahan'] ?? 0) }}
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['simpanan_sukarela'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">{{ number_format($simpanan['saldo_pokok'] ?? 0) }}
+                                </td>
+                                <td class="px-4 py-3 text-center">{{ number_format($simpanan['saldo_wajib'] ?? 0) }}
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['simpanan_khusus_1'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['simpanan_khusus_2'] ?? 0) }}</td>
+                            </tr>
+                            <!-- Penerimaan Bulan Ini -->
+                            <tr class="bg-green-50 border-b">
+                                <td class="px-4 py-3 font-semibold">Penerimaan Bulan Ini</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['penerimaan_tagihan'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['penerimaan_perumahan'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['penerimaan_sukarela'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['penerimaan_pokok'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['penerimaan_wajib'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['penerimaan_khusus_1'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['penerimaan_khusus_2'] ?? 0) }}</td>
+                            </tr>
+                            <!-- Penarikan Bulan Ini -->
+                            <tr class="bg-red-50 border-b">
+                                <td class="px-4 py-3 font-semibold">Penarikan Bulan Ini</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['penarikan_tagihan'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['penarikan_perumahan'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['penarikan_sukarela'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">{{ number_format($simpanan['penarikan_pokok'] ?? 0) }}
+                                </td>
+                                <td class="px-4 py-3 text-center">{{ number_format($simpanan['penarikan_wajib'] ?? 0) }}
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['penarikan_khusus_1'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['penarikan_khusus_2'] ?? 0) }}</td>
+                            </tr>
+                            <!-- Saldo Bulan Ini -->
+                            <tr class="bg-blue-100 border-b font-bold">
+                                <td class="px-4 py-3">Saldo Bulan Ini</td>
+                                <td class="px-4 py-3 text-center">{{ number_format($simpanan['saldo_tagihan'] ?? 0) }}
+                                </td>
+                                <td class="px-4 py-3 text-center">{{ number_format($simpanan['saldo_perumahan'] ?? 0) }}
+                                </td>
+                                <td class="px-4 py-3 text-center">{{ number_format($simpanan['saldo_sukarela'] ?? 0) }}
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['saldo_pokok_final'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ number_format($simpanan['saldo_wajib_final'] ?? 0) }}</td>
+                                <td class="px-4 py-3 text-center">{{ number_format($simpanan['saldo_khusus_1'] ?? 0) }}
+                                </td>
+                                <td class="px-4 py-3 text-center">{{ number_format($simpanan['saldo_khusus_2'] ?? 0) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            {{-- Simpanan --}}
-            <div class="w-full my-2 h-1/2 flex-1 overflow-x-auto bg-white align-center justify-center">
 
+            <!-- More Info Button -->
+            <div class="p-5 justify-center align-center">
                 <div
-                    class="flex flex-row place-content-around mb-3 justify-center align-center items-center bg-gray-100 mx-4 rounded-lg">
-                    <div class=" flex flex-col justify-center align-center w-[20%]">
-                        <div class=" text-center text-[24px] bg-[#14AE5C] mx-2 my-2 rounded-lg"><i
-                                class="fa-solid fa-file-lines" style="color: #ffffff;"></i></div>
-                    </div>
-
-                    <div class=" flex flex-col align-center justify-center w-[45%] ">
-                        <div class="text-[10px]">Simpanan Pokok</div>
-                        <div class="text-[12px]  text-gray-400 ">{{ now()->format('m/d/Y') }}</div>
-                    </div>
-                    <div
-                        class=" w-[33%] text-[12px] flex flex-col justify-center text-center bg-gray-100 h-3/4 rounded-lg py-0.5">
-                        {{ number_format($simpanan['saldo_pokok'] ?? 0) }}
-                    </div>
-                </div>
-                <div
-                    class="flex flex-row place-content-around  justify-center align-center items-center bg-gray-100 mx-4 rounded-lg">
-                    <div class=" flex flex-col justify-center align-center w-[20%]">
-                        <div class=" text-center text-[24px] bg-[#14AE5C] mx-2 my-2 rounded-lg"><i
-                                class="fa-solid fa-file-lines" style="color: #ffffff;"></i></div>
-                    </div>
-
-                    <div class=" flex flex-col align-center justify-center w-[45%] ">
-                        <div class="text-[10px]">Simpanan Wajib</div>
-                        <div class="text-[12px]  text-gray-400 ">{{ now()->format('m/d/Y') }}</div>
-                    </div>
-                    <div
-                        class=" w-[33%] text-[12px] flex flex-col justify-center text-center bg-gray-100 h-3/4 rounded-lg py-0.5">
-                        {{ number_format($simpanan['saldo_wajib'] ?? 0) }}
-                    </div>
-                </div>
-
-                <div class=" p-5 justify-center align-center ">
-                    <div
-                        class="group relative bg-green-500 w-full rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out hover:bg-green-600 overflow-hidden">
-                        <a href="#"
-                            class="group relative bg-green-500 w-full px-4 py-1 rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out group-hover:bg-green-600 overflow-hidden">
-                            <span>More Info</span>
-                            <span
-                                class="transform transition-all duration-500 ease-in-out group-hover:translate-x-8 opacity-100 group-hover:opacity-0">>
-                            </span>
-                        </a>
-                    </div>
+                    class="group relative bg-green-500 w-full rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out hover:bg-green-600 overflow-hidden">
+                    <a href="#"
+                        class="group relative bg-green-500 w-full px-4 py-3 rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out group-hover:bg-green-600 overflow-hidden">
+                        <span>More Info</span>
+                        <span
+                            class="transform transition-all duration-500 ease-in-out group-hover:translate-x-8 opacity-100 group-hover:opacity-0">></span>
+                    </a>
                 </div>
             </div>
         </div>

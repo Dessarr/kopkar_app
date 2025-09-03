@@ -32,6 +32,7 @@ use App\Http\Controllers\LaporanKasAnggotaController;
 use App\Http\Controllers\LaporanJatuhTempoController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\LaporanKreditMacetController;
+use App\Http\Controllers\NotificationController;
 
 // Admin Routes
 Route::get('/', [AdminController::class, 'showLoginForm'])->name('admin.login.form');
@@ -39,6 +40,14 @@ Route::get('/admin/login', [AdminController::class, 'showLoginForm'])->name('adm
 Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.login.post');
 Route::get('/admin/dashboard', [AdminController::class, 'adminDashboard'])->name('admin.dashboard')->middleware('auth:admin');
 Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.logout');
+
+// Notification Routes
+Route::middleware(['auth:admin'])->group(function () {
+    Route::get('/notifications/counts', [NotificationController::class, 'getCounts'])->name('notifications.counts');
+    Route::get('/notifications/details', [NotificationController::class, 'getDetails'])->name('notifications.details');
+});
+
+
 
 // Member Routes
 Route::get('/member/login', [MemberController::class, 'showLoginForm'])->name('member.login');

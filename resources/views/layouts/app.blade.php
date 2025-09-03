@@ -169,21 +169,14 @@
 <body class="bg-gray-200">
     <div class="flex h-screen" x-data="{ sidebarOpen: false }">
         <!-- Floating Burger Menu -->
-        <button 
-            class="floating-burger"
-            @click="sidebarOpen = !sidebarOpen"
-            :class="{ 'open': sidebarOpen }"
-        >
+        <button class="floating-burger" @click="sidebarOpen = !sidebarOpen" :class="{ 'open': sidebarOpen }">
             <i class="fas fa-bars" x-show="!sidebarOpen"></i>
             <i class="fas fa-times" x-show="sidebarOpen"></i>
         </button>
 
         <!-- Sidebar -->
-        <aside 
-            class="sidebar text-[#6F757E] mt-6 ml-6 rounded-lg shadow-md"
-            :class="{ 'open': sidebarOpen }"
-            @keydown.escape.window="sidebarOpen = false"
-        >
+        <aside class="sidebar text-[#6F757E] mt-6 ml-6 rounded-lg shadow-md" :class="{ 'open': sidebarOpen }"
+            @keydown.escape.window="sidebarOpen = false">
             @include('layouts.sidebar')
         </aside>
 
@@ -193,11 +186,18 @@
             <div class="bg-[#14AE5C] p-4 flex justify-between items-center mt-6 mx-6 shadow-md rounded-lg">
                 <div class="flex flex-row items-center space-x-4">
                     <h1 class="text-2xl font-bold text-white">@yield('title', 'dashboard')</h1>
-                    <h2 class="text-gray-200 flex text-center align-middle justify-center">@yield('sub-title','Menu Utama')</h2>
+                    <h2 class="text-gray-200 flex text-center align-middle justify-center">@yield('sub-title','Menu
+                        Utama')</h2>
                 </div>
-                <div class="flex items-center text-white">
-                    <span id="date" class="mr-4"></span>
-                    <span id="time"></span>
+                <div class="flex items-center text-white space-x-4">
+                    <!-- Dynamic Notifications Component -->
+                    @include('components.notifications')
+                    
+                    <!-- Date and Time -->
+                    <div class="flex items-center border-l border-white/30 pl-4">
+                        <span id="date" class="mr-4"></span>
+                        <span id="time"></span>
+                    </div>
                 </div>
             </div>
 
@@ -234,6 +234,9 @@
     </script>
 
     @stack('scripts')
+    
+    <!-- Notification System -->
+    <script src="{{ asset('js/notifications.js') }}"></script>
 </body>
 
 </html>

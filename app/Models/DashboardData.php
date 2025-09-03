@@ -174,39 +174,246 @@ class DashboardData extends Model
     }
 
     /**
-     * Get data for Simpanan
+     * Get data for Simpanan - Data Lengkap untuk Dashboard
+     * Menggunakan logic akuntansi: Saldo = Saldo Awal + Penerimaan - Penarikan
      */
     public static function getSimpananData()
     {
-        // Saldo simpanan pokok
-        $saldoPokok = TransaksiSimpanan::where('jenis_id', 40) // ID 40 = simpanan pokok
-            ->where('akun', 'Setoran')
-            ->sum('jumlah');
+        try {
+            $currentMonth = Carbon::now()->month;
+            $currentYear = Carbon::now()->year;
+            $lastMonth = Carbon::now()->subMonth()->month;
+            $lastYear = Carbon::now()->subMonth()->year;
 
-        // Saldo simpanan wajib
-        $saldoWajib = TransaksiSimpanan::where('jenis_id', 41) // ID 41 = simpanan wajib
-            ->where('akun', 'Setoran')
-            ->sum('jumlah');
+            // 1. SALDO BULAN LALU (Saldo sampai akhir bulan lalu)
+            // Menggunakan view v_rekap_simpanan sesuai project CI lama
+            
+            // Simpanan Pokok (ID: 40)
+            $saldoPokokBulanLalu = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 40)
+                ->whereRaw("DATE(tgl_transaksi) < '{$currentYear}-{$currentMonth}-01'")
+                ->selectRaw('SUM(Debet) - SUM(Kredit) as saldo')
+                ->first()->saldo ?? 0;
 
-        return [
-            'saldo_pokok' => $saldoPokok ?? 0,
-            'saldo_wajib' => $saldoWajib ?? 0
-        ];
+            // Simpanan Wajib (ID: 41)
+            $saldoWajibBulanLalu = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 41)
+                ->whereRaw("DATE(tgl_transaksi) < '{$currentYear}-{$currentMonth}-01'")
+                ->selectRaw('SUM(Debet) - SUM(Kredit) as saldo')
+                ->first()->saldo ?? 0;
+
+            // Simpanan Sukarela (ID: 32)
+            $saldoSukarelaBulanLalu = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 32)
+                ->whereRaw("DATE(tgl_transaksi) < '{$currentYear}-{$currentMonth}-01'")
+                ->selectRaw('SUM(Debet) - SUM(Kredit) as saldo')
+                ->first()->saldo ?? 0;
+
+            // Simpanan Khusus I (ID: 51)
+            $saldoKhusus1BulanLalu = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 51)
+                ->whereRaw("DATE(tgl_transaksi) < '{$currentYear}-{$currentMonth}-01'")
+                ->selectRaw('SUM(Debet) - SUM(Kredit) as saldo')
+                ->first()->saldo ?? 0;
+
+            // Simpanan Khusus II (ID: 52)
+            $saldoKhusus2BulanLalu = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 52)
+                ->whereRaw("DATE(tgl_transaksi) < '{$currentYear}-{$currentMonth}-01'")
+                ->selectRaw('SUM(Debet) - SUM(Kredit) as saldo')
+                ->first()->saldo ?? 0;
+
+            // Tabungan Perumahan (ID: 31)
+            $tabPerumahanBulanLalu = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 31)
+                ->whereRaw("DATE(tgl_transaksi) < '{$currentYear}-{$currentMonth}-01'")
+                ->selectRaw('SUM(Debet) - SUM(Kredit) as saldo')
+                ->first()->saldo ?? 0;
+
+            // Tagihan Bulan Lalu (ID: 8)
+            $tagihanBulanLalu = DB::table('v_tagihan')
+                ->where('jenis_id', 8)
+                ->whereRaw("DATE(tgl_transaksi) < '{$currentYear}-{$currentMonth}-01'")
+                ->sum('jumlah') ?? 0;
+
+            // 2. PENERIMAAN BULAN INI
+            // Menggunakan view v_rekap_simpanan sesuai project CI lama
+            
+            $penerimaanPokokBulanIni = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 40)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('Debet') ?? 0;
+
+            $penerimaanWajibBulanIni = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 41)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('Debet') ?? 0;
+
+            $penerimaanSukarelaBulanIni = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 32)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('Debet') ?? 0;
+
+            $penerimaanKhusus1BulanIni = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 51)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('Debet') ?? 0;
+
+            $penerimaanKhusus2BulanIni = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 52)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('Debet') ?? 0;
+
+            $penerimaanPerumahanBulanIni = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 31)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('Debet') ?? 0;
+
+            $penerimaanTagihanBulanIni = DB::table('v_tagihan')
+                ->where('jenis_id', 8)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('jumlah') ?? 0;
+
+            // 3. PENARIKAN BULAN INI
+            // Menggunakan view v_rekap_simpanan sesuai project CI lama
+            
+            $penarikanPokokBulanIni = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 40)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('Kredit') ?? 0;
+
+            $penarikanWajibBulanIni = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 41)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('Kredit') ?? 0;
+
+            $penarikanSukarelaBulanIni = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 32)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('Kredit') ?? 0;
+
+            $penarikanKhusus1BulanIni = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 51)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('Kredit') ?? 0;
+
+            $penarikanKhusus2BulanIni = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 52)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('Kredit') ?? 0;
+
+            $penarikanPerumahanBulanIni = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', 31)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('Kredit') ?? 0;
+
+            $penarikanTagihanBulanIni = DB::table('v_tagihan')
+                ->where('jenis_id', 8)
+                ->whereRaw("YEAR(tgl_transaksi) = '{$currentYear}' AND MONTH(tgl_transaksi) = '{$currentMonth}'")
+                ->sum('jumlah') ?? 0;
+
+            // 4. SALDO BULAN INI (Rumus Akuntansi: Saldo = Saldo Awal + Penerimaan - Penarikan)
+            $saldoPokokBulanIni = $saldoPokokBulanLalu + $penerimaanPokokBulanIni - $penarikanPokokBulanIni;
+            $saldoWajibBulanIni = $saldoWajibBulanLalu + $penerimaanWajibBulanIni - $penarikanWajibBulanIni;
+            $saldoSukarelaBulanIni = $saldoSukarelaBulanLalu + $penerimaanSukarelaBulanIni - $penarikanSukarelaBulanIni;
+            $saldoKhusus1BulanIni = $saldoKhusus1BulanLalu + $penerimaanKhusus1BulanIni - $penarikanKhusus1BulanIni;
+            $saldoKhusus2BulanIni = $saldoKhusus2BulanLalu + $penerimaanKhusus2BulanIni - $penarikanKhusus2BulanIni;
+            $tabPerumahanBulanIni = $tabPerumahanBulanLalu + $penerimaanPerumahanBulanIni - $penarikanPerumahanBulanIni;
+            $tagihanBulanIni = $tagihanBulanLalu + $penerimaanTagihanBulanIni - $penarikanTagihanBulanIni;
+
+            Log::info('Simpanan Data calculated successfully');
+
+            return [
+                // Saldo Bulan Lalu
+                'saldo_pokok' => $saldoPokokBulanLalu,
+                'saldo_wajib' => $saldoWajibBulanLalu,
+                'simpanan_sukarela' => $saldoSukarelaBulanLalu,
+                'simpanan_khusus_1' => $saldoKhusus1BulanLalu,
+                'simpanan_khusus_2' => $saldoKhusus2BulanLalu,
+                'tab_perumahan' => $tabPerumahanBulanLalu,
+                'tagihan_bulan_lalu' => $tagihanBulanLalu,
+
+                // Penerimaan Bulan Ini
+                'penerimaan_pokok' => $penerimaanPokokBulanIni,
+                'penerimaan_wajib' => $penerimaanWajibBulanIni,
+                'penerimaan_sukarela' => $penerimaanSukarelaBulanIni,
+                'penerimaan_khusus_1' => $penerimaanKhusus1BulanIni,
+                'penerimaan_khusus_2' => $penerimaanKhusus2BulanIni,
+                'penerimaan_perumahan' => $penerimaanPerumahanBulanIni,
+                'penerimaan_tagihan' => $penerimaanTagihanBulanIni,
+
+                // Penarikan Bulan Ini
+                'penarikan_pokok' => $penarikanPokokBulanIni,
+                'penarikan_wajib' => $penarikanWajibBulanIni,
+                'penarikan_sukarela' => $penarikanSukarelaBulanIni,
+                'penarikan_khusus_1' => $penarikanKhusus1BulanIni,
+                'penarikan_khusus_2' => $penarikanKhusus2BulanIni,
+                'penarikan_perumahan' => $penarikanPerumahanBulanIni,
+                'penarikan_tagihan' => $penarikanTagihanBulanIni,
+
+                // Saldo Bulan Ini (Final)
+                'saldo_pokok_final' => $saldoPokokBulanIni,
+                'saldo_wajib_final' => $saldoWajibBulanIni,
+                'saldo_sukarela' => $saldoSukarelaBulanIni,
+                'saldo_khusus_1' => $saldoKhusus1BulanIni,
+                'saldo_khusus_2' => $saldoKhusus2BulanIni,
+                'saldo_perumahan' => $tabPerumahanBulanIni,
+                'saldo_tagihan' => $tagihanBulanIni,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error in getSimpananData: ' . $e->getMessage());
+            
+            // Return default values jika ada error
+            return [
+                'saldo_pokok' => 0, 'saldo_wajib' => 0, 'simpanan_sukarela' => 0,
+                'simpanan_khusus_1' => 0, 'simpanan_khusus_2' => 0, 'tab_perumahan' => 0,
+                'tagihan_bulan_lalu' => 0, 'penerimaan_pokok' => 0, 'penerimaan_wajib' => 0,
+                'penerimaan_sukarela' => 0, 'penerimaan_khusus_1' => 0, 'penerimaan_khusus_2' => 0,
+                'penerimaan_perumahan' => 0, 'penerimaan_tagihan' => 0, 'penarikan_pokok' => 0,
+                'penarikan_wajib' => 0, 'penarikan_sukarela' => 0, 'penarikan_khusus_1' => 0,
+                'penarikan_khusus_2' => 0, 'penarikan_perumahan' => 0, 'penarikan_tagihan' => 0,
+                'saldo_pokok_final' => 0, 'saldo_wajib_final' => 0, 'saldo_sukarela' => 0,
+                'saldo_khusus_1' => 0, 'saldo_khusus_2' => 0, 'saldo_perumahan' => 0, 'saldo_tagihan' => 0
+            ];
+        }
     }
 
     /**
      * Get data for Jatuh Tempo
+     * Menggunakan data dari tbl_pinjaman_h yang aktif (Belum lunas)
+     * LEFT JOIN untuk include semua record, termasuk yang namanya '-'
      */
     public static function getJatuhTempoData()
     {
-        // Ambil data pinjaman yang jatuh tempo
-        $jatuhTempo = TblPinjamanH::select('tbl_anggota.nama', 'tbl_pinjaman_h.tgl_pinjam', 'tbl_pinjaman_h.jumlah')
-            ->join('tbl_anggota', 'tbl_pinjaman_h.anggota_id', '=', 'tbl_anggota.id')
-            ->where('tbl_pinjaman_h.lunas', 'Belum')
-            ->where('tbl_pinjaman_h.tgl_pinjam', '<', Carbon::now()->subDays(30))
-            ->limit(5)
-            ->get();
-
-        return $jatuhTempo;
+        try {
+            // Gunakan LEFT JOIN untuk include SEMUA record, termasuk yang namanya '-'
+            $jatuhTempo = TblPinjamanH::select([
+                'tbl_pinjaman_h.id',
+                'tbl_pinjaman_h.anggota_id',
+                'tbl_pinjaman_h.tgl_pinjam', 
+                'tbl_pinjaman_h.jumlah',
+                'tbl_anggota.nama',
+                'tbl_anggota.file_pic'
+            ])
+                ->leftJoin('tbl_anggota', 'tbl_pinjaman_h.anggota_id', '=', 'tbl_anggota.id')
+                ->where('tbl_pinjaman_h.lunas', 'Belum') // Hanya yang belum lunas
+                ->orderBy('tbl_pinjaman_h.tgl_pinjam', 'asc')
+                ->get()
+                ->map(function ($item) {
+                    // Handle missing names (seperti '-')
+                    if (empty($item->nama) || $item->nama === '-') {
+                        $item->nama = 'Anggota ID: ' . $item->anggota_id;
+                    }
+                    return $item;
+                });
+            
+            Log::info('Jatuh Tempo from tbl_pinjaman_h (LEFT JOIN): ' . $jatuhTempo->count() . ' items');
+            return $jatuhTempo;
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getJatuhTempoData: ' . $e->getMessage());
+            return collect([]);
+        }
     }
 }
