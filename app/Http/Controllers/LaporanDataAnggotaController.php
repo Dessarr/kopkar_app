@@ -14,100 +14,62 @@ class LaporanDataAnggotaController extends Controller
 {
     public function index(Request $request)
     {
-        $status = $request->input('status', 'aktif');
+        $perPage = 10; // Fixed to 10 data per page as per specification
         $search = $request->input('search');
-        $perPage = $request->input('per_page', 15);
-
+        
         $query = data_anggota::query();
 
-        // Filter berdasarkan status
-        if ($status === 'aktif') {
-            $query->where('aktif', 'Y');
-        } elseif ($status === 'nonaktif') {
-            $query->where('aktif', 'N');
-        }
-
-        // Search berdasarkan nama atau no KTP
+        // Apply search filter if provided
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('nama', 'like', '%' . $search . '%')
                   ->orWhere('no_ktp', 'like', '%' . $search . '%')
-                  ->orWhere('no_anggota', 'like', '%' . $search . '%');
+                  ->orWhere('id', 'like', '%' . $search . '%');
             });
         }
 
         $dataAnggota = $query->orderBy('nama', 'asc')->paginate($perPage);
 
-        // Statistik
+        // Get total count for statistics
+        $totalAnggota = data_anggota::count();
         $totalAktif = data_anggota::where('aktif', 'Y')->count();
         $totalNonaktif = data_anggota::where('aktif', 'N')->count();
-        $totalAnggota = data_anggota::count();
 
         return view('laporan.data_anggota', compact(
             'dataAnggota',
-            'status',
-            'search',
-            'perPage',
+            'totalAnggota',
             'totalAktif',
             'totalNonaktif',
-            'totalAnggota'
+            'search'
         ));
     }
 
     public function exportPdf(Request $request)
     {
-        $status = $request->input('status', 'aktif');
         $search = $request->input('search');
-
+        
         $query = data_anggota::query();
 
-        // Filter berdasarkan status
-        if ($status === 'aktif') {
-            $query->where('aktif', 'Y');
-        } elseif ($status === 'nonaktif') {
-            $query->where('aktif', 'N');
-        }
-
-        // Search berdasarkan nama atau no KTP
+        // Apply search filter if provided
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('nama', 'like', '%' . $search . '%')
                   ->orWhere('no_ktp', 'like', '%' . $search . '%')
-                  ->orWhere('no_anggota', 'like', '%' . $search . '%');
+                  ->orWhere('id', 'like', '%' . $search . '%');
             });
         }
 
         $dataAnggota = $query->orderBy('nama', 'asc')->get();
 
-        $pdf = PDF::loadView('laporan.pdf.data_anggota', compact('dataAnggota', 'status'));
+        $pdf = PDF::loadView('laporan.pdf.data_anggota', compact('dataAnggota', 'search'));
+        $pdf->setPaper('A4', 'landscape');
 
         return $pdf->download('laporan_data_anggota_' . date('Ymd') . '.pdf');
     }
 
     public function exportExcel(Request $request)
     {
-        $status = $request->input('status', 'aktif');
-        $search = $request->input('search');
-
-        $query = data_anggota::query();
-
-        // Filter berdasarkan status
-        if ($status === 'aktif') {
-            $query->where('aktif', 'Y');
-        } elseif ($status === 'nonaktif') {
-            $query->where('aktif', 'N');
-        }
-
-        // Search berdasarkan nama atau no KTP
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('nama', 'like', '%' . $search . '%')
-                  ->orWhere('no_ktp', 'like', '%' . $search . '%')
-                  ->orWhere('no_anggota', 'like', '%' . $search . '%');
-            });
-        }
-
-        $dataAnggota = $query->orderBy('nama', 'asc')->get();
+        $dataAnggota = data_anggota::orderBy('nama', 'asc')->get();
 
         // Create Excel file
         $spreadsheet = new Spreadsheet();
@@ -115,47 +77,46 @@ class LaporanDataAnggotaController extends Controller
 
         // Set title
         $sheet->setCellValue('A1', 'LAPORAN DATA ANGGOTA KOPERASI');
-        $sheet->setCellValue('A2', 'Status: ' . ucfirst($status));
-        $sheet->setCellValue('A3', 'Tanggal: ' . Carbon::now()->format('d/m/Y H:i:s'));
-        $sheet->mergeCells('A1:H1');
-        $sheet->mergeCells('A2:H2');
-        $sheet->mergeCells('A3:H3');
+        $sheet->setCellValue('A2', 'Tanggal: ' . Carbon::now()->format('d/m/Y H:i:s'));
+        $sheet->mergeCells('A1:J1');
+        $sheet->mergeCells('A2:J2');
 
         // Style title
-        $sheet->getStyle('A1:A3')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A1:A3')->getAlignment()->setHorizontal('center');
+        $sheet->getStyle('A1:A2')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A1:A2')->getAlignment()->setHorizontal('center');
 
         // Header table
-        $headers = ['No', 'No Anggota', 'Nama', 'No KTP', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat', 'Status'];
+        $headers = ['No', 'ID Anggota', 'Nama Anggota', 'L/P', 'Jabatan', 'Alamat', 'Status', 'Tgl Registrasi', 'Photo'];
         $col = 'A';
-        $row = 5;
+        $row = 4;
         foreach ($headers as $header) {
             $sheet->setCellValue($col . $row, $header);
             $col++;
         }
 
         // Style header
-        $sheet->getStyle('A5:H5')->getFont()->setBold(true);
-        $sheet->getStyle('A5:H5')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('CCCCCC');
+        $sheet->getStyle('A4:J4')->getFont()->setBold(true);
+        $sheet->getStyle('A4:J4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('CCCCCC');
 
         // Data anggota
-        $row = 6;
+        $row = 5;
         $no = 1;
         foreach ($dataAnggota as $anggota) {
             $sheet->setCellValue('A' . $row, $no);
-            $sheet->setCellValue('B' . $row, $anggota->no_anggota);
-            $sheet->setCellValue('C' . $row, $anggota->nama);
-            $sheet->setCellValue('D' . $row, $anggota->no_ktp);
-            $sheet->setCellValue('E' . $row, $anggota->tempat_lahir);
-            $sheet->setCellValue('F' . $row, $anggota->tgl_lahir ? Carbon::parse($anggota->tgl_lahir)->format('d/m/Y') : '');
-            $sheet->setCellValue('G' . $row, $anggota->alamat);
-            $sheet->setCellValue('H' . $row, $anggota->aktif === 'Y' ? 'Aktif' : 'Nonaktif');
+            $sheet->setCellValue('B' . $row, 'AG' . str_pad($anggota->id, 4, '0', STR_PAD_LEFT) . ' - ' . $anggota->no_ktp);
+            $sheet->setCellValue('C' . $row, $anggota->nama . ' (' . $anggota->tmp_lahir . '/' . ($anggota->tgl_lahir ? Carbon::parse($anggota->tgl_lahir)->format('d-m-Y') : '-') . ')');
+            $sheet->setCellValue('D' . $row, $anggota->jk === 'L' ? 'L' : 'P');
+            $sheet->setCellValue('E' . $row, ($anggota->jabatan_id == 1 ? 'Pengurus' : 'Anggota') . ' - ' . $anggota->departement);
+            $sheet->setCellValue('F' . $row, $anggota->alamat . ' - ' . $anggota->notelp);
+            $sheet->setCellValue('G' . $row, $anggota->aktif === 'Y' ? 'Aktif' : 'Tidak Aktif');
+            $sheet->setCellValue('H' . $row, $anggota->tgl_daftar ? Carbon::parse($anggota->tgl_daftar)->format('d/m/Y') : '-');
+            $sheet->setCellValue('I' . $row, $anggota->file_pic ? 'Ada' : 'Default');
             $row++;
             $no++;
         }
 
         // Auto size columns
-        foreach (range('A', 'H') as $col) {
+        foreach (range('A', 'J') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 

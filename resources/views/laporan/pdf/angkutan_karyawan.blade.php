@@ -59,7 +59,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="title">LAPORAN BUS ANGKUTAN KARYAWAN</div>
+        <div class="title">LAPORAN LABA RUGI BUS ANGKUTAN KARYAWAN</div>
         <div class="subtitle">Periode: {{ $tgl_periode_txt }}</div>
         <div class="subtitle">Tanggal Cetak: {{ date('d/m/Y H:i:s') }}</div>
     </div>
@@ -182,7 +182,7 @@
         <tbody>
             @foreach($dataOperasional as $operasional)
             <tr>
-                <td>{{ $operasional->nama_akun }}</td>
+                <td>-</td>
                 <td class="text-right">{{ number_format($operasional->Jan ?? 0) }}</td>
                 <td class="text-right">{{ number_format($operasional->Feb ?? 0) }}</td>
                 <td class="text-right">{{ number_format($operasional->Mar ?? 0) }}</td>
@@ -245,7 +245,7 @@
         <tbody>
             @foreach($dataAdmin as $admin)
             <tr>
-                <td>{{ $admin->nama_akun }}</td>
+                <td>-</td>
                 <td class="text-right">{{ number_format($admin->Jan ?? 0) }}</td>
                 <td class="text-right">{{ number_format($admin->Feb ?? 0) }}</td>
                 <td class="text-right">{{ number_format($admin->Mar ?? 0) }}</td>
@@ -279,6 +279,110 @@
             </tr>
         </tbody>
     </table>
+    @endif
+
+    <div class="page-break"></div>
+    
+    <!-- Perhitungan Laba Usaha -->
+    <div class="section-title">PERHITUNGAN LABA USAHA</div>
+    <table>
+        <tbody>
+            <tr>
+                <td class="text-right" style="width: 70%;">Pendapatan Kotor</td>
+                <td class="text-right">{{ number_format($labaUsaha->pendapatan_kotor) }}</td>
+            </tr>
+            <tr>
+                <td class="text-right">Pajak (2%)</td>
+                <td class="text-right">- {{ number_format($labaUsaha->pajak_2_persen) }}</td>
+            </tr>
+            <tr class="total-row">
+                <td class="text-right"><strong>Pendapatan Setelah Pajak</strong></td>
+                <td class="text-right"><strong>{{ number_format($labaUsaha->pendapatan_setelah_pajak) }}</strong></td>
+            </tr>
+            <tr>
+                <td class="text-right">Biaya Operasional</td>
+                <td class="text-right">- {{ number_format($labaUsaha->biaya_operasional) }}</td>
+            </tr>
+            <tr>
+                <td class="text-right">Biaya Administrasi</td>
+                <td class="text-right">- {{ number_format($labaUsaha->biaya_administrasi) }}</td>
+            </tr>
+            <tr class="total-row">
+                <td class="text-right"><strong>Total Biaya</strong></td>
+                <td class="text-right"><strong>- {{ number_format($labaUsaha->total_biaya) }}</strong></td>
+            </tr>
+            <tr style="background-color: #e6f7e6; font-weight: bold; font-size: 14px;">
+                <td class="text-right"><strong>LABA USAHA</strong></td>
+                <td class="text-right"><strong>{{ $labaUsaha->laba_usaha >= 0 ? '+' : '' }}{{ number_format($labaUsaha->laba_usaha) }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    @if($labaUsaha->laba_usaha > 0)
+    <div class="page-break"></div>
+    
+    <!-- Distribusi SHU -->
+    <div class="section-title">DISTRIBUSI SHU (SISA HASIL USAHA)</div>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 70%;">Jenis Dana</th>
+                <th class="text-right">Persentase</th>
+                <th class="text-right">Jumlah (Rp)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Dana Anggota</td>
+                <td class="text-right">50%</td>
+                <td class="text-right">{{ number_format($shuDistribution->dana_anggota) }}</td>
+            </tr>
+            <tr>
+                <td>Dana Cadangan</td>
+                <td class="text-right">20%</td>
+                <td class="text-right">{{ number_format($shuDistribution->dana_cadangan) }}</td>
+            </tr>
+            <tr>
+                <td>Dana Pegawai</td>
+                <td class="text-right">10%</td>
+                <td class="text-right">{{ number_format($shuDistribution->dana_pegawai) }}</td>
+            </tr>
+            <tr>
+                <td>Dana Pembangunan Daerah Kerja</td>
+                <td class="text-right">5%</td>
+                <td class="text-right">{{ number_format($shuDistribution->dana_pembangunan_daerah_kerja) }}</td>
+            </tr>
+            <tr>
+                <td>Dana Sosial</td>
+                <td class="text-right">5%</td>
+                <td class="text-right">{{ number_format($shuDistribution->dana_sosial) }}</td>
+            </tr>
+            <tr>
+                <td>Dana Kesejahteraan Pegawai</td>
+                <td class="text-right">5%</td>
+                <td class="text-right">{{ number_format($shuDistribution->dana_kesejahteraan_pegawai) }}</td>
+            </tr>
+            <tr>
+                <td>Dana Pendidikan</td>
+                <td class="text-right">5%</td>
+                <td class="text-right">{{ number_format($shuDistribution->dana_pendidikan) }}</td>
+            </tr>
+            <tr class="total-row" style="background-color: #e6f7e6; font-weight: bold; font-size: 14px;">
+                <td><strong>TOTAL SHU DIBAGIKAN</strong></td>
+                <td class="text-right"><strong>100%</strong></td>
+                <td class="text-right"><strong>{{ number_format($shuDistribution->total_shu) }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+    @else
+    <div class="page-break"></div>
+    
+    <!-- Tidak Ada SHU -->
+    <div class="section-title">DISTRIBUSI SHU (SISA HASIL USAHA)</div>
+    <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; text-align: center; margin: 20px 0;">
+        <h4 style="color: #856404; margin: 0 0 10px 0;">TIDAK ADA SHU YANG DIBAGIKAN</h4>
+        <p style="color: #856404; margin: 0;">Karena laba usaha negatif atau nol, tidak ada SHU (Sisa Hasil Usaha) yang dapat dibagikan pada periode ini.</p>
+    </div>
     @endif
 </body>
 </html> 

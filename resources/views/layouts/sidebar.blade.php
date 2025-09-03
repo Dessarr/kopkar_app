@@ -297,6 +297,26 @@
                 </svg>
             </button>
             <div x-show="isMenuOpen('laporan')" class="pl-8 space-y-1 mt-1" x-transition>
+                <a href="{{ route('laporan.angkutan.karyawan') }}"
+                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.angkutan.karyawan') ? 'bg-[#14AE5C] text-white' : '' }}">Angkutan
+                    Karyawan</a>
+                <a href="{{ route('laporan.toserda') }}"
+                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.toserda') ? 'bg-[#14AE5C] text-white' : '' }}">Toserda</a>
+                <a href="{{ route('laporan.data.anggota') }}"
+                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.data.anggota') ? 'bg-[#14AE5C] text-white' : '' }}">Data
+                    Anggota</a>
+                <a href="{{ route('laporan.kas.anggota') }}"
+                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.kas.anggota') ? 'bg-[#14AE5C] text-white' : '' }}">Kas
+                    Anggota</a>
+                <a href="{{ route('laporan.jatuh.tempo') }}"
+                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.jatuh.tempo') ? 'bg-[#14AE5C] text-white' : '' }}">Jatuh
+                    Tempo</a>
+                <a href="{{ route('laporan.kredit.macet') }}"
+                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.kredit.macet') ? 'bg-[#14AE5C] text-white' : '' }}">Kredit
+                    Macet</a>
+                <a href="{{ route('laporan.transaksi.kas') }}"
+                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.transaksi.kas') ? 'bg-[#14AE5C] text-white' : '' }}">Transaksi
+                    Kas</a>
                 <a href="{{ route('laporan.buku_besar') }}"
                     class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.buku_besar') ? 'bg-[#14AE5C] text-white' : '' }}">Buku
                     Besar</a>
@@ -325,26 +345,6 @@
                     Kas</a>
                 <a href="{{ route('laporan.shu') }}"
                     class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.shu') ? 'bg-[#14AE5C] text-white' : '' }}">SHU</a>
-                <a href="{{ route('laporan.kas.anggota') }}"
-                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.kas.anggota') ? 'bg-[#14AE5C] text-white' : '' }}">Kas
-                    Anggota</a>
-                <a href="{{ route('laporan.data.anggota') }}"
-                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.data.anggota') ? 'bg-[#14AE5C] text-white' : '' }}">Data
-                    Anggota</a>
-                <a href="{{ route('laporan.jatuh.tempo') }}"
-                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.jatuh.tempo') ? 'bg-[#14AE5C] text-white' : '' }}">Jatuh
-                    Tempo</a>
-                <a href="{{ route('laporan.kredit.macet') }}"
-                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.kredit.macet') ? 'bg-[#14AE5C] text-white' : '' }}">Kredit
-                    Macet</a>
-                <a href="{{ route('laporan.transaksi.kas') }}"
-                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.transaksi.kas') ? 'bg-[#14AE5C] text-white' : '' }}">Transaksi
-                    Kas</a>
-                <a href="{{ route('laporan.angkutan.karyawan') }}"
-                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.angkutan.karyawan') ? 'bg-[#14AE5C] text-white' : '' }}">Angkutan
-                    Karyawan</a>
-                <a href="{{ route('laporan.toserda') }}"
-                    class="block py-2 px-3 rounded-lg transition-all duration-200 hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 {{ request()->routeIs('laporan.toserda') ? 'bg-[#14AE5C] text-white' : '' }}">Toserda</a>
             </div>
         </div>
 

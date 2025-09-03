@@ -388,19 +388,19 @@ Route::prefix('toserda')->group(function () {
         
         Route::get('/transaksi-kas', [LaporanTransaksiKasController::class, 'index'])->name('laporan.transaksi.kas');
         Route::get('/transaksi-kas/export/pdf', [LaporanTransaksiKasController::class, 'exportPdf'])->name('laporan.transaksi.kas.export.pdf');
-        Route::get('/transaksi-kas/export/excel', [LaporanTransaksiKasController::class, 'exportExcel'])->name('laporan.transaksi.kas.export.excel');
         
         Route::get('/kas-anggota', [LaporanKasAnggotaController::class, 'index'])->name('laporan.kas.anggota');
         Route::get('/kas-anggota/export/pdf', [LaporanKasAnggotaController::class, 'exportPdf'])->name('laporan.kas.anggota.export.pdf');
         Route::get('/kas-anggota/export/excel', [LaporanKasAnggotaController::class, 'exportExcel'])->name('laporan.kas.anggota.export.excel');
+        Route::get('/kas-anggota/export/detail', [LaporanKasAnggotaController::class, 'exportExcelDetail'])->name('laporan.kas.anggota.export.detail');
+        Route::get('/kas-anggota/export/tagihan', action: [LaporanKasAnggotaController::class, 'exportExcelTagihan'])->name('laporan.kas.anggota.export.tagihan');
+        Route::get('/kas-anggota/export/simpanan', [LaporanKasAnggotaController::class, 'exportExcelSimpanan'])->name('laporan.kas.anggota.export.simpanan');
         
         Route::get('/jatuh-tempo', [LaporanJatuhTempoController::class, 'index'])->name('laporan.jatuh.tempo');
         Route::get('/jatuh-tempo/export/pdf', [LaporanJatuhTempoController::class, 'exportPdf'])->name('laporan.jatuh.tempo.export.pdf');
-        Route::get('/jatuh-tempo/export/excel', [LaporanJatuhTempoController::class, 'exportExcel'])->name('laporan.jatuh.tempo.export.excel');
         
         Route::get('/kredit-macet', [LaporanKreditMacetController::class, 'index'])->name('laporan.kredit.macet');
         Route::get('/kredit-macet/export/pdf', [LaporanKreditMacetController::class, 'exportPdf'])->name('laporan.kredit.macet.export.pdf');
-        Route::get('/kredit-macet/export/excel', [LaporanKreditMacetController::class, 'exportExcel'])->name('laporan.kredit.macet.export.excel');
     });
 
     // Route Laporan Buku Besar

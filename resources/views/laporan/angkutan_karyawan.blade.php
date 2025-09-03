@@ -1,12 +1,17 @@
 @extends('layouts.app')
 
-@section('title', 'Laporan Angkutan Karyawan')
+@section('title', 'Laporan Laba Rugi Bus Angkutan Karyawan')
 @section('sub-title', 'Laporan')
 
 @section('content')
 <div class="bg-white rounded-lg shadow-md p-6">
+    <!-- Header Laporan -->
+    <div class="mb-6 bg-blue-600 text-white p-6 rounded-lg text-center">
+        <h1 class="text-2xl font-bold mb-2">LAPORAN LABA RUGI BUS ANGKUTAN KARYAWAN</h1>
+        <p class="text-blue-100">Periode: {{ \Carbon\Carbon::parse($tgl_dari)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($tgl_samp)->format('d/m/Y') }}</p>
+    </div>
     <!-- Filter Section -->
-    <div class="mb-6">
+    <div class="mb-6 bg-gray-50 p-4 rounded-lg">
         <form method="GET" action="{{ route('laporan.angkutan.karyawan') }}" class="flex flex-wrap gap-4 items-end">
             <div class="flex-1 min-w-[200px]">
                 <label for="tgl_dari" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Dari</label>
@@ -23,29 +28,29 @@
                     <i class="fas fa-search mr-2"></i>Filter
                 </button>
                 <a href="{{ route('laporan.angkutan.karyawan') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
-                    <i class="fas fa-refresh mr-2"></i>Reset
+                    <i class="fas fa-refresh mr-2"></i>Hapus Filter
                 </a>
             </div>
         </form>
     </div>
 
     <!-- Export Buttons -->
-    <div class="mb-6 flex flex-wrap gap-2">
+    <div class="mb-6 flex flex-wrap gap-2 justify-center">
         <a href="{{ route('laporan.angkutan.karyawan.export.pdf') }}?tgl_dari={{ $tgl_dari }}&tgl_samp={{ $tgl_samp }}" 
-           class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">
-            <i class="fas fa-file-pdf mr-2"></i>Export PDF
+           class="px-8 py-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-bold text-lg shadow-lg transform hover:scale-105">
+            <i class="fas fa-file-pdf mr-2"></i>Cetak Laporan
         </a>
         <a href="{{ route('laporan.angkutan.karyawan.export.excel') }}?tgl_dari={{ $tgl_dari }}&tgl_samp={{ $tgl_samp }}" 
-           class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
+           class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-semibold">
             <i class="fas fa-file-excel mr-2"></i>Export Excel
         </a>
-        <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
+        <button onclick="window.print()" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-semibold">
             <i class="fas fa-print mr-2"></i>Print
         </button>
     </div>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-6">
             <div class="flex items-center">
                 <div class="p-3 rounded-full bg-white bg-opacity-20">
@@ -78,6 +83,18 @@
                 <div class="ml-4">
                     <p class="text-sm opacity-90">Total Biaya Admin</p>
                     <p class="text-2xl font-bold">Rp {{ number_format($jmlAdmin->jml_total ?? 0) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-r {{ $labaUsaha->laba_usaha >= 0 ? 'from-green-500 to-green-600' : 'from-red-500 to-red-600' }} text-white rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-white bg-opacity-20">
+                    <i class="fas {{ $labaUsaha->laba_usaha >= 0 ? 'fa-chart-line' : 'fa-chart-line-down' }} text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm opacity-90">Laba Usaha</p>
+                    <p class="text-2xl font-bold">Rp {{ number_format($labaUsaha->laba_usaha) }}</p>
                 </div>
             </div>
         </div>
@@ -334,6 +351,129 @@
         </div>
     </div>
     @endif
+
+    <!-- Perhitungan Laba Usaha Section -->
+    <div class="mb-8">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-calculator mr-2 text-[#14AE5C]"></i>
+            Perhitungan Laba Usaha
+        </h3>
+        
+        <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600">Pendapatan Kotor</span>
+                        <span class="font-semibold text-gray-900">Rp {{ number_format($labaUsaha->pendapatan_kotor) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600">Pajak (2%)</span>
+                        <span class="font-semibold text-red-600">- Rp {{ number_format($labaUsaha->pajak_2_persen) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b-2 border-gray-300">
+                        <span class="text-gray-800 font-medium">Pendapatan Setelah Pajak</span>
+                        <span class="font-bold text-green-600">Rp {{ number_format($labaUsaha->pendapatan_setelah_pajak) }}</span>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600">Biaya Operasional</span>
+                        <span class="font-semibold text-red-600">- Rp {{ number_format($labaUsaha->biaya_operasional) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600">Biaya Administrasi</span>
+                        <span class="font-semibold text-red-600">- Rp {{ number_format($labaUsaha->biaya_administrasi) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b-2 border-gray-300">
+                        <span class="text-gray-800 font-medium">Total Biaya</span>
+                        <span class="font-bold text-red-600">- Rp {{ number_format($labaUsaha->total_biaya) }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-6 border-t-2 border-gray-300">
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-bold text-gray-800">Laba Usaha</span>
+                    <span class="text-2xl font-bold {{ $labaUsaha->laba_usaha >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                        {{ $labaUsaha->laba_usaha >= 0 ? '+' : '' }} Rp {{ number_format($labaUsaha->laba_usaha) }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distribusi SHU Section -->
+    @if($labaUsaha->laba_usaha > 0)
+    <div class="mb-8">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-share-alt mr-2 text-[#14AE5C]"></i>
+            Distribusi SHU (Sisa Hasil Usaha)
+        </h3>
+        
+        <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600">Dana Anggota (50%)</span>
+                        <span class="font-semibold text-blue-600">Rp {{ number_format($shuDistribution->dana_anggota) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600">Dana Cadangan (20%)</span>
+                        <span class="font-semibold text-green-600">Rp {{ number_format($shuDistribution->dana_cadangan) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600">Dana Pegawai (10%)</span>
+                        <span class="font-semibold text-purple-600">Rp {{ number_format($shuDistribution->dana_pegawai) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600">Dana Pembangunan Daerah Kerja (5%)</span>
+                        <span class="font-semibold text-orange-600">Rp {{ number_format($shuDistribution->dana_pembangunan_daerah_kerja) }}</span>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600">Dana Sosial (5%)</span>
+                        <span class="font-semibold text-pink-600">Rp {{ number_format($shuDistribution->dana_sosial) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600">Dana Kesejahteraan Pegawai (5%)</span>
+                        <span class="font-semibold text-indigo-600">Rp {{ number_format($shuDistribution->dana_kesejahteraan_pegawai) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600">Dana Pendidikan (5%)</span>
+                        <span class="font-semibold text-teal-600">Rp {{ number_format($shuDistribution->dana_pendidikan) }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-6 border-t-2 border-gray-300">
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-bold text-gray-800">Total SHU Dibagikan</span>
+                    <span class="text-2xl font-bold text-green-600">Rp {{ number_format($shuDistribution->total_shu) }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    @else
+    <div class="mb-8">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-share-alt mr-2 text-[#14AE5C]"></i>
+            Distribusi SHU (Sisa Hasil Usaha)
+        </h3>
+        
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl mr-4"></i>
+                <div>
+                    <h4 class="text-lg font-semibold text-yellow-800">Tidak Ada SHU yang Dibagikan</h4>
+                    <p class="text-yellow-700">Karena laba usaha negatif atau nol, tidak ada SHU (Sisa Hasil Usaha) yang dapat dibagikan pada periode ini.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
 
 <!-- Print Styles -->
@@ -356,4 +496,44 @@
     }
 }
 </style>
+
+<!-- JavaScript untuk daterangepicker dan validasi -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default date range to current year
+    const currentYear = new Date().getFullYear();
+    const tglDariInput = document.getElementById('tgl_dari');
+    const tglSampInput = document.getElementById('tgl_samp');
+    
+    // Set default values if not set
+    if (!tglDariInput.value) {
+        tglDariInput.value = currentYear + '-01-01';
+    }
+    if (!tglSampInput.value) {
+        tglSampInput.value = currentYear + '-12-31';
+    }
+    
+    // Validate date range
+    function validateDateRange() {
+        const tglDari = new Date(tglDariInput.value);
+        const tglSamp = new Date(tglSampInput.value);
+        
+        if (tglDari > tglSamp) {
+            alert('Tanggal dari tidak boleh lebih besar dari tanggal sampai!');
+            tglSampInput.value = tglDariInput.value;
+        }
+    }
+    
+    tglDariInput.addEventListener('change', validateDateRange);
+    tglSampInput.addEventListener('change', validateDateRange);
+    
+    // Auto-submit form when date changes (optional)
+    // tglDariInput.addEventListener('change', function() {
+    //     document.querySelector('form').submit();
+    // });
+    // tglSampInput.addEventListener('change', function() {
+    //     document.querySelector('form').submit();
+    // });
+});
+</script>
 @endsection 

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\View_AngkutanKaryawan;
+use App\Models\View_BiayaOperasional;
+use App\Models\View_AdminUmum;
 use App\Models\TblTransAngkutan;
 use App\Models\data_mobil;
 use Carbon\Carbon;
@@ -35,6 +37,12 @@ class LaporanAngkutanKaryawanController extends Controller
         $jmlAdmin = $this->getJmlAdmin($tgl_dari, $tgl_samp);
         $jmlAdminTahun = $this->getJmlAdminTahun($tgl_dari, $tgl_samp);
 
+        // Calculate Laba Usaha (Laba Bersih)
+        $labaUsaha = $this->calculateLabaUsaha($jmlBus, $jmlOperasional, $jmlAdmin);
+        
+        // Calculate SHU Distribution
+        $shuDistribution = $this->calculateShuDistribution($labaUsaha);
+
         return view('laporan.angkutan_karyawan', compact(
             'dataBus',
             'jmlBus',
@@ -46,6 +54,8 @@ class LaporanAngkutanKaryawanController extends Controller
             'dataAdmin',
             'jmlAdmin',
             'jmlAdminTahun',
+            'labaUsaha',
+            'shuDistribution',
             'tgl_dari',
             'tgl_samp'
         ));
@@ -68,6 +78,12 @@ class LaporanAngkutanKaryawanController extends Controller
         $jmlAdmin = $this->getJmlAdmin($tgl_dari, $tgl_samp);
         $jmlAdminTahun = $this->getJmlAdminTahun($tgl_dari, $tgl_samp);
 
+        // Calculate Laba Usaha (Laba Bersih)
+        $labaUsaha = $this->calculateLabaUsaha($jmlBus, $jmlOperasional, $jmlAdmin);
+        
+        // Calculate SHU Distribution
+        $shuDistribution = $this->calculateShuDistribution($labaUsaha);
+
         $tgl_periode_txt = Carbon::parse($tgl_dari)->format('d/m/Y') . ' - ' . Carbon::parse($tgl_samp)->format('d/m/Y');
 
         $pdf = PDF::loadView('laporan.pdf.angkutan_karyawan', compact(
@@ -81,6 +97,8 @@ class LaporanAngkutanKaryawanController extends Controller
             'dataAdmin',
             'jmlAdmin',
             'jmlAdminTahun',
+            'labaUsaha',
+            'shuDistribution',
             'tgl_periode_txt'
         ));
 
@@ -260,8 +278,7 @@ class LaporanAngkutanKaryawanController extends Controller
 
     private function getDataOperasional($tgl_dari, $tgl_samp)
     {
-        return DB::table('v_biaya_operasional')
-            ->select('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'TOTAL')
+        return View_BiayaOperasional::select('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'TOTAL')
             ->whereBetween(DB::raw('DATE(tgl_catat)'), [$tgl_dari, $tgl_samp])
             ->groupBy('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'TOTAL')
             ->get();
@@ -269,16 +286,14 @@ class LaporanAngkutanKaryawanController extends Controller
 
     private function getJmlOperasional($tgl_dari, $tgl_samp)
     {
-        return DB::table('v_biaya_operasional')
-            ->select(DB::raw('SUM(TOTAL) as jml_total'))
+        return View_BiayaOperasional::select(DB::raw('SUM(TOTAL) as jml_total'))
             ->whereBetween(DB::raw('DATE(tgl_catat)'), [$tgl_dari, $tgl_samp])
             ->first();
     }
 
     private function getJmlOperasionalTahun($tgl_dari, $tgl_samp)
     {
-        return DB::table('v_biaya_operasional')
-            ->select(
+        return View_BiayaOperasional::select(
                 DB::raw('SUM(Jan) as jml_total_jan'),
                 DB::raw('SUM(Feb) as jml_total_feb'),
                 DB::raw('SUM(Mar) as jml_total_mar'),
@@ -298,8 +313,7 @@ class LaporanAngkutanKaryawanController extends Controller
 
     private function getDataAdmin($tgl_dari, $tgl_samp)
     {
-        return DB::table('v_biaya_usaha')
-            ->select('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'TOTAL')
+        return View_AdminUmum::select('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'TOTAL')
             ->whereBetween(DB::raw('DATE(tgl_catat)'), [$tgl_dari, $tgl_samp])
             ->groupBy('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'TOTAL')
             ->get();
@@ -307,16 +321,14 @@ class LaporanAngkutanKaryawanController extends Controller
 
     private function getJmlAdmin($tgl_dari, $tgl_samp)
     {
-        return DB::table('v_biaya_usaha')
-            ->select(DB::raw('SUM(TOTAL) as jml_total'))
+        return View_AdminUmum::select(DB::raw('SUM(TOTAL) as jml_total'))
             ->whereBetween(DB::raw('DATE(tgl_catat)'), [$tgl_dari, $tgl_samp])
             ->first();
     }
 
     private function getJmlAdminTahun($tgl_dari, $tgl_samp)
     {
-        return DB::table('v_biaya_usaha')
-            ->select(
+        return View_AdminUmum::select(
                 DB::raw('SUM(Jan) as jml_total_jan'),
                 DB::raw('SUM(Feb) as jml_total_feb'),
                 DB::raw('SUM(Mar) as jml_total_mar'),
@@ -332,5 +344,62 @@ class LaporanAngkutanKaryawanController extends Controller
             )
             ->whereBetween(DB::raw('DATE(tgl_catat)'), [$tgl_dari, $tgl_samp])
             ->first();
+    }
+
+    /**
+     * Calculate Laba Usaha (Net Profit)
+     * Formula: Laba Usaha = Pendapatan Setelah Pajak - (Biaya Operasional + Biaya Administrasi)
+     */
+    private function calculateLabaUsaha($jmlBus, $jmlOperasional, $jmlAdmin)
+    {
+        $pendapatanSetelahPajak = ($jmlBus->jml_total ?? 0) - (($jmlBus->jml_total ?? 0) * 0.02);
+        $totalBiaya = ($jmlOperasional->jml_total ?? 0) + ($jmlAdmin->jml_total ?? 0);
+        $labaUsaha = $pendapatanSetelahPajak - $totalBiaya;
+
+        return (object) [
+            'pendapatan_kotor' => $jmlBus->jml_total ?? 0,
+            'pajak_2_persen' => ($jmlBus->jml_total ?? 0) * 0.02,
+            'pendapatan_setelah_pajak' => $pendapatanSetelahPajak,
+            'biaya_operasional' => $jmlOperasional->jml_total ?? 0,
+            'biaya_administrasi' => $jmlAdmin->jml_total ?? 0,
+            'total_biaya' => $totalBiaya,
+            'laba_usaha' => $labaUsaha
+        ];
+    }
+
+    /**
+     * Calculate SHU Distribution according to cooperative principles
+     * Formula: SHU dibagi ke 7 kategori dana dengan persentase tetap
+     */
+    private function calculateShuDistribution($labaUsaha)
+    {
+        $laba = $labaUsaha->laba_usaha;
+        
+        // Jika laba negatif, tidak ada SHU yang dibagikan
+        if ($laba <= 0) {
+            return (object) [
+                'dana_anggota' => 0,
+                'dana_cadangan' => 0,
+                'dana_pegawai' => 0,
+                'dana_pembangunan_daerah_kerja' => 0,
+                'dana_sosial' => 0,
+                'dana_kesejahteraan_pegawai' => 0,
+                'dana_pendidikan' => 0,
+                'total_shu' => 0,
+                'laba_usaha' => $laba
+            ];
+        }
+
+        return (object) [
+            'dana_anggota' => $laba * 0.50,           // 50%
+            'dana_cadangan' => $laba * 0.20,          // 20%
+            'dana_pegawai' => $laba * 0.10,           // 10%
+            'dana_pembangunan_daerah_kerja' => $laba * 0.05,  // 5%
+            'dana_sosial' => $laba * 0.05,            // 5%
+            'dana_kesejahteraan_pegawai' => $laba * 0.05,     // 5%
+            'dana_pendidikan' => $laba * 0.05,        // 5%
+            'total_shu' => $laba,
+            'laba_usaha' => $laba
+        ];
     }
 } 

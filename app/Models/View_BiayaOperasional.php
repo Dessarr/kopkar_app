@@ -23,8 +23,9 @@ class View_BiayaOperasional extends View_Base
         'TOTAL' => 'decimal:2'
     ];
 
-    public function jenisAkun()
-    {
-        return $this->belongsTo(jns_akun::class, 'jns_trans', 'id');
-    }
-} 
+    // Note: This view may not have jns_akun_id column
+    // public function jenisAkun()
+    // {
+    //     return $this->belongsTo(jns_akun::class, 'jns_akun_id', 'id');
+    // }
+}
