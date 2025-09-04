@@ -12,6 +12,7 @@ use App\Models\NamaKasTbl;
 use App\Models\jns_akun;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -127,10 +128,15 @@ class AnggotaController extends Controller
         
         // Apply filters
         if ($search) {
-            $query->whereHas('anggota', function($q) use ($search) {
-                $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('no_ktp', 'like', "%{$search}%");
-            });
+            // Check if search is numeric (ID) or text (name/ktp)
+            if (is_numeric($search)) {
+                $query->where('id', $search);
+            } else {
+                $query->whereHas('anggota', function($q) use ($search) {
+                    $q->where('nama', 'like', "%{$search}%")
+                      ->orWhere('no_ktp', 'like', "%{$search}%");
+                });
+            }
         }
         
         if ($startDate) {
@@ -141,7 +147,7 @@ class AnggotaController extends Controller
             $query->whereDate('tgl_transaksi', '<=', $endDate);
         }
         
-        $shuData = $query->orderBy('tgl_transaksi', 'desc')->paginate(15);
+        $shuData = $query->orderBy('tgl_transaksi', 'desc')->paginate(10);
         $anggota = data_anggota::where('aktif', 'Y')->get();
         $kas = NamaKasTbl::where('aktif', 'Y')->get();
         
@@ -149,50 +155,133 @@ class AnggotaController extends Controller
     }
     
     /**
-     * Store new SHU transaction
+     * Store new SHU transaction - Format response seperti project CodeIgniter lama
      */
     public function storeShu(Request $request)
     {
-        $request->validate([
-            'tgl_transaksi' => 'required|date',
-            'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
-            'jumlah_bayar' => 'required|numeric|min:0',
-            'keterangan' => 'nullable|string|max:255'
-        ]);
-        
         try {
+            Log::info('Store SHU Request:', $request->all());
+            
+            // Validasi seperti project lama - pastikan jumlah > 0
+            $validated = $request->validate([
+                'tgl_transaksi' => 'required|date',
+                'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
+                'jumlah_bayar' => 'required|numeric|min:1' // Pastikan > 0 seperti project lama
+            ], [
+                'tgl_transaksi.required' => 'Tanggal Transaksi harus diisi',
+                'tgl_transaksi.date' => 'Format tanggal tidak valid',
+                'no_ktp.required' => 'Anggota harus dipilih',
+                'no_ktp.exists' => 'Anggota yang dipilih tidak ditemukan',
+                'jumlah_bayar.required' => 'Jumlah SHU harus diisi',
+                'jumlah_bayar.numeric' => 'Jumlah SHU harus berupa angka',
+                'jumlah_bayar.min' => 'Jumlah SHU tidak boleh kurang dari 1'
+            ]);
+            
+            Log::info('Validation passed:', $validated);
+
+            if (!Auth::check()) {
+                Log::error('User not authenticated');
+                return response()->json([
+                    'ok' => false, 
+                    'msg' => '<div class="text-red"><i class="fa fa-ban"></i> User tidak terautentikasi</div>'
+                ]);
+            }
+            
+            Log::info('User authenticated:', ['user' => Auth::user()->u_name ?? 'unknown']);
+
             DB::beginTransaction();
             
+            // Format data seperti project lama
             $shu = new TblShu();
-            $shu->tgl_transaksi = $request->tgl_transaksi;
-            $shu->no_ktp = $request->no_ktp;
-            $shu->jumlah_bayar = $request->jumlah_bayar;
+            $shu->tgl_transaksi = $validated['tgl_transaksi'];
+            $shu->no_ktp = $validated['no_ktp'];
+            $shu->jumlah_bayar = $validated['jumlah_bayar'];
             $shu->jns_trans = '46'; // SHU transaction type
-            $shu->dk = 'K'; // Kredit
+            $shu->dk = 'K'; // Kredit seperti project lama
             $shu->kas_id = 1; // Default kas
             $shu->update_data = now();
-            $shu->user_name = 'admin';
-            $shu->save();
+            $shu->user_name = Auth::user()->u_name ?? 'admin';
             
-            DB::commit();
+            if ($shu->save()) {
+                DB::commit();
+                Log::info('Data SHU berhasil disimpan dengan ID:', ['id' => $shu->id]);
+                
+                // Response format seperti project CodeIgniter lama
+                return response()->json([
+                    'ok' => true, 
+                    'msg' => '<div class="text-green"><i class="fa fa-check"></i> Data berhasil disimpan</div>'
+                ]);
+            } else {
+                throw new \Exception('Gagal menyimpan data ke database');
+            }
             
-            return redirect()->route('anggota.shu')->with('success', 'Data SHU berhasil ditambahkan.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollback();
+            $errorMessage = '';
+            foreach ($e->errors() as $field => $errors) {
+                $errorMessage .= implode(', ', $errors) . ' ';
+            }
+            
+            return response()->json([
+                'ok' => false, 
+                'msg' => '<div class="text-red"><i class="fa fa-ban"></i> ' . trim($errorMessage) . '</div>'
+            ]);
         } catch (\Exception $e) {
             DB::rollback();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            Log::error('Error storing SHU:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            
+            return response()->json([
+                'ok' => false, 
+                'msg' => '<div class="text-red"><i class="fa fa-ban"></i> Gagal menyimpan data, pastikan nilai lebih dari <strong>0 (NOL)</strong>.</div>'
+            ]);
         }
     }
     
     /**
-     * Edit SHU transaction
+     * Get anggota data with foto - seperti project CodeIgniter lama
      */
-    public function editShu($id)
+    public function getAnggotaData(Request $request)
     {
-        $shu = TblShu::findOrFail($id);
-        $anggota = data_anggota::where('aktif', 'Y')->get();
-        $kas = NamaKasTbl::where('aktif', 'Y')->get();
-        
-        return view('anggota.shu', compact('shu', 'anggota', 'kas'));
+        try {
+            $anggota = data_anggota::where('no_ktp', $request->no_ktp)->first();
+            
+            if ($anggota) {
+                // Handle foto - path yang benar
+                $foto_path = '';
+                if (empty($anggota->file_pic)) {
+                    $foto_path = ''; // No default photo, use placeholder
+                } else {
+                    // Path yang benar: storage/anggota/filename
+                    $path = 'anggota/' . $anggota->file_pic;
+                    if (\Storage::exists($path)) {
+                        $foto_path = asset('storage/' . $path);
+                    } else {
+                        $foto_path = ''; // Use placeholder if file not found
+                    }
+                }
+                
+                return response()->json([
+                    'ok' => true,
+                    'data' => [
+                        'id' => $anggota->id,
+                        'nama' => $anggota->nama,
+                        'no_ktp' => $anggota->no_ktp,
+                        'foto' => $foto_path
+                    ]
+                ]);
+            }
+            
+            return response()->json([
+                'ok' => false, 
+                'msg' => 'Anggota tidak ditemukan'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting anggota data:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'ok' => false, 
+                'msg' => 'Terjadi kesalahan sistem'
+            ]);
+        }
     }
     
     /**
@@ -200,24 +289,64 @@ class AnggotaController extends Controller
      */
     public function updateShu(Request $request, $id)
     {
-        $request->validate([
-            'tgl_transaksi' => 'required|date',
-            'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
-            'jumlah_bayar' => 'required|numeric|min:0',
-            'keterangan' => 'nullable|string|max:255'
-        ]);
-        
         try {
-            $shu = TblShu::findOrFail($id);
-            $shu->tgl_transaksi = $request->tgl_transaksi;
-            $shu->no_ktp = $request->no_ktp;
-            $shu->jumlah_bayar = $request->jumlah_bayar;
-            $shu->update_data = now();
-            $shu->save();
+            Log::info('Update SHU Request:', $request->all());
+            Log::info('Update ID:', ['id' => $id]);
+            Log::info('User authenticated:', ['user' => Auth::user()]);
             
-            return redirect()->route('anggota.shu')->with('success', 'Data SHU berhasil diperbarui.');
+            $validated = $request->validate([
+                'tgl_transaksi' => 'required|date',
+                'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
+                'jumlah_bayar' => 'required|numeric|min:0.01'
+            ], [
+                'tgl_transaksi.required' => 'Tanggal Transaksi harus diisi',
+                'tgl_transaksi.date' => 'Format tanggal tidak valid',
+                'no_ktp.required' => 'Anggota harus dipilih',
+                'no_ktp.exists' => 'Anggota yang dipilih tidak ditemukan',
+                'jumlah_bayar.required' => 'Jumlah SHU harus diisi',
+                'jumlah_bayar.numeric' => 'Jumlah SHU harus berupa angka',
+                'jumlah_bayar.min' => 'Jumlah SHU tidak boleh kurang dari 0.01'
+            ]);
+
+            if (!Auth::check()) {
+                return response()->json(['success' => false, 'message' => 'User tidak terautentikasi'], 401);
+            }
+
+            $shu = TblShu::findOrFail($id);
+            $shu->tgl_transaksi = $validated['tgl_transaksi'];
+            $shu->no_ktp = $validated['no_ktp'];
+            $shu->jumlah_bayar = $validated['jumlah_bayar'];
+            $shu->update_data = now();
+            $shu->user_name = Auth::user()->u_name ?? 'System';
+            
+            if (!$shu->save()) {
+                throw new \Exception('Gagal mengupdate data ke database');
+            }
+            
+            Log::info('Data SHU berhasil diupdate dengan ID:', ['id' => $shu->id]);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data SHU berhasil diupdate',
+                    'data' => ['id' => $shu->id, 'kode_transaksi' => 'TRD' . str_pad($shu->id, 5, '0', STR_PAD_LEFT)]
+                ]);
+            } else {
+                return redirect()->route('anggota.shu')->with('success', 'Data SHU berhasil diperbarui.');
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Validasi gagal', 'errors' => $e->errors()], 422);
+            } else {
+                return redirect()->back()->withErrors($e->errors())->withInput();
+            }
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            Log::error('Error updating SHU:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
+            } else {
+                return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
+            }
         }
     }
     
@@ -229,10 +358,16 @@ class AnggotaController extends Controller
         try {
             $shu = TblShu::findOrFail($id);
             $shu->delete();
-            
-            return redirect()->route('anggota.shu')->with('success', 'Data SHU berhasil dihapus.');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data berhasil dihapus'
+            ]);
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
         }
     }
     
@@ -424,10 +559,32 @@ class AnggotaController extends Controller
         
         // Apply filters
         if ($search) {
-            $query->whereHas('anggota', function($q) use ($search) {
-                $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('no_ktp', 'like', "%{$search}%");
-            });
+            $search = trim($search);
+            
+            // Check if search is a transaction code (TRD format)
+            if (preg_match('/^TRD\d+$/i', $search)) {
+                // Extract ID from TRD code
+                $id = (int) str_replace(['TRD', 'trd'], '', $search);
+                $query->where('id', $id);
+            }
+            // Check if search is just a number (ID)
+            elseif (is_numeric($search)) {
+                $query->where('id', $search);
+            }
+            // Check if search is member ID (AG format)
+            elseif (preg_match('/^AG\d+$/i', $search)) {
+                $memberId = (int) str_replace(['AG', 'ag'], '', $search);
+                $query->whereHas('anggota', function($q) use ($memberId) {
+                    $q->where('id', $memberId);
+                });
+            }
+            // Otherwise search by name or KTP
+            else {
+                $query->whereHas('anggota', function($q) use ($search) {
+                    $q->where('nama', 'like', "%{$search}%")
+                      ->orWhere('no_ktp', 'like', "%{$search}%");
+                });
+            }
         }
         
         if ($startDate) {
@@ -455,8 +612,7 @@ class AnggotaController extends Controller
             'tgl_transaksi' => 'required|date',
             'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
             'jenis_id' => 'required|in:154,155',
-            'jumlah' => 'required|numeric|min:0',
-            'keterangan' => 'nullable|string|max:255'
+            'jumlah' => 'required|numeric|min:0'
         ]);
         
         try {
@@ -470,19 +626,32 @@ class AnggotaController extends Controller
             $toserda->anggota_id = $anggota->id;
             $toserda->jenis_id = $request->jenis_id;
             $toserda->jumlah = $request->jumlah;
-            $toserda->keterangan = $request->keterangan;
-            $toserda->akun = $request->jenis_id;
+            $toserda->akun = 'Setoran'; // TOSERDA adalah setoran
             $toserda->dk = 'D'; // Debit
             $toserda->kas_id = 1; // Default kas
             $toserda->update_data = now();
-            $toserda->user_name = 'admin';
+            $toserda->user_name = Auth::user()->u_name ?? 'admin';
             $toserda->save();
             
             DB::commit();
             
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data TOSERDA berhasil ditambahkan',
+                    'data' => ['id' => $toserda->id, 'kode_transaksi' => 'TRD' . str_pad($toserda->id, 5, '0', STR_PAD_LEFT)]
+                ]);
+            }
+            
             return redirect()->route('anggota.toserda')->with('success', 'Data TOSERDA berhasil ditambahkan.');
         } catch (\Exception $e) {
             DB::rollback();
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ]);
+            }
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -509,8 +678,7 @@ class AnggotaController extends Controller
             'tgl_transaksi' => 'required|date',
             'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
             'jenis_id' => 'required|in:154,155',
-            'jumlah' => 'required|numeric|min:0',
-            'keterangan' => 'nullable|string|max:255'
+            'jumlah' => 'required|numeric|min:0'
         ]);
         
         try {
@@ -519,13 +687,27 @@ class AnggotaController extends Controller
             $toserda->no_ktp = $request->no_ktp;
             $toserda->jenis_id = $request->jenis_id;
             $toserda->jumlah = $request->jumlah;
-            $toserda->keterangan = $request->keterangan;
-            $toserda->akun = $request->jenis_id;
+            $toserda->akun = 'Setoran'; // TOSERDA adalah setoran
             $toserda->update_data = now();
+            $toserda->user_name = Auth::user()->u_name ?? 'admin';
             $toserda->save();
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data TOSERDA berhasil diupdate',
+                    'data' => ['id' => $toserda->id, 'kode_transaksi' => 'TRD' . str_pad($toserda->id, 5, '0', STR_PAD_LEFT)]
+                ]);
+            }
             
             return redirect()->route('anggota.toserda')->with('success', 'Data TOSERDA berhasil diperbarui.');
         } catch (\Exception $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ]);
+            }
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -533,14 +715,27 @@ class AnggotaController extends Controller
     /**
      * Delete TOSERDA transaction
      */
-    public function deleteToserda($id)
+    public function deleteToserda(Request $request, $id)
     {
         try {
             $toserda = TblTransSp::findOrFail($id);
             $toserda->delete();
             
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data TOSERDA berhasil dihapus'
+                ]);
+            }
+            
             return redirect()->route('anggota.toserda')->with('success', 'Data TOSERDA berhasil dihapus.');
         } catch (\Exception $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ]);
+            }
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -575,7 +770,6 @@ class AnggotaController extends Controller
                     $no_ktp = $row[1];
                     $jenis_id = (int) $row[2];
                     $jumlah = (float) $row[3];
-                    $keterangan = $row[4] ?? '';
                     
                     // Check if member exists
                     $anggota = data_anggota::where('no_ktp', $no_ktp)->first();
@@ -590,8 +784,7 @@ class AnggotaController extends Controller
                     $toserda->anggota_id = $anggota->id;
                     $toserda->jenis_id = $jenis_id;
                     $toserda->jumlah = $jumlah;
-                    $toserda->keterangan = $keterangan;
-                    $toserda->akun = $jenis_id;
+                    $toserda->akun = 'Setoran'; // TOSERDA adalah setoran
                     $toserda->dk = 'D';
                     $toserda->kas_id = 1;
                     $toserda->update_data = now();

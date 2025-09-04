@@ -4,7 +4,7 @@
 @section('sub-title', 'Toko Serba Ada')
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
+<div class="px-1 justify-center flex flex-col">
     @if(session('success'))
     <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
         <span class="block sm:inline">{{ session('success') }}</span>
@@ -19,26 +19,23 @@
 
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center">
                 <div class="p-3 rounded-full bg-green-100 text-green-600">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                    </svg>
+                    <i class="fas fa-money-bill-wave text-xl"></i>
                 </div>
                 <div class="ml-4">
                     <p class="text-sm font-medium text-gray-600">Total TOSERDA</p>
-                    <p class="text-2xl font-semibold text-gray-900">Rp {{ number_format($toserdaData->sum('jumlah'), 0, ',', '.') }}</p>
+                    <p class="text-2xl font-semibold text-gray-900">
+                        Rp{{ number_format($toserdaData->sum('jumlah'), 0, ',', '.') }}
+                    </p>
                 </div>
             </div>
         </div>
-
-        <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center">
                 <div class="p-3 rounded-full bg-blue-100 text-blue-600">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
+                    <i class="fas fa-list text-xl"></i>
                 </div>
                 <div class="ml-4">
                     <p class="text-sm font-medium text-gray-600">Total Transaksi</p>
@@ -46,119 +43,144 @@
                 </div>
             </div>
         </div>
-
-        <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center">
                 <div class="p-3 rounded-full bg-purple-100 text-purple-600">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
+                    <i class="fas fa-calendar text-xl"></i>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Periode</p>
-                    <p class="text-2xl font-semibold text-gray-900">
-                        {{ $startDate ? \Carbon\Carbon::parse($startDate)->format('d M Y') : 'Semua' }} - 
-                        {{ $endDate ? \Carbon\Carbon::parse($endDate)->format('d M Y') : 'Semua' }}
-                    </p>
+                    <p class="text-sm font-medium text-gray-600">Periode Aktif</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ date('M Y') }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Filter Form -->
-    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-        <form method="GET" action="{{ route('anggota.toserda') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai</label>
-                <input type="date" id="start_date" name="start_date" value="{{ $startDate }}" 
-                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-            </div>
-            <div>
-                <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Akhir</label>
-                <input type="date" id="end_date" name="end_date" value="{{ $endDate }}" 
-                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-            </div>
-            <div>
-                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Cari</label>
-                <input type="text" id="search" name="search" value="{{ $search }}" placeholder="Nama atau No KTP..." 
-                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-            </div>
-            <div class="flex items-end">
-                <button type="submit" class="w-full bg-[#14AE5C] text-white px-4 py-2 rounded-md hover:bg-[#14AE5C]/80 focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:ring-opacity-50">
-                    Filter
-                </button>
+    <!-- Simple Filter Section -->
+    <div class="bg-white rounded-lg shadow-md p-3 mb-4">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-base font-semibold text-gray-800">Filter TOSERDA Anggota</h3>
+        </div>
+
+        <form method="GET" action="{{ route('anggota.toserda') }}" id="filterForm">
+            <!-- Simple Filter Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-2 py-2 px-2 bg-gray-50 rounded-lg">
+                <!-- Left Side: Filter Controls -->
+                <div class="flex items-center space-x-3">
+                    <!-- 1. Tanggal -->
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Tanggal:</label>
+                        <button type="button" id="daterange-btn"
+                            class="px-3 py-1.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                            <i class="fas fa-calendar mr-1"></i>
+                            <span id="daterange-text">Pilih Tanggal</span>
+                            <i class="fas fa-chevron-down ml-1"></i>
+                        </button>
+                        <!-- Hidden inputs untuk form submission -->
+                        <input type="hidden" name="start_date" id="tgl_dari" value="{{ $startDate }}">
+                        <input type="hidden" name="end_date" id="tgl_sampai" value="{{ $endDate }}">
+                    </div>
+
+                    <!-- 2. Search Kode Transaksi -->
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Cari:</label>
+                        <input type="text" name="search" id="search" value="{{ $search }}"
+                            placeholder="TRD00001, AG0001, atau Nama"
+                            class="px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm w-40"
+                            onkeypress="if(event.key==='Enter'){doSearch();}">
+                    </div>
+
+                    <!-- 3. Button Filter -->
+                    <button type="button" onclick="doSearch()" id="searchBtn"
+                        class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                        <i class="fas fa-search mr-1"></i>Cari
+                    </button>
+                </div>
+
+                <!-- Right Side: Action Buttons -->
+                <div class="flex items-center space-x-2">
+                    <!-- 4. Button Cetak Laporan -->
+                    <button type="button" onclick="cetakLaporan()"
+                        class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                        <i class="fas fa-print mr-1"></i>Cetak Laporan
+                    </button>
+
+                    <!-- 5. Button Hapus Filter -->
+                    <button type="button" onclick="clearFilters()"
+                        class="px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
+                        <i class="fas fa-times mr-1"></i>Hapus Filter
+                    </button>
+                </div>
             </div>
         </form>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="flex flex-wrap gap-4 mb-6">
-        <button onclick="openModal()" class="bg-[#14AE5C] text-white px-4 py-2 rounded-md hover:bg-[#14AE5C]/80 focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:ring-opacity-50 flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
-            Tambah TOSERDA
-        </button>
-        
-        <a href="{{ route('anggota.toserda.export.pdf', request()->query()) }}" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            Export PDF
-        </a>
-        
-        <a href="{{ route('anggota.toserda.export.excel', request()->query()) }}" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            Export Excel
-        </a>
-
-        <!-- Import Button -->
-        <button onclick="openImportModal()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-            </svg>
-            Import Excel
-        </button>
-    </div>
-
     <!-- Data Table -->
-    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="flex justify-between items-center mb-2 p-4">
+            <h2 class="text-lg font-semibold text-gray-800">Data TOSERDA Anggota</h2>
+            <div class="flex space-x-3">
+                <button onclick="openModal('addModal')"
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-plus"></i>
+                    <span>Tambah</span>
+                </button>
+                <button onclick="editData()"
+                    class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-edit"></i>
+                    <span>Edit</span>
+                </button>
+                <button onclick="deleteData()"
+                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-trash"></i>
+                    <span>Hapus</span>
+                </button>
+            </div>
+        </div>
+
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Transaksi</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Transaksi</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Anggota</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Anggota</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No KTP</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Transaksi</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+            <table class="table-auto w-full border border-gray-300 text-center">
+                <thead class="bg-gray-100">
+                    <tr class="text-sm">
+                        <th class="py-3 border px-4">No</th>
+                        <th class="py-3 border px-4">Kode Transaksi</th>
+                        <th class="py-3 border px-4">Tanggal Transaksi</th>
+                        <th class="py-3 border px-4">ID Anggota</th>
+                        <th class="py-3 border px-4">Nama Anggota</th>
+                        <th class="py-3 border px-4">Jenis</th>
+                        <th class="py-3 border px-4">Jumlah</th>
+                        <th class="py-3 border px-4">User</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse($toserdaData as $toserda)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            TRD{{ str_pad($toserda->id, 5, '0', STR_PAD_LEFT) }}
+                <tbody>
+                    @forelse($toserdaData as $index => $toserda)
+                    <tr class="text-sm align-middle hover:bg-gray-50 cursor-pointer row-selectable"
+                        data-id="{{ $toserda->id }}" data-kode="TRD{{ str_pad($toserda->id, 5, '0', STR_PAD_LEFT) }}"
+                        data-tanggal="{{ $toserda->tgl_transaksi }}" data-keterangan="{{ $toserda->keterangan ?? '' }}"
+                        data-no-ktp="{{ $toserda->no_ktp }}" data-nama-anggota="{{ $toserda->anggota->nama ?? 'N/A' }}"
+                        data-id-anggota="{{ $toserda->anggota->id ?? 0 }}" data-jumlah="{{ $toserda->jumlah }}"
+                        data-jenis-id="{{ $toserda->jenis_id }}" data-user="{{ $toserda->user_name }}">
+                        <td class="py-3 border px-4">
+                            {{ ($toserdaData->currentPage() - 1) * $toserdaData->perPage() + $loop->iteration }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $toserda->tgl_transaksi->format('d/m/Y') }}
+                        <td class="py-3 border px-4">
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                TRD{{ str_pad($toserda->id, 5, '0', STR_PAD_LEFT) }}
+                            </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td class="py-3 border px-4">
+                            {{ $toserda->tgl_transaksi ? \Carbon\Carbon::parse($toserda->tgl_transaksi)->format('d F Y - H:i') : '-' }}
+                        </td>
+                        <td class="py-3 border px-4">
                             AG{{ str_pad($toserda->anggota->id ?? 0, 4, '0', STR_PAD_LEFT) }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $toserda->anggota->nama ?? 'N/A' }}
+                        <td class="py-3 border px-4 text-left">
+                            <div>
+                                <div class="font-medium">{{ $toserda->anggota->nama ?? 'N/A' }}</div>
+                                <div class="text-xs text-gray-500">{{ $toserda->anggota->id_anggota ?? 'N/A' }}</div>
+                            </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $toserda->no_ktp }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td class="py-3 border px-4">
                             @if($toserda->jenis_id == 154)
                                 <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">Lain-lain</span>
                             @elseif($toserda->jenis_id == 155)
@@ -167,111 +189,204 @@
                                 <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">Lainnya</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            Rp {{ number_format($toserda->jumlah, 0, ',', '.') }}
+                        <td class="py-3 border px-4 font-semibold text-green-600">
+                            {{ number_format($toserda->jumlah ?? 0, 0, ',', '.') }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $toserda->user_name }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div class="flex space-x-2">
-                                <a href="{{ route('anggota.toserda.cetak', $toserda->id) }}" class="text-blue-600 hover:text-blue-900" title="Cetak">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
-                                    </svg>
-                                </a>
-                                <button onclick="editToserda({{ $toserda->id }})" class="text-indigo-600 hover:text-indigo-900" title="Edit">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
-                                </button>
-                                <button onclick="deleteToserda({{ $toserda->id }})" class="text-red-600 hover:text-red-900" title="Hapus">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </td>
+                        <td class="py-3 border px-4">{{ $toserda->user_name ?? '-' }}</td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="px-6 py-4 text-center text-gray-500">Tidak ada data TOSERDA</td>
+                        <td colspan="8" class="py-8 text-center text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-2"></i>
+                            <p>Tidak ada data TOSERDA</p>
+                        </td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        
-        <!-- Pagination -->
-        @if($toserdaData->hasPages())
-        <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-            {{ $toserdaData->appends(request()->query())->links() }}
+
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-5 w-full relative px-2 py-2">
+        <div class="mx-auto w-fit">
+            <div
+                class="bg-white px-4 py-1 flex flex-row rounded-full justify-center items-center space-x-2 border border-gray-300 shadow-sm">
+                @for ($i = 1; $i <= $toserdaData->lastPage(); $i++)
+                    @if ($i == 1 || $i == $toserdaData->lastPage() || ($i >= $toserdaData->currentPage() - 1 && $i <= $toserdaData->
+                        currentPage() + 1))
+                        <a href="{{ $toserdaData->url($i) }}">
+                            <div
+                                class="rounded-md px-2 py-0.5 text-sm border border-gray-300 {{ $toserdaData->currentPage() == $i ? 'bg-gray-100 font-bold' : '' }}">
+                                {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
+                            </div>
+                        </a>
+                        @elseif ($i == 2 || $i == $toserdaData->lastPage() - 1)
+                        <div class="rounded-md px-2 py-0.5 text-sm">...</div>
+                        @endif
+                        @endfor
+            </div>
         </div>
-        @endif
+
+        <div class="absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-sm text-gray-400">
+            Displaying {{ $toserdaData->firstItem() }} to {{ $toserdaData->lastItem() }} of {{ $toserdaData->total() }} items
+        </div>
+    </div>
+</div>
+</div>
+</div>
+
+<!-- Add Modal -->
+<div id="addModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h3 class="text-lg font-semibold">Tambah Data TOSERDA</h3>
+                <button onclick="closeModal('addModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="addForm" class="p-4">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Transaksi</label>
+                        <input type="datetime-local" name="tgl_transaksi" id="tgl_transaksi" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Anggota</label>
+                        <input type="text" name="nama_anggota" id="nama_anggota" required
+                            placeholder="Pilih anggota dari dropdown"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            readonly>
+                        <!-- Hidden input untuk no_ktp -->
+                        <input type="hidden" name="no_ktp" id="no_ktp">
+                        <!-- Dropdown anggota -->
+                        <div id="anggotaDropdown"
+                            class="mt-2 border border-gray-300 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto hidden">
+                            @foreach($anggota as $ang)
+                            <div class="p-2 hover:bg-gray-100 cursor-pointer anggota-option" data-id="{{ $ang->id }}"
+                                data-no-ktp="{{ $ang->no_ktp }}" data-nama="{{ $ang->nama }}"
+                                data-foto="{{ $ang->file_pic ?? '' }}">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-user text-gray-500"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-sm">{{ $ang->nama }}</div>
+                                        <div class="text-xs text-gray-500">ID:
+                                            AG{{ str_pad($ang->id, 4, '0', STR_PAD_LEFT) }} | KTP: {{ $ang->no_ktp }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Transaksi</label>
+                        <select name="jenis_id" id="jenis_id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="">Pilih Jenis</option>
+                            @foreach($jenisTransaksi as $jenis)
+                            <option value="{{ $jenis->id }}">
+                                @if($jenis->id == 154)
+                                    Lain-lain
+                                @elseif($jenis->id == 155)
+                                    Toserda
+                                @else
+                                    {{ $jenis->akun ?? 'Lainnya' }}
+                                @endif
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
+                        <input type="text" name="jumlah" id="jumlah" required placeholder="Masukkan jumlah"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            oninput="formatNumberSimple(this)" pattern="[0-9,.]*" inputmode="numeric">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('addModal')"
+                        class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center space-x-2">
+                        <i class="fas fa-times"></i>
+                        <span>Batal</span>
+                    </button>
+                    <button type="submit"
+                        class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2">
+                        <i class="fas fa-check"></i>
+                        <span>Simpan</span>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
-<!-- Modal Tambah/Edit TOSERDA -->
-<div id="toserdaModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900 mb-4" id="modalTitle">Tambah Data TOSERDA</h3>
-            <form id="toserdaForm" method="POST" action="{{ route('anggota.toserda.store') }}">
-                @csrf
-                <div class="mb-4">
-                    <label for="tgl_transaksi" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Transaksi</label>
-                    <input type="datetime-local" id="tgl_transaksi" name="tgl_transaksi" required 
-                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
+<!-- Edit Modal -->
+<div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h3 class="text-lg font-semibold">Edit Data TOSERDA</h3>
+                <button onclick="closeModal('editModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="editForm" class="p-4">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Transaksi</label>
+                        <input type="datetime-local" name="tgl_transaksi" id="edit_tgl_transaksi" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Anggota</label>
+                        <input type="text" name="nama_anggota" id="edit_nama_anggota" required
+                            placeholder="Nama anggota"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            readonly>
+                        <input type="hidden" name="no_ktp" id="edit_no_ktp">
+                        <input type="hidden" name="toserda_id" id="edit_toserda_id">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Transaksi</label>
+                        <select name="jenis_id" id="edit_jenis_id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="">Pilih Jenis</option>
+                            @foreach($jenisTransaksi as $jenis)
+                            <option value="{{ $jenis->id }}">
+                                @if($jenis->id == 154)
+                                    Lain-lain
+                                @elseif($jenis->id == 155)
+                                    Toserda
+                                @else
+                                    {{ $jenis->akun ?? 'Lainnya' }}
+                                @endif
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
+                        <input type="text" name="jumlah" id="edit_jumlah" required placeholder="Masukkan jumlah"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            oninput="formatNumberSimple(this)" pattern="[0-9,.]*" inputmode="numeric">
+                    </div>
                 </div>
-                
-                <div class="mb-4">
-                    <label for="no_ktp" class="block text-sm font-medium text-gray-700 mb-1">Anggota</label>
-                    <select id="no_ktp" name="no_ktp" required 
-                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-                        <option value="">Pilih Anggota</option>
-                        @foreach($anggota as $ang)
-                        <option value="{{ $ang->no_ktp }}">{{ $ang->nama }} - {{ $ang->no_ktp }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                
-                <div class="mb-4">
-                    <label for="jenis_id" class="block text-sm font-medium text-gray-700 mb-1">Jenis Transaksi</label>
-                    <select id="jenis_id" name="jenis_id" required 
-                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-                        <option value="">Pilih Jenis</option>
-                        @foreach($jenisTransaksi as $jenis)
-                        <option value="{{ $jenis->id }}">
-                            @if($jenis->id == 154)
-                                Lain-lain
-                            @elseif($jenis->id == 155)
-                                Toserda
-                            @else
-                                {{ $jenis->akun ?? 'Lainnya' }}
-                            @endif
-                        </option>
-                        @endforeach
-                    </select>
-                </div>
-                
-                <div class="mb-4">
-                    <label for="jumlah" class="block text-sm font-medium text-gray-700 mb-1">Jumlah</label>
-                    <input type="number" id="jumlah" name="jumlah" step="0.01" min="0" required 
-                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-                </div>
-                
-                <div class="mb-4">
-                    <label for="keterangan" class="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
-                    <textarea id="keterangan" name="keterangan" rows="3" 
-                              class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50"></textarea>
-                </div>
-                
-                <div class="flex justify-end space-x-3">
-                    <button type="button" onclick="closeModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
-                        Batal
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('editModal')"
+                        class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center space-x-2">
+                        <i class="fas fa-times"></i>
+                        <span>Batal</span>
                     </button>
-                    <button type="submit" class="bg-[#14AE5C] text-white px-4 py-2 rounded-md hover:bg-[#14AE5C]/80">
-                        Simpan
+                    <button type="submit"
+                        class="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 flex items-center space-x-2">
+                        <i class="fas fa-edit"></i>
+                        <span>Update</span>
                     </button>
                 </div>
             </form>
@@ -308,58 +423,4 @@
 
 @endsection
 
-@push('scripts')
-<script>
-    function openModal() {
-        document.getElementById('toserdaModal').classList.remove('hidden');
-        document.getElementById('modalTitle').textContent = 'Tambah Data TOSERDA';
-        document.getElementById('toserdaForm').action = '{{ route("anggota.toserda.store") }}';
-        document.getElementById('toserdaForm').method = 'POST';
-        
-        // Set default datetime to current time
-        const now = new Date();
-        const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-        document.getElementById('tgl_transaksi').value = localDateTime;
-        
-        // Reset form
-        document.getElementById('toserdaForm').reset();
-    }
-    
-    function closeModal() {
-        document.getElementById('toserdaModal').classList.add('hidden');
-    }
-    
-    function openImportModal() {
-        document.getElementById('importModal').classList.remove('hidden');
-    }
-    
-    function closeImportModal() {
-        document.getElementById('importModal').classList.add('hidden');
-    }
-    
-    function editToserda(id) {
-        // For now, just show alert that edit feature is not implemented yet
-        alert('Fitur edit belum diimplementasikan. Silakan gunakan fitur tambah data untuk menambah data baru.');
-    }
-    
-    function deleteToserda(id) {
-        if (confirm('Apakah Anda yakin ingin menghapus data TOSERDA ini?')) {
-            // For now, just show alert that delete feature is not implemented yet
-            alert('Fitur hapus belum diimplementasikan. Silakan hubungi administrator untuk menghapus data.');
-        }
-    }
-    
-    // Close modal when clicking outside
-    window.onclick = function(event) {
-        const toserdaModal = document.getElementById('toserdaModal');
-        const importModal = document.getElementById('importModal');
-        
-        if (event.target === toserdaModal) {
-            closeModal();
-        }
-        if (event.target === importModal) {
-            closeImportModal();
-        }
-    }
-</script>
-@endpush
+@include('anggota.toserda-scripts')

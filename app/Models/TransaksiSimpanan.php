@@ -14,6 +14,7 @@ class TransaksiSimpanan extends Model
 
     protected $table = 'tbl_trans_sp';
     protected $primaryKey = 'id';
+    public $timestamps = false; // Disable timestamps karena table tidak ada updated_at
 
     protected $fillable = [
         'tgl_transaksi',
@@ -45,9 +46,40 @@ class TransaksiSimpanan extends Model
         return $this->belongsTo(data_anggota::class, 'anggota_id', 'id');
     }
 
+    // Accessor untuk mendapatkan anggota dengan fallback
+    public function getAnggotaAttribute()
+    {
+        // Coba cari berdasarkan anggota_id dulu
+        if ($this->anggota_id) {
+            $anggota = data_anggota::find($this->anggota_id);
+            if ($anggota) {
+                return $anggota;
+            }
+        }
+        
+        // Fallback ke no_ktp
+        if ($this->no_ktp) {
+            return data_anggota::where('no_ktp', $this->no_ktp)->first();
+        }
+        
+        return null;
+    }
+
     public function jenisSimpanan()
     {
         return $this->belongsTo(jns_simpan::class, 'jenis_id', 'id');
+    }
+
+    // Accessor untuk mendapatkan jenis simpanan dengan fallback
+    public function getJenisSimpananAttribute()
+    {
+        $jenis = jns_simpan::find($this->jenis_id);
+        if ($jenis) {
+            return $jenis->jns_simpan;
+        }
+        
+        // Fallback untuk jenis_id yang tidak valid
+        return 'Lainnya';
     }
 
     public function kas()

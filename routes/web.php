@@ -113,10 +113,9 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::prefix('anggota/shu')->group(function () {
         Route::get('/', [AnggotaController::class, 'shu'])->name('anggota.shu');
         Route::post('/store', [AnggotaController::class, 'storeShu'])->name('anggota.shu.store');
-        Route::get('/edit/{id}', [AnggotaController::class, 'editShu'])->name('anggota.shu.edit');
         Route::put('/update/{id}', [AnggotaController::class, 'updateShu'])->name('anggota.shu.update');
         Route::delete('/delete/{id}', [AnggotaController::class, 'deleteShu'])->name('anggota.shu.delete');
-        Route::post('/import', [AnggotaController::class, 'importShu'])->name('anggota.shu.import');
+        Route::get('/anggota-data', [AnggotaController::class, 'getAnggotaData'])->name('anggota.shu.data');
         Route::get('/export/pdf', [AnggotaController::class, 'exportShuPdf'])->name('anggota.shu.export.pdf');
         Route::get('/export/excel', [AnggotaController::class, 'exportShuExcel'])->name('anggota.shu.export.excel');
         Route::get('/cetak/{id}', [AnggotaController::class, 'cetakShu'])->name('anggota.shu.cetak');
@@ -363,21 +362,7 @@ Route::prefix('toserda')->group(function () {
         Route::get('/export/excel/pemasukan', [AngkutanController::class, 'exportExcelPemasukan'])->name('angkutan.export.excel.pemasukan');
         Route::get('/export/excel/pengeluaran', [AngkutanController::class, 'exportExcelPengeluaran'])->name('angkutan.export.excel.pengeluaran');
         
-        // Debug route
-        Route::get('/test', function() {
-            return response()->json([
-                'status' => 'ok', 
-                'message' => 'Route working',
-                'user' => auth()->check() ? auth()->user() : null,
-                'routes' => [
-                    'store' => route('angkutan.store.pemasukan'),
-                    'update' => 'toserda/angkutan/pemasukan/{id}',
-                    'delete' => 'toserda/angkutan/pemasukan/{id}'
-                ],
-                'middleware' => auth()->check(),
-                'timestamp' => now()
-            ]);
-        })->name('angkutan.test');
+        
     });
 });
 
@@ -385,8 +370,17 @@ Route::prefix('toserda')->group(function () {
     
     // Simpanan Routes
     Route::prefix('simpanan')->group(function () {
-        Route::get('/setoran', [SimpananController::class, 'setoranTunai'])->name('simpanan.setoran');
-        Route::post('/setoran', [SimpananController::class, 'storeSetoran'])->name('simpanan.store.setoran');
+        Route::get('/setoran', [SimpananController::class, 'setoranTunai'])->name('simpanan.setoran.index');
+        Route::post('/setoran', [SimpananController::class, 'storeSetoran'])->name('simpanan.setoran.store');
+        Route::post('/setoran/{id}', [SimpananController::class, 'updateSetoran'])->name('simpanan.setoran.update');
+        Route::post('/setoran/{id}/delete', [SimpananController::class, 'deleteSetoran'])->name('simpanan.setoran.delete');
+        Route::post('/setoran/import', [SimpananController::class, 'importSetoran'])->name('simpanan.setoran.import');
+        Route::get('/setoran/export', [SimpananController::class, 'exportSetoran'])->name('simpanan.setoran.export');
+        Route::get('/setoran/nota/{id}', [SimpananController::class, 'cetakNota'])->name('simpanan.setoran.nota');
+        
+        // API routes for setoran tunai
+        Route::get('/api/anggota/photo/{id}', [SimpananController::class, 'getAnggotaPhoto'])->name('api.anggota.photo');
+        
         Route::get('/penarikan', [SimpananController::class, 'penarikanTunai'])->name('simpanan.penarikan');
         Route::post('/penarikan', [SimpananController::class, 'storePenarikan'])->name('simpanan.store.penarikan');
         Route::get('/pengajuan-penarikan', [SimpananController::class, 'pengajuanPenarikan'])->name('simpanan.pengajuan_penarikan');

@@ -49,7 +49,7 @@
     <div class="bg-white rounded-lg shadow-md p-3 mb-4">
         <div class="flex items-center justify-between mb-2">
             <h3 class="text-base font-semibold text-gray-800">Filter Pengeluaran Angkutan</h3>
-        </div>
+                    </div>
 
         <form method="GET" action="{{ route('angkutan.pengeluaran') }}" id="filterForm">
             <!-- Simple Filter Bar -->
@@ -178,7 +178,7 @@
                         <td class="py-3 border px-4">{{ optional($tr->dariKas)->nama ?? '-' }}</td>
                         <td class="py-3 border px-4">
                             @php
-                            $akunMap = [
+                                $akunMap = [
                             5 => 'Piutang Usaha',
                             9 => 'Persediaan Awal Barang',
                             10 => 'Biaya Dibayar Dimuka',
@@ -220,8 +220,8 @@
                             123 => 'Bahan Habis Pakai',
                             124 => 'Insentive Karyawan',
                             152 => 'Beban Gaji Karyawan'
-                            ];
-                            echo $akunMap[$tr->jns_trans] ?? 'Akun Lain';
+                                ];
+                                echo $akunMap[$tr->jns_trans] ?? 'Akun Lain';
                             @endphp
                         </td>
                         <td class="py-3 border px-4 font-semibold text-red-600">
@@ -241,9 +241,9 @@
             </table>
         </div>
 
-    </div>
+        </div>
 
-    <!-- Pagination -->
+        <!-- Pagination -->
     <div class="mt-5 w-full relative px-2 py-2">
         <div class="mx-auto w-fit">
             <div
@@ -293,8 +293,8 @@
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                             oninput="formatNumber(this)" onblur="validateNumber(this)" pattern="[0-9,.]*"
                             inputmode="numeric">
-                    </div>
-                    <div>
+                </div>
+                <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
                         <textarea name="keterangan" rows="3" placeholder="Masukkan keterangan transaksi"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
@@ -305,7 +305,7 @@
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
                             <option value="">-- Pilih Kas --</option>
                             @foreach($kas as $item)
-                            <option value="{{ $item->id }}">{{ $item->nama }}</option>
+                        <option value="{{ $item->id }}">{{ $item->nama }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -373,7 +373,7 @@
             </form>
         </div>
     </div>
-</div>
+                    </div>
 
 <!-- Edit Modal -->
 <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
@@ -411,7 +411,7 @@
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
                             <option value="">-- Pilih Kas --</option>
                             @foreach($kas as $item)
-                            <option value="{{ $item->id }}">{{ $item->nama }}</option>
+                        <option value="{{ $item->id }}">{{ $item->nama }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -482,4 +482,4 @@
 </div>
 
 @include('angkutan.pengeluaran-scripts')
-@endsection
+@endsection 

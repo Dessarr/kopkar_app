@@ -190,6 +190,13 @@ class BillingUploadController extends Controller
             ->get();
 
         foreach ($uploadData as $upload) {
+            // Get anggota_id from tbl_anggota
+            $anggota = DB::table('tbl_anggota')
+                ->where('no_ktp', $upload->no_ktp)
+                ->first();
+            
+            $anggotaId = $anggota ? $anggota->id : null;
+            
             // Update or insert into main billing table
             DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
                 [
@@ -197,6 +204,7 @@ class BillingUploadController extends Controller
                     'no_ktp' => $upload->no_ktp,
                 ],
                 [
+                    'anggota_id' => $anggotaId,
                     'jumlah' => $upload->total_upload,
                     'keterangan' => 'Upload Excel ' . $bulan . '-' . $tahun,
                     'tagihan_simpanan_wajib' => 0,
