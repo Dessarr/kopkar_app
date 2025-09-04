@@ -347,19 +347,41 @@ Route::prefix('toserda')->group(function () {
     Route::get('/pembelian/export/pdf', [ToserdaController::class, 'exportPembelianPdf'])->name('toserda.pembelian.export.pdf');
     Route::get('/biaya-usaha/export', [ToserdaController::class, 'exportBiayaUsaha'])->name('toserda.biaya-usaha.export');
     Route::get('/biaya-usaha/export/pdf', [ToserdaController::class, 'exportBiayaUsahaPdf'])->name('toserda.biaya-usaha.export.pdf');
-});
-
+    
     // Angkutan Routes
     Route::prefix('angkutan')->group(function () {
         Route::get('/pemasukan', [AngkutanController::class, 'pemasukan'])->name('angkutan.pemasukan');
         Route::get('/pengeluaran', [AngkutanController::class, 'pengeluaran'])->name('angkutan.pengeluaran');
         Route::post('/pemasukan', [AngkutanController::class, 'storePemasukan'])->name('angkutan.store.pemasukan');
+        Route::post('/pemasukan/{id}', [AngkutanController::class, 'updatePemasukan'])->name('angkutan.update.pemasukan');
+        Route::delete('/pemasukan/{id}', [AngkutanController::class, 'deletePemasukan'])->name('angkutan.delete.pemasukan');
         Route::post('/pengeluaran', [AngkutanController::class, 'storePengeluaran'])->name('angkutan.store.pengeluaran');
+        Route::post('/pengeluaran/{id}', [AngkutanController::class, 'updatePengeluaran'])->name('angkutan.update.pengeluaran');
+        Route::delete('/pengeluaran/{id}', [AngkutanController::class, 'deletePengeluaran'])->name('angkutan.delete.pengeluaran');
         Route::get('/export/pdf/pemasukan', [AngkutanController::class, 'exportPdfPemasukan'])->name('angkutan.export.pdf.pemasukan');
         Route::get('/export/pdf/pengeluaran', [AngkutanController::class, 'exportPdfPengeluaran'])->name('angkutan.export.pdf.pengeluaran');
         Route::get('/export/excel/pemasukan', [AngkutanController::class, 'exportExcelPemasukan'])->name('angkutan.export.excel.pemasukan');
         Route::get('/export/excel/pengeluaran', [AngkutanController::class, 'exportExcelPengeluaran'])->name('angkutan.export.excel.pengeluaran');
+        
+        // Debug route
+        Route::get('/test', function() {
+            return response()->json([
+                'status' => 'ok', 
+                'message' => 'Route working',
+                'user' => auth()->check() ? auth()->user() : null,
+                'routes' => [
+                    'store' => route('angkutan.store.pemasukan'),
+                    'update' => 'toserda/angkutan/pemasukan/{id}',
+                    'delete' => 'toserda/angkutan/pemasukan/{id}'
+                ],
+                'middleware' => auth()->check(),
+                'timestamp' => now()
+            ]);
+        })->name('angkutan.test');
     });
+});
+
+
     
     // Simpanan Routes
     Route::prefix('simpanan')->group(function () {

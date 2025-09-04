@@ -222,20 +222,194 @@
 <script>
 function openUploadModal() {
     document.getElementById('uploadModal').classList.remove('hidden');
+    excelLogger.logInfo('MODAL', 'Upload modal opened');
 }
 
 function closeUploadModal() {
     document.getElementById('uploadModal').classList.add('hidden');
+    excelLogger.logInfo('MODAL', 'Upload modal closed');
 }
 
 // Close modal when clicking outside
 document.getElementById('uploadModal').addEventListener('click', function(e) {
     if (e.target === this) {
+        excelLogger.logInfo('MODAL', 'Modal closed by clicking outside');
         closeUploadModal();
     }
 });
 
-// Handle form submission
+// Excel Upload Logger Class
+class ExcelUploadLogger {
+    constructor() {
+        this.uploadStartTime = null;
+        this.totalRows = 0;
+        this.validRows = 0;
+        this.invalidRows = 0;
+        this.errors = [];
+        this.warnings = [];
+        this.fileName = '';
+        this.fileSize = 0;
+    }
+
+    // Log saat mulai upload
+    logUploadStart(fileName, fileSize) {
+        this.uploadStartTime = new Date();
+        this.fileName = fileName;
+        this.fileSize = fileSize;
+
+        console.log('🚀 === EXCEL UPLOAD STARTED ===');
+        console.log(`📁 File: ${fileName}`);
+        console.log(`📊 Size: ${(fileSize / 1024).toFixed(2)} KB`);
+        console.log(`⏰ Time: ${this.uploadStartTime.toLocaleString()}`);
+        console.log(
+            `📅 Period: ${document.getElementById('bulan').value}-${document.getElementById('tahun').value}`);
+        console.log('================================');
+    }
+
+    // Log validasi file
+    logFileValidation(file) {
+        console.log('🔍 === FILE VALIDATION ===');
+
+        // Validasi extension
+        const allowedExtensions = ['.xlsx', '.xls'];
+        const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+
+        if (allowedExtensions.includes(fileExtension)) {
+            console.log(`✅ File Extension: ${fileExtension} (Valid)`);
+        } else {
+            console.error(`❌ File Extension: ${fileExtension} (Invalid)`);
+            console.error(`   Allowed: ${allowedExtensions.join(', ')}`);
+        }
+
+        // Validasi ukuran file
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size <= maxSize) {
+            console.log(`✅ File Size: ${(file.size / 1024).toFixed(2)} KB (Valid)`);
+        } else {
+            console.warn(`⚠️  File Size: ${(file.size / 1024).toFixed(2)} KB (Large file)`);
+        }
+
+        console.log('================================');
+    }
+
+    // Log proses upload
+    logUploadProgress(current, total, message = '') {
+        const percentage = ((current / total) * 100).toFixed(1);
+        console.log(`📤 Upload Progress: ${current}/${total} (${percentage}%) ${message}`);
+    }
+
+    // Log hasil upload
+    logUploadResult(result) {
+        const uploadEndTime = new Date();
+        const duration = uploadEndTime - this.uploadStartTime;
+
+        console.log('✅ === UPLOAD COMPLETED ===');
+        console.log(`⏱️  Duration: ${duration}ms`);
+        console.log(`📊 Total Processed: ${result.total || 0}`);
+        console.log(`✅ Success: ${result.success || 0}`);
+        console.log(`❌ Errors: ${result.errors || 0}`);
+        console.log(`⚠️  Warnings: ${result.warnings || 0}`);
+
+        if (result.message) {
+            console.log(`📝 Message: ${result.message}`);
+        }
+
+        if (result.details) {
+            console.log('📋 Details:');
+            Object.entries(result.details).forEach(([key, value]) => {
+                console.log(`   ${key}: ${value}`);
+            });
+        }
+
+        console.log('============================');
+    }
+
+    // Log error spesifik
+    logError(type, message, data = null) {
+        this.errors.push({
+            type,
+            message,
+            data,
+            timestamp: new Date()
+        });
+        console.error(`❌ ERROR [${type}]: ${message}`);
+        if (data) {
+            console.error('   Data:', data);
+        }
+    }
+
+    // Log warning
+    logWarning(type, message, data = null) {
+        this.warnings.push({
+            type,
+            message,
+            data,
+            timestamp: new Date()
+        });
+        console.warn(`⚠️  WARNING [${type}]: ${message}`);
+        if (data) {
+            console.warn('   Data:', data);
+        }
+    }
+
+    // Log info
+    logInfo(type, message, data = null) {
+        console.info(`ℹ️  INFO [${type}]: ${message}`);
+        if (data) {
+            console.info('   Data:', data);
+        }
+    }
+
+    // Generate summary report
+    generateSummary() {
+        console.log('📊 === UPLOAD SUMMARY ===');
+        console.log(`📁 File: ${this.fileName}`);
+        console.log(`⏰ Start Time: ${this.uploadStartTime?.toLocaleString()}`);
+        console.log(`📊 File Size: ${(this.fileSize / 1024).toFixed(2)} KB`);
+        console.log(
+            `📅 Period: ${document.getElementById('bulan').value}-${document.getElementById('tahun').value}`);
+        console.log(`✅ Valid Rows: ${this.validRows}`);
+        console.log(`❌ Invalid Rows: ${this.invalidRows}`);
+        console.log(`⚠️  Warnings: ${this.warnings.length}`);
+        console.log(`❌ Errors: ${this.errors.length}`);
+
+        if (this.errors.length > 0) {
+            console.log('❌ Error Details:');
+            this.errors.forEach((error, index) => {
+                console.log(`   ${index + 1}. [${error.type}] ${error.message}`);
+            });
+        }
+
+        if (this.warnings.length > 0) {
+            console.log('⚠️  Warning Details:');
+            this.warnings.forEach((warning, index) => {
+                console.log(`   ${index + 1}. [${warning.type}] ${warning.message}`);
+            });
+        }
+
+        console.log('==========================');
+    }
+}
+
+// Inisialisasi logger
+const excelLogger = new ExcelUploadLogger();
+
+// Event listener untuk file selection
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('excel_file');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                excelLogger.logInfo('FILE_SELECTED', `File selected: ${file.name}`);
+                excelLogger.logFileValidation(file);
+            }
+        });
+    }
+});
+
+// Handle form submission dengan logging
 document.getElementById('uploadForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
@@ -245,9 +419,18 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
     const tahun = document.getElementById('tahun').value;
 
     if (!fileInput.files[0]) {
+        excelLogger.logError('FILE_SELECTION', 'No file selected');
         alert('Silakan pilih file Excel terlebih dahulu');
         return;
     }
+
+    const file = fileInput.files[0];
+
+    // Log file validation
+    excelLogger.logFileValidation(file);
+
+    // Log upload start
+    excelLogger.logUploadStart(file.name, file.size);
 
     // Add bulan and tahun to form data
     formData.append('bulan', bulan);
@@ -259,6 +442,9 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
     submitBtn.textContent = 'Uploading...';
     submitBtn.disabled = true;
 
+    // Log progress
+    excelLogger.logUploadProgress(1, 3, 'Starting upload...');
+
     // Submit via AJAX
     fetch('/billing-upload/excel', {
             method: 'POST',
@@ -267,18 +453,41 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            excelLogger.logUploadProgress(2, 3, 'Processing response...');
+            return response.json();
+        })
         .then(data => {
+            excelLogger.logUploadProgress(3, 3, 'Finalizing...');
+
             if (data.status === 'success') {
+                // Log success
+                excelLogger.logUploadResult({
+                    total: data.total || 0,
+                    success: data.success || 0,
+                    errors: data.errors || 0,
+                    warnings: data.warnings || 0,
+                    message: data.message,
+                    details: data.details || {}
+                });
+
+                excelLogger.generateSummary();
+
                 alert(data.message);
                 closeUploadModal();
                 // Refresh the page to show updated data
                 location.reload();
             } else {
+                // Log error
+                excelLogger.logError('UPLOAD_FAILED', data.message, data);
+                excelLogger.generateSummary();
                 alert('Error: ' + data.message);
             }
         })
         .catch(error => {
+            // Log error
+            excelLogger.logError('NETWORK_ERROR', 'Network or server error', error);
+            excelLogger.generateSummary();
             console.error('Upload error:', error);
             alert('Terjadi kesalahan saat upload: ' + error.message);
         })
@@ -298,6 +507,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const bulan = bulanSelect.value;
         const tahun = tahunSelect.value;
 
+        console.log('📅 === PERIOD SUMMARY UPDATE ===');
+        console.log(`🔄 Updating period: ${bulan}-${tahun}`);
+        console.log(`⏰ Time: ${new Date().toLocaleString()}`);
+
         // Show loading state
         const periodSummary = document.getElementById('period-summary');
         if (periodSummary) {
@@ -306,17 +519,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Fetch new period data
         fetch(`/billing-periode/summary/${bulan}/${tahun}`)
-            .then(response => response.json())
+            .then(response => {
+                console.log('📥 Period summary response received');
+                return response.json();
+            })
             .then(data => {
+                console.log('📊 Period summary data:', data);
+
                 if (data.status === 'success') {
+                    console.log('✅ Period summary updated successfully');
                     // Update period display
                     updatePeriodSummaryDisplay(data.data);
+                } else {
+                    console.warn('⚠️  Period summary update failed:', data.message);
                 }
             })
             .catch(error => {
-                console.error('Error updating period summary:', error);
+                console.error('❌ Error updating period summary:', error);
             })
             .finally(() => {
+                console.log('🏁 Period summary update completed');
                 // Remove loading state
                 if (periodSummary) {
                     periodSummary.style.opacity = '1';
@@ -344,8 +566,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add event listeners
-    bulanSelect.addEventListener('change', updatePeriodSummary);
-    tahunSelect.addEventListener('change', updatePeriodSummary);
+    bulanSelect.addEventListener('change', function() {
+        console.log('📅 Bulan changed to:', bulanSelect.value);
+        updatePeriodSummary();
+    });
+
+    tahunSelect.addEventListener('change', function() {
+        console.log('📅 Tahun changed to:', tahunSelect.value);
+        updatePeriodSummary();
+    });
 });
 
 // Debug function to check what data exists
@@ -353,23 +582,36 @@ function debugPeriodData() {
     const bulan = document.getElementById('bulan').value;
     const tahun = document.getElementById('tahun').value;
 
-    console.log('Debugging period data for:', bulan, tahun);
+    console.log('🔍 === DEBUG PERIOD DATA ===');
+    console.log(`📅 Period: ${bulan}-${tahun}`);
+    console.log(`⏰ Time: ${new Date().toLocaleString()}`);
+    console.log('============================');
 
     fetch(`/billing-periode/debug/${bulan}/${tahun}`)
-        .then(response => response.json())
+        .then(response => {
+            console.log('📥 Debug response received');
+            return response.json();
+        })
         .then(data => {
+            console.log('📊 Debug data:', data);
+
             if (data.status === 'success') {
-                console.log('Debug info:', data.debug_info);
+                console.log('✅ Debug successful');
+                console.log('🔍 Debug info:', data.debug_info);
                 alert(
                     `Debug Info:\n\nPeriode: ${data.debug_info.periode}\nTotal Records Billing: ${data.debug_info.billing_table_total_records}\nTotal Records Anggota: ${data.debug_info.anggota_table_total_records}\nData for Period: ${data.debug_info.billing_data_for_period}\nAnggota for Period: ${data.debug_info.anggota_data_for_period}`
                 );
             } else {
+                console.error('❌ Debug failed:', data.message);
                 alert('Error: ' + data.message);
             }
         })
         .catch(error => {
-            console.error('Debug error:', error);
+            console.error('❌ Debug error:', error);
             alert('Error debugging data: ' + error.message);
+        })
+        .finally(() => {
+            console.log('🏁 Debug process completed');
         });
 }
 
@@ -380,9 +622,15 @@ function proceedBilling() {
     const bulan = document.getElementById('bulan').value;
     const tahun = document.getElementById('tahun').value;
 
+    console.log('🚀 === PROCEED BILLING STARTED ===');
+    console.log(`📅 Period: ${bulan}-${tahun}`);
+    console.log(`⏰ Time: ${new Date().toLocaleString()}`);
+    console.log('================================');
+
     if (!confirm('Apakah Anda yakin ingin memproses data billing untuk periode ' + bulan + '-' + tahun +
             '?\n\nTindakan ini akan:\n1. Memproses semua pembayaran ke database utama\n2. Mengupdate status pembayaran\n3. Menghapus data temporary\n\nData yang sudah diproses tidak dapat dibatalkan.'
         )) {
+        console.log('❌ Proceed billing cancelled by user');
         return;
     }
 
@@ -398,7 +646,7 @@ function proceedBilling() {
     `;
     proceedButton.disabled = true;
 
-    console.log('Proceeding billing for:', bulan, tahun);
+    console.log('📤 Proceeding billing for:', bulan, tahun);
 
     fetch('/billing/proceed', {
             method: 'POST',
@@ -411,21 +659,30 @@ function proceedBilling() {
                 tahun: tahun
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('📥 Response received from server');
+            return response.json();
+        })
         .then(data => {
+            console.log('📊 Proceed result:', data);
+
             if (data.status === 'success') {
+                console.log('✅ Proceed billing successful!');
+                console.log(`📝 Message: ${data.message}`);
                 alert('Berhasil! Data billing berhasil diproses.\n\n' + data.message);
                 // Reload page to show updated data
                 window.location.reload();
             } else {
+                console.error('❌ Proceed billing failed:', data.message);
                 alert('Error: ' + data.message);
             }
         })
         .catch(error => {
-            console.error('Proceed error:', error);
+            console.error('❌ Proceed error:', error);
             alert('Error memproses data: ' + error.message);
         })
         .finally(() => {
+            console.log('🏁 Proceed billing process completed');
             // Restore button state
             proceedButton.innerHTML = originalText;
             proceedButton.disabled = false;

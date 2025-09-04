@@ -323,7 +323,7 @@ class DashboardData extends Model
 
             Log::info('Simpanan Data calculated successfully');
 
-            return [
+        return [
                 // Saldo Bulan Lalu
                 'saldo_pokok' => $saldoPokokBulanLalu,
                 'saldo_wajib' => $saldoWajibBulanLalu,
@@ -409,7 +409,7 @@ class DashboardData extends Model
                 });
             
             Log::info('Jatuh Tempo from tbl_pinjaman_h (LEFT JOIN): ' . $jatuhTempo->count() . ' items');
-            return $jatuhTempo;
+        return $jatuhTempo;
             
         } catch (\Exception $e) {
             Log::error('Error in getJatuhTempoData: ' . $e->getMessage());

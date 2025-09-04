@@ -12,7 +12,6 @@ class transaksi_kas extends Model
     public $timestamps = false; // Disable timestamps karena table tidak memiliki created_at dan updated_at
 
     protected $fillable = [
-        'id',
         'tgl_catat',
         'jumlah',
         'keterangan',

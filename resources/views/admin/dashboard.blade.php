@@ -515,18 +515,18 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
+                    </div>
 
             <!-- More Info Button -->
             <div class="p-5 justify-center align-center">
-                <div
-                    class="group relative bg-green-500 w-full rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out hover:bg-green-600 overflow-hidden">
-                    <a href="#"
+                    <div
+                        class="group relative bg-green-500 w-full rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out hover:bg-green-600 overflow-hidden">
+                        <a href="#"
                         class="group relative bg-green-500 w-full px-4 py-3 rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out group-hover:bg-green-600 overflow-hidden">
-                        <span>More Info</span>
-                        <span
+                            <span>More Info</span>
+                            <span
                             class="transform transition-all duration-500 ease-in-out group-hover:translate-x-8 opacity-100 group-hover:opacity-0">></span>
-                    </a>
+                        </a>
                 </div>
             </div>
         </div>

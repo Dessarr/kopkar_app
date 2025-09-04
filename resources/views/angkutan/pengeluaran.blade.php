@@ -4,197 +4,236 @@
 @section('sub-title', 'Data Pengeluaran Angkutan Karyawan')
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
+<div class="px-1 justify-center flex flex-col">
+
     <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        <div class="bg-white rounded-lg shadow-lg p-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center">
                 <div class="p-3 rounded-full bg-red-100 text-red-600">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                    </svg>
+                    <i class="fas fa-money-bill-wave text-xl"></i>
                 </div>
                 <div class="ml-4">
                     <p class="text-sm font-medium text-gray-600">Total Pengeluaran</p>
-                    <p class="text-2xl font-semibold text-gray-900">Rp {{ number_format($totalPengeluaran, 0, ',', '.') }}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-blue-100 text-blue-600">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Total Transaksi</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ $totalTransaksi }}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-purple-100 text-purple-600">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Periode</p>
-                    <p class="text-lg font-semibold text-gray-900">
-                        {{ $startDate ? \Carbon\Carbon::parse($startDate)->format('d M Y') : 'Semua' }} - 
-                        {{ $endDate ? \Carbon\Carbon::parse($endDate)->format('d M Y') : 'Semua' }}
+                    <p class="text-2xl font-semibold text-gray-900">
+                        Rp{{ number_format($totalPengeluaran, 0, ',', '.') }}
                     </p>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Filter and Actions -->
-    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <!-- Filter Form -->
-            <form method="GET" class="flex flex-col lg:flex-row gap-4 flex-1">
-                <div class="flex flex-col sm:flex-row gap-4 flex-1">
-                    <div class="flex-1">
-                        <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai</label>
-                        <input type="date" name="start_date" id="start_date" value="{{ $startDate }}"
-                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-                    </div>
-                    <div class="flex-1">
-                        <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Akhir</label>
-                        <input type="date" name="end_date" id="end_date" value="{{ $endDate }}"
-                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-                    </div>
-                    <div class="flex-1">
-                        <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Cari</label>
-                        <input type="text" name="search" id="search" value="{{ $search }}" placeholder="Kode Transaksi, Uraian..."
-                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-                    </div>
-                    <div class="flex-1">
-                        <label for="kas_filter" class="block text-sm font-medium text-gray-700 mb-1">Filter Kas</label>
-                        <select name="kas_filter" id="kas_filter"
-                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-                            <option value="">Semua Kas</option>
-                            @foreach($kas as $k)
-                            <option value="{{ $k->id }}" {{ $kasFilter == $k->id ? 'selected' : '' }}>{{ $k->nama }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                    <i class="fas fa-list text-xl"></i>
                 </div>
-                <div class="flex gap-2">
-                    <button type="submit"
-                        class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#14AE5C]/80 focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:ring-opacity-50">
-                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                        Filter
-                    </button>
-                    <a href="{{ route('angkutan.pengeluaran') }}"
-                        class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">
-                        Reset
-                    </a>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Total Transaksi</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $transaksi->total() }}</p>
                 </div>
-            </form>
-
-            <!-- Action Buttons -->
-            <div class="flex gap-2">
-                <button onclick="openModal()"
-                    class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#14AE5C]/80 focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:ring-opacity-50">
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                    </svg>
-                    Tambah Pengeluaran
-                </button>
-                <a href="{{ route('angkutan.export.pdf.pengeluaran', request()->query()) }}"
-                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    Export PDF
-                </a>
-                <a href="{{ route('angkutan.export.excel.pengeluaran', request()->query()) }}"
-                    class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    Export Excel
-                </a>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                    <i class="fas fa-calendar text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Periode Aktif</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ date('M Y') }}</p>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Simple Filter Section -->
+    <div class="bg-white rounded-lg shadow-md p-3 mb-4">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-base font-semibold text-gray-800">Filter Pengeluaran Angkutan</h3>
+        </div>
+
+        <form method="GET" action="{{ route('angkutan.pengeluaran') }}" id="filterForm">
+            <!-- Simple Filter Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-2 py-2 px-2 bg-gray-50 rounded-lg">
+                <!-- Left Side: Filter Controls -->
+                <div class="flex items-center space-x-3">
+                    <!-- 1. Tanggal -->
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Tanggal:</label>
+                        <button type="button" id="daterange-btn"
+                            class="px-3 py-1.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm">
+                            <i class="fas fa-calendar mr-1"></i>
+                            <span id="daterange-text">Pilih Tanggal</span>
+                            <i class="fas fa-chevron-down ml-1"></i>
+                        </button>
+                        <!-- Hidden inputs untuk form submission -->
+                        <input type="hidden" name="tgl_dari" id="tgl_dari" value="{{ request('tgl_dari') }}">
+                        <input type="hidden" name="tgl_sampai" id="tgl_sampai" value="{{ request('tgl_sampai') }}">
+                    </div>
+
+                    <!-- 2. Search Kode Transaksi -->
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Cari:</label>
+                        <input type="text" name="kode_transaksi" id="kode_transaksi"
+                            value="{{ request('kode_transaksi') }}" placeholder="[PK00001]"
+                            class="px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm w-36"
+                            onkeypress="if(event.key==='Enter'){doSearch();}">
+                    </div>
+
+                    <!-- 3. Filter Kas -->
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Kas:</label>
+                        <select name="kas_filter" id="kas_filter"
+                            class="px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm w-32">
+                            <option value="">Semua Kas</option>
+                            @foreach($kas as $k)
+                            <option value="{{ $k->id }}" {{ request('kas_filter') == $k->id ? 'selected' : '' }}>
+                                {{ $k->nama }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- 4. Button Filter -->
+                    <button type="button" onclick="doSearch()" id="searchBtn"
+                        class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                        <i class="fas fa-search mr-1"></i>Cari
+                    </button>
+                </div>
+
+                <!-- Right Side: Action Buttons -->
+                <div class="flex items-center space-x-2">
+                    <!-- 5. Button Cetak Laporan -->
+                    <button type="button" onclick="cetakLaporan()"
+                        class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                        <i class="fas fa-print mr-1"></i>Cetak Laporan
+                    </button>
+
+                    <!-- 7. Button Hapus Filter -->
+                    <button type="button" onclick="clearFilters()"
+                        class="px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
+                        <i class="fas fa-times mr-1"></i>Hapus Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
     <!-- Data Table -->
-    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="flex justify-between items-center mb-2 p-4">
+            <h2 class="text-lg font-semibold text-gray-800">Data Pengeluaran Angkutan</h2>
+            <div class="flex space-x-3">
+                <button onclick="openModal('addModal')"
+                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-plus"></i>
+                    <span>Tambah</span>
+                </button>
+                <button onclick="editData()"
+                    class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-edit"></i>
+                    <span>Edit</span>
+                </button>
+                <button onclick="deleteData()"
+                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-trash"></i>
+                    <span>Hapus</span>
+                </button>
+            </div>
+        </div>
+
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Transaksi</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Transaksi</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uraian</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dari Kas</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Akun</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+            <table class="table-auto w-full border border-gray-300 text-center">
+                <thead class="bg-gray-100">
+                    <tr class="text-sm">
+                        <th class="py-3 border px-4">No</th>
+                        <th class="py-3 border px-4">Kode Transaksi</th>
+                        <th class="py-3 border px-4">Tanggal Transaksi</th>
+                        <th class="py-3 border px-4">Uraian</th>
+                        <th class="py-3 border px-4">Dari Kas</th>
+                        <th class="py-3 border px-4">Akun</th>
+                        <th class="py-3 border px-4">Jumlah</th>
+                        <th class="py-3 border px-4">User</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse($transaksi as $tr)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            TKD{{ str_pad($tr->id, 6, '0', STR_PAD_LEFT) }}
+                <tbody>
+                    @forelse($transaksi as $index => $tr)
+                    <tr class="text-sm align-middle hover:bg-gray-50 cursor-pointer row-selectable"
+                        data-id="{{ $tr->id }}" data-kode="PK{{ str_pad($tr->id, 5, '0', STR_PAD_LEFT) }}"
+                        data-tanggal="{{ $tr->tgl_catat }}" data-keterangan="{{ $tr->keterangan }}"
+                        data-dari-kas-id="{{ $tr->dari_kas_id }}"
+                        data-dari-kas-nama="{{ optional($tr->dariKas)->nama ?? '-' }}"
+                        data-untuk-akun-id="{{ $tr->jns_trans }}" data-jumlah="{{ $tr->jumlah }}"
+                        data-user="{{ $tr->user_name }}">
+                        <td class="py-3 border px-4">
+                            {{ ($transaksi->currentPage() - 1) * $transaksi->perPage() + $loop->iteration }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $tr->tgl_catat->format('d F Y - H:i') }}
+                        <td class="py-3 border px-4">
+                            <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
+                                PK{{ str_pad($tr->id, 5, '0', STR_PAD_LEFT) }}
+                            </span>
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-900">
-                            {{ $tr->keterangan }}
+                        <td class="py-3 border px-4">
+                            {{ $tr->tgl_catat ? \Carbon\Carbon::parse($tr->tgl_catat)->format('d F Y - H:i') : '-' }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ optional($tr->dariKas)->nama }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td class="py-3 border px-4 text-left">{{ $tr->keterangan ?? '-' }}</td>
+                        <td class="py-3 border px-4">{{ optional($tr->dariKas)->nama ?? '-' }}</td>
+                        <td class="py-3 border px-4">
                             @php
-                                $akunMap = [
-                                    '55' => 'Beban Bahan Bakar',
-                                    '56' => 'Beban Servis',
-                                    '57' => 'Beban Parkir',
-                                    '58' => 'Beban Tol',
-                                    '59' => 'Beban Gaji Supir',
-                                    '60' => 'Beban Gaji Kernet',
-                                    '61' => 'Beban Asuransi',
-                                    '62' => 'Beban Pajak',
-                                    '63' => 'Beban Administrasi',
-                                    '64' => 'Beban Lain-lain',
-                                    '65' => 'Beban Perbaikan',
-                                    '66' => 'Beban P3K',
-                                    '67' => 'Beban Cuci',
-                                    '68' => 'Beban Ban',
-                                    '69' => 'Beban Oli'
-                                ];
-                                echo $akunMap[$tr->jns_trans] ?? 'Akun Lain';
+                            $akunMap = [
+                            5 => 'Piutang Usaha',
+                            9 => 'Persediaan Awal Barang',
+                            10 => 'Biaya Dibayar Dimuka',
+                            11 => 'Perlengkapan Usaha',
+                            18 => 'Peralatan Kantor',
+                            19 => 'Inventaris Kendaraan',
+                            20 => 'Mesin',
+                            29 => 'Utang Usaha',
+                            33 => 'Utang Pajak',
+                            37 => 'Utang Bank',
+                            42 => 'Modal Awal',
+                            44 => 'Modal Sumbangan',
+                            45 => 'Modal Cadangan',
+                            50 => 'Beban',
+                            53 => 'Biaya Listrik dan Air',
+                            54 => 'Biaya Transportasi',
+                            55 => 'Biaya Solar',
+                            56 => 'Biaya Olie',
+                            57 => 'Biaya Ban',
+                            58 => 'Biaya Parkir',
+                            59 => 'Biaya Perlengkapan',
+                            60 => 'Biaya Lainnya',
+                            61 => 'Biaya Transportasi',
+                            62 => 'Biaya Perawatan',
+                            63 => 'Biaya Penyusutan',
+                            64 => 'Biaya THR',
+                            65 => 'Biaya Keur',
+                            66 => 'Biaya Sumbangan Karyawan',
+                            67 => 'Biaya STNK',
+                            68 => 'Biaya Angsuran Bus',
+                            69 => 'Beban Gaji Pengemudi',
+                            111 => 'Permisalan',
+                            117 => 'Pembelian',
+                            118 => 'Biaya Angkut Pembelian',
+                            119 => 'Retur Pembelian',
+                            120 => 'Potongan Pembelian',
+                            121 => 'Persediaan Akhir Barang',
+                            122 => 'Biaya Operasional',
+                            123 => 'Bahan Habis Pakai',
+                            124 => 'Insentive Karyawan',
+                            152 => 'Beban Gaji Karyawan'
+                            ];
+                            echo $akunMap[$tr->jns_trans] ?? 'Akun Lain';
                             @endphp
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">
-                            Rp {{ number_format($tr->jumlah, 0, ',', '.') }}
+                        <td class="py-3 border px-4 font-semibold text-red-600">
+                            {{ number_format($tr->jumlah ?? 0, 0, ',', '.') }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $tr->user_name }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onclick="editTransaksi({{ $tr->id }})" class="text-indigo-600 hover:text-indigo-900 mr-2">Edit</button>
-                            <button onclick="deleteTransaksi({{ $tr->id }})" class="text-red-600 hover:text-red-900">Hapus</button>
-                        </td>
+                        <td class="py-3 border px-4">{{ $tr->user_name ?? '-' }}</td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">
-                            Tidak ada data pengeluaran angkutan
+                        <td colspan="8" class="py-8 text-center text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-2"></i>
+                            <p>Tidak ada data pengeluaran angkutan</p>
                         </td>
                     </tr>
                     @endforelse
@@ -202,114 +241,133 @@
             </table>
         </div>
 
-        <!-- Pagination -->
-        @if($transaksi->hasPages())
-        <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-            {{ $transaksi->appends(request()->query())->links() }}
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-5 w-full relative px-2 py-2">
+        <div class="mx-auto w-fit">
+            <div
+                class="bg-white px-4 py-1 flex flex-row rounded-full justify-center items-center space-x-2 border border-gray-300 shadow-sm">
+                @for ($i = 1; $i <= $transaksi->lastPage(); $i++)
+                    @if ($i == 1 || $i == $transaksi->lastPage() || ($i >= $transaksi->currentPage() - 1 && $i <=
+                        $transaksi->currentPage() + 1))
+                        <a href="{{ $transaksi->url($i) }}">
+                            <div
+                                class="rounded-md px-2 py-0.5 text-sm border border-gray-300 {{ $transaksi->currentPage() == $i ? 'bg-gray-100 font-bold' : '' }}">
+                                {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
+                            </div>
+                        </a>
+                        @elseif ($i == 2 || $i == $transaksi->lastPage() - 1)
+                        <div class="rounded-md px-2 py-0.5 text-sm">...</div>
+                        @endif
+                        @endfor
+            </div>
         </div>
-        @endif
+
+        <div class="absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-sm text-gray-400">
+            Displaying {{ $transaksi->firstItem() }} to {{ $transaksi->lastItem() }} of {{ $transaksi->total() }} items
+        </div>
     </div>
 </div>
 
-<!-- Modal Form -->
-<div id="modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900" id="modal-title">Tambah Pengeluaran Angkutan</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
+<!-- Add Modal -->
+<div id="addModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h3 class="text-lg font-semibold">Tambah Pengeluaran Angkutan</h3>
+                <button onclick="closeModal('addModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
-
-            @if(session('success'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline">{{ session('success') }}</span>
-            </div>
-            @endif
-
-            <form id="transaksiForm" action="{{ route('angkutan.store.pengeluaran') }}" method="POST" class="space-y-4">
-                @csrf
+            <form id="addForm" class="p-4">
+                <div class="space-y-4">
                     <div>
-                        <label for="tgl_catat" class="block text-sm font-medium text-gray-700">Tanggal Transaksi</label>
-                        <input type="datetime-local" name="tgl_catat" id="tgl_catat" required
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Transaksi</label>
+                        <input type="datetime-local" name="tgl_catat" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
                     </div>
-
                     <div>
-                    <label for="keterangan" class="block text-sm font-medium text-gray-700">Uraian</label>
-                    <textarea name="keterangan" id="keterangan" rows="3" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50"
-                        placeholder="Masukkan uraian transaksi..."></textarea>
-                </div>
-
-                <div>
-                    <label for="jns_trans" class="block text-sm font-medium text-gray-700">Jenis Pengeluaran</label>
-                    <select name="jns_trans" id="jns_trans" required
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-                        <option value="">Pilih Jenis Pengeluaran</option>
-                        <option value="55">Beban Bahan Bakar</option>
-                        <option value="56">Beban Servis</option>
-                        <option value="57">Beban Parkir</option>
-                        <option value="58">Beban Tol</option>
-                        <option value="59">Beban Gaji Supir</option>
-                        <option value="60">Beban Gaji Kernet</option>
-                        <option value="61">Beban Asuransi</option>
-                        <option value="62">Beban Pajak</option>
-                        <option value="63">Beban Administrasi</option>
-                        <option value="64">Beban Lain-lain</option>
-                        <option value="65">Beban Perbaikan</option>
-                        <option value="66">Beban P3K</option>
-                        <option value="67">Beban Cuci</option>
-                        <option value="68">Beban Ban</option>
-                        <option value="69">Beban Oli</option>
-                        </select>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
+                        <input type="text" name="jumlah" id="jumlah" required placeholder="Masukkan jumlah"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                            oninput="formatNumber(this)" onblur="validateNumber(this)" pattern="[0-9,.]*"
+                            inputmode="numeric">
                     </div>
-
                     <div>
-                        <label for="dari_kas_id" class="block text-sm font-medium text-gray-700">Dari Kas</label>
-                        <select name="dari_kas_id" id="dari_kas_id" required
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-                            <option value="">Pilih Kas Asal</option>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
+                        <textarea name="keterangan" rows="3" placeholder="Masukkan keterangan transaksi"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Dari Kas</label>
+                        <select name="dari_kas_id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <option value="">-- Pilih Kas --</option>
                             @foreach($kas as $item)
-                        <option value="{{ $item->id }}">{{ $item->nama }}</option>
+                            <option value="{{ $item->id }}">{{ $item->nama }}</option>
                             @endforeach
                         </select>
                     </div>
-
                     <div>
-                        <label for="untuk_kas_id" class="block text-sm font-medium text-gray-700">Untuk Kas</label>
-                        <select name="untuk_kas_id" id="untuk_kas_id" required
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50">
-                            <option value="">Pilih Kas Tujuan</option>
-                            @foreach($kas as $item)
-                        <option value="{{ $item->id }}">{{ $item->nama }}</option>
-                            @endforeach
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Untuk Akun</label>
+                        <select name="untuk_akun_id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <option value="">-- Pilih Jenis Akun --</option>
+                            <option value="5">Piutang Usaha</option>
+                            <option value="9">Persediaan Awal Barang</option>
+                            <option value="10">Biaya Dibayar Dimuka</option>
+                            <option value="11">Perlengkapan Usaha</option>
+                            <option value="18">Peralatan Kantor</option>
+                            <option value="19">Inventaris Kendaraan</option>
+                            <option value="20">Mesin</option>
+                            <option value="29">Utang Usaha</option>
+                            <option value="33">Utang Pajak</option>
+                            <option value="37">Utang Bank</option>
+                            <option value="42">Modal Awal</option>
+                            <option value="44">Modal Sumbangan</option>
+                            <option value="45">Modal Cadangan</option>
+                            <option value="50">Beban</option>
+                            <option value="53">Biaya Listrik dan Air</option>
+                            <option value="54">Biaya Transportasi</option>
+                            <option value="55">Biaya Solar</option>
+                            <option value="56">Biaya Olie</option>
+                            <option value="57">Biaya Ban</option>
+                            <option value="58">Biaya Parkir</option>
+                            <option value="59">Biaya Perlengkapan</option>
+                            <option value="60">Biaya Lainnya</option>
+                            <option value="61">Biaya Transportasi</option>
+                            <option value="62">Biaya Perawatan</option>
+                            <option value="63">Biaya Penyusutan</option>
+                            <option value="64">Biaya THR</option>
+                            <option value="65">Biaya Keur</option>
+                            <option value="66">Biaya Sumbangan Karyawan</option>
+                            <option value="67">Biaya STNK</option>
+                            <option value="68">Biaya Angsuran Bus</option>
+                            <option value="69">Beban Gaji Pengemudi</option>
+                            <option value="111">Permisalan</option>
+                            <option value="117">Pembelian</option>
+                            <option value="118">Biaya Angkut Pembelian</option>
+                            <option value="119">Retur Pembelian</option>
+                            <option value="120">Potongan Pembelian</option>
+                            <option value="121">Persediaan Akhir Barang</option>
+                            <option value="122">Biaya Operasional</option>
+                            <option value="123">Bahan Habis Pakai</option>
+                            <option value="124">Insentive Karyawan</option>
+                            <option value="152">Beban Gaji Karyawan</option>
                         </select>
                     </div>
-
-                    <div>
-                        <label for="jumlah" class="block text-sm font-medium text-gray-700">Jumlah</label>
-                        <div class="mt-1 relative rounded-md shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <span class="text-gray-500 sm:text-sm">Rp</span>
-                            </div>
-                            <input type="number" name="jumlah" id="jumlah" min="0" required
-                                class="pl-12 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#14AE5C] focus:ring focus:ring-[#14AE5C] focus:ring-opacity-50"
-                                placeholder="0">
-                    </div>
                 </div>
-
-                <div class="flex justify-end gap-2 pt-4">
-                    <button type="button" onclick="closeModal()"
-                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">
-                        Batal
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('addModal')"
+                        class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center space-x-2">
+                        <i class="fas fa-times"></i>
+                        <span>Batal</span>
                     </button>
                     <button type="submit"
-                        class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#14AE5C]/80 focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:ring-opacity-50">
-                        Simpan
+                        class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center space-x-2">
+                        <i class="fas fa-check"></i>
+                        <span>Simpan</span>
                     </button>
                 </div>
             </form>
@@ -317,40 +375,111 @@
     </div>
 </div>
 
-@push('scripts')
-<script>
-    // Set default datetime to now
-    document.getElementById('tgl_catat').value = new Date().toISOString().slice(0, 16);
+<!-- Edit Modal -->
+<div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h3 class="text-lg font-semibold">Edit Pengeluaran Angkutan</h3>
+                <button onclick="closeModal('editModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="editForm" class="p-4">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Transaksi</label>
+                        <input type="datetime-local" name="tgl_catat" id="edit_tgl_catat" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
+                        <input type="text" name="jumlah" id="edit_jumlah" required placeholder="Masukkan jumlah"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                            oninput="formatNumber(this)" onblur="validateNumber(this)" pattern="[0-9,.]*"
+                            inputmode="numeric">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
+                        <textarea name="keterangan" id="edit_keterangan" rows="3"
+                            placeholder="Masukkan keterangan transaksi"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Dari Kas</label>
+                        <select name="dari_kas_id" id="edit_dari_kas_id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <option value="">-- Pilih Kas --</option>
+                            @foreach($kas as $item)
+                            <option value="{{ $item->id }}">{{ $item->nama }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Untuk Akun</label>
+                        <select name="untuk_akun_id" id="edit_untuk_akun_id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <option value="">-- Pilih Jenis Akun --</option>
+                            <option value="5">Piutang Usaha</option>
+                            <option value="9">Persediaan Awal Barang</option>
+                            <option value="10">Biaya Dibayar Dimuka</option>
+                            <option value="11">Perlengkapan Usaha</option>
+                            <option value="18">Peralatan Kantor</option>
+                            <option value="19">Inventaris Kendaraan</option>
+                            <option value="20">Mesin</option>
+                            <option value="29">Utang Usaha</option>
+                            <option value="33">Utang Pajak</option>
+                            <option value="37">Utang Bank</option>
+                            <option value="42">Modal Awal</option>
+                            <option value="44">Modal Sumbangan</option>
+                            <option value="45">Modal Cadangan</option>
+                            <option value="50">Beban</option>
+                            <option value="53">Biaya Listrik dan Air</option>
+                            <option value="54">Biaya Transportasi</option>
+                            <option value="55">Biaya Solar</option>
+                            <option value="56">Biaya Olie</option>
+                            <option value="57">Biaya Ban</option>
+                            <option value="58">Biaya Parkir</option>
+                            <option value="59">Biaya Perlengkapan</option>
+                            <option value="60">Biaya Lainnya</option>
+                            <option value="61">Biaya Transportasi</option>
+                            <option value="62">Biaya Perawatan</option>
+                            <option value="63">Biaya Penyusutan</option>
+                            <option value="64">Biaya THR</option>
+                            <option value="65">Biaya Keur</option>
+                            <option value="66">Biaya Sumbangan Karyawan</option>
+                            <option value="67">Biaya STNK</option>
+                            <option value="68">Biaya Angsuran Bus</option>
+                            <option value="69">Beban Gaji Pengemudi</option>
+                            <option value="111">Permisalan</option>
+                            <option value="117">Pembelian</option>
+                            <option value="118">Biaya Angkut Pembelian</option>
+                            <option value="119">Retur Pembelian</option>
+                            <option value="120">Potongan Pembelian</option>
+                            <option value="121">Persediaan Akhir Barang</option>
+                            <option value="122">Biaya Operasional</option>
+                            <option value="123">Bahan Habis Pakai</option>
+                            <option value="124">Insentive Karyawan</option>
+                            <option value="152">Beban Gaji Karyawan</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('editModal')"
+                        class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center space-x-2">
+                        <i class="fas fa-times"></i>
+                        <span>Batal</span>
+                    </button>
+                    <button type="submit"
+                        class="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 flex items-center space-x-2">
+                        <i class="fas fa-edit"></i>
+                        <span>Update</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-    function openModal() {
-        document.getElementById('modal').classList.remove('hidden');
-        document.getElementById('modal-title').textContent = 'Tambah Pengeluaran Angkutan';
-        document.getElementById('transaksiForm').reset();
-        document.getElementById('transaksiForm').action = '{{ route("angkutan.store.pengeluaran") }}';
-    }
-
-    function closeModal() {
-        document.getElementById('modal').classList.add('hidden');
-    }
-
-    function editTransaksi(id) {
-        // Implement edit functionality
-        alert('Edit transaksi dengan ID: ' + id);
-    }
-
-    function deleteTransaksi(id) {
-        if (confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
-            // Implement delete functionality
-            alert('Hapus transaksi dengan ID: ' + id);
-        }
-    }
-
-    // Close modal when clicking outside
-    document.getElementById('modal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeModal();
-        }
-    });
-</script>
-@endpush
-@endsection 
+@include('angkutan.pengeluaran-scripts')
+@endsection
