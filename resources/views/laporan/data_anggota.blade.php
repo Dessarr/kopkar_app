@@ -24,23 +24,23 @@
     <!-- Collapsible Control Panel -->
     <div id="control-panel" class="mb-6">
         <div class="bg-gray-50 p-4 rounded-lg">
-            <form method="GET" action="{{ route('laporan.data.anggota') }}" class="flex flex-wrap gap-4 items-end">
-                <div class="flex-1 min-w-[200px]">
-                    <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Cari</label>
+        <form method="GET" action="{{ route('laporan.data.anggota') }}" class="flex flex-wrap gap-4 items-end">
+            <div class="flex-1 min-w-[200px]">
+                <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Cari</label>
                     <input type="text" id="search" name="search" value="{{ $search ?? '' }}"
-                           placeholder="Nama, No KTP, atau No Anggota"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
-                </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#11994F] transition-colors duration-200">
+                       placeholder="Nama, No KTP, atau No Anggota"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#11994F] transition-colors duration-200">
                         <i class="fas fa-search mr-2"></i>Cari
-                    </button>
-                    <a href="{{ route('laporan.data.anggota') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
-                        <i class="fas fa-refresh mr-2"></i>Reset
-                    </a>
-                </div>
-            </form>
-        </div>
+                </button>
+                <a href="{{ route('laporan.data.anggota') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
+                    <i class="fas fa-refresh mr-2"></i>Reset
+                </a>
+            </div>
+        </form>
+    </div>
     </div>
 
     <!-- Main Title -->
@@ -55,7 +55,7 @@
                         <i class="fas fa-times"></i>
                     </a>
                 </span>
-            </div>
+                </div>
         @endif
     </div>
 
@@ -185,7 +185,7 @@
                 <span class="px-3 py-2 text-sm text-gray-400 bg-gray-100 rounded-md cursor-not-allowed">
                     <i class="fas fa-chevron-right"></i>
                 </span>
-            @endif
+    @endif
 
             <!-- Last Page Link -->
             @if ($dataAnggota->currentPage() < $dataAnggota->lastPage() - 2)
@@ -197,14 +197,14 @@
                 </a>
             @endif
         </nav>
-    </div>
+            </div>
 
     <!-- Pagination Info -->
     <div class="mt-4 text-center text-sm text-gray-600">
         <span class="font-medium">Halaman {{ $dataAnggota->currentPage() }}</span> dari 
         <span class="font-medium">{{ $dataAnggota->lastPage() }}</span> 
         (Total {{ number_format($dataAnggota->total()) }} data)
-    </div>
+            </div>
     @endif
 </div>
 

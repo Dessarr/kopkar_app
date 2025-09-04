@@ -1,11 +1,116 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class jns_angsuran extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'jns_angsuran';
-    protected $fillable = ['id', 'ket', 'aktif'];
+
+    protected $fillable = [
+        'ket',
+        'aktif',
+    ];
+
+    protected $casts = [
+        'ket' => 'integer',
+        'aktif' => 'boolean',
+    ];
+
     public $timestamps = false;
+
+    // Accessor untuk status aktif
+    public function getStatusAktifTextAttribute()
+    {
+        return $this->aktif ? 'Aktif' : 'Nonaktif';
+    }
+
+    // Accessor untuk badge status aktif
+    public function getStatusAktifBadgeAttribute()
+    {
+        return $this->aktif ? 'success' : 'danger';
+    }
+
+    // Accessor untuk format keterangan
+    public function getKetFormattedAttribute()
+    {
+        return $this->ket . ' Bulan';
+    }
+
+    // Accessor untuk kategori angsuran
+    public function getKategoriAngsuranAttribute()
+    {
+        if ($this->ket <= 6) {
+            return 'Jangka Pendek';
+        } elseif ($this->ket <= 24) {
+            return 'Jangka Menengah';
+        } else {
+            return 'Jangka Panjang';
+        }
+    }
+
+    // Accessor untuk badge kategori angsuran
+    public function getKategoriAngsuranBadgeAttribute()
+    {
+        switch ($this->kategori_angsuran) {
+            case 'Jangka Pendek':
+                return 'success';
+            case 'Jangka Menengah':
+                return 'warning';
+            case 'Jangka Panjang':
+                return 'info';
+            default:
+                return 'secondary';
+        }
+    }
+
+    // Scope untuk pencarian
+    public function scopeSearch($query, $search)
+    {
+        return $query->where(function($q) use ($search) {
+            $q->where('ket', 'like', '%' . $search . '%');
+        });
+    }
+
+    // Scope untuk filter berdasarkan status aktif
+    public function scopeByStatusAktif($query, $status)
+    {
+        if ($status === 'aktif') {
+            return $query->where('aktif', 'Y');
+        } elseif ($status === 'nonaktif') {
+            return $query->where('aktif', 'T');
+        }
+        return $query;
+    }
+
+    // Scope untuk filter berdasarkan kategori angsuran
+    public function scopeByKategori($query, $kategori)
+    {
+        switch ($kategori) {
+            case 'pendek':
+                return $query->where('ket', '<=', 6);
+            case 'menengah':
+                return $query->where('ket', '>', 6)->where('ket', '<=', 24);
+            case 'panjang':
+                return $query->where('ket', '>', 24);
+            default:
+                return $query;
+        }
+    }
+
+    // Scope untuk filter berdasarkan range bulan
+    public function scopeByRangeBulan($query, $min, $max)
+    {
+        return $query->whereBetween('ket', [$min, $max]);
+    }
+
+    // Scope untuk urutan
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('ket');
+    }
 }

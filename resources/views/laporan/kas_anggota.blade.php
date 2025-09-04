@@ -24,24 +24,24 @@
     <div id="control-panel" class="mb-6">
         <div class="bg-gray-50 p-4 rounded-lg">
             <div class="flex flex-wrap gap-4 items-end">
-                <div class="flex-1 min-w-[200px]">
-                    <label for="periode" class="block text-sm font-medium text-gray-700 mb-2">Periode</label>
-                    <input type="month" id="periode" name="periode" value="{{ $periode }}" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
-                </div>
-                <div class="flex-1 min-w-[200px]">
-                    <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Cari</label>
-                    <input type="text" id="search" name="search" value="{{ $search }}" 
+            <div class="flex-1 min-w-[200px]">
+                <label for="periode" class="block text-sm font-medium text-gray-700 mb-2">Periode</label>
+                <input type="month" id="periode" name="periode" value="{{ $periode }}" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Cari</label>
+                <input type="text" id="search" name="search" value="{{ $search }}" 
                            placeholder="Nama, No KTP, atau ID Anggota"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
-                </div>
-                <div class="flex gap-2">
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
+            </div>
+            <div class="flex gap-2">
                     <button type="button" onclick="submitFilter()" class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#11994F] transition-colors duration-200">
                         <i class="fas fa-search mr-2"></i>Cari
-                    </button>
-                    <a href="{{ route('laporan.kas.anggota') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
+                </button>
+                <a href="{{ route('laporan.kas.anggota') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
                         <i class="fas fa-refresh mr-2"></i>Hapus Filter
-                    </a>
+                </a>
                 </div>
             </div>
         </div>

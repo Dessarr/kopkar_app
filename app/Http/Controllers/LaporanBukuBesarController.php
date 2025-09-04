@@ -115,7 +115,7 @@ class LaporanBukuBesarController extends Controller
             ->whereIn('t.dk', ['D', 'K'])
             ->orderBy('t.tgl_catat', 'asc')
             ->orderBy('t.id', 'asc')
-            ->get();
+                ->get();
     }
 
     /**
@@ -319,4 +319,4 @@ class LaporanBukuBesarController extends Controller
         $writer->save('php://output');
         exit;
     }
-}
+} 

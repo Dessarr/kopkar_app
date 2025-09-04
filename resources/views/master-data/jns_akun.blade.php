@@ -1,101 +1,257 @@
 @extends('layouts.app')
 
-@section('title', 'Jenis Simpanan')
-@section('sub-title', 'Tipe Tipe Akun')
+@section('title', 'Jenis Akun')
+@section('sub-title', 'Master Data Jenis Akun')
 
 @section('content')
+<style>
+.expandable-row {
+    transition: all 0.3s ease-in-out;
+}
+
+.expandable-row:hover {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    background-color: rgb(249 250 251);
+}
+
+.expandable-content {
+    transition: all 0.3s ease-in-out;
+    max-height: 1.5rem;
+    overflow: hidden;
+}
+
+.expandable-row:hover .expandable-content {
+    max-height: 100px;
+}
+</style>
+
 <div class="px-1 justify-center flex flex-col">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Data Akun</h1>
-        <div class="flex place-content-around items-center w-1/2">
-            <div class="bg-green-100 p-2 rounded-lg border-2 border-green-400 space-x-2 flex justify-around">
-                <p class="text-sm">Export</p> <img src="{{ asset('img/icons-bootstrap/export/cloud-download.svg') }}"
-                    class="h-auto w-[20px]">
-            </div>
-            <div class="bg-gray-100 p-2 flex flex-row space-x-2 item-center rounded-lg border-2 border-gray-300">
-                <i class="fa-solid fa-magnifying-glass  " style="color:gray;"></i>
-                <p class="text-sm text-gray-500  ">Kode Transaksi</p>
-            </div>
+        <h1 class="text-2xl font-bold">Data Jenis Akun</h1>
+    </div>
 
-            <div class="bg-gray-100 p-3 flex flex-row item-center rounded-lg border-2 border-gray-300">
-                <img src="{{ asset('img/icons-bootstrap/calendar/calendar4.svg') }}">
+    <!-- Collapsible Header -->
+    <div class="bg-white rounded-lg shadow mb-4">
+        <button onclick="toggleCollapsible()" class="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors">
+            <div class="flex items-center">
+                <i class="fas fa-filter text-[#14AE5C] mr-3"></i>
+                <span class="font-semibold text-gray-700">Filter & Pencarian</span>
             </div>
-
-            <div class="bg-green-100 py-2 px-5 rounded-lg border-2 border-green-400">
-                <i class="fa-solid fa-ellipsis-vertical"></i>
+            <i id="collapsible-icon" class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+        </button>
+        
+        <!-- Collapsible Content -->
+        <div id="collapsible-content" class="space-y-4 p-4 border-t" style="display: none;">
+            <!-- Filter Section -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <form method="GET" action="{{ route('master-data.jns_akun') }}" class="flex flex-wrap gap-4 items-end">
+                    <div class="flex-1 min-w-[200px]">
+                        <label for="search" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-search mr-2"></i>Pencarian
+                        </label>
+                        <input type="text" id="search" name="search" value="{{ request('search') }}" 
+                               placeholder="Cari kode, jenis transaksi, atau akun..."
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
+                    </div>
+                    <div class="flex-1 min-w-[150px]">
+                        <label for="akun_type" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-tag mr-2"></i>Tipe Akun
+                        </label>
+                        <select id="akun_type" name="akun_type" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
+                            <option value="">Semua Tipe</option>
+                            @foreach($accountTypes as $type)
+                                <option value="{{ $type }}" {{ request('akun_type') == $type ? 'selected' : '' }}>{{ $type }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[150px]">
+                        <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-toggle-on mr-2"></i>Status
+                        </label>
+                        <select id="status" name="status" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
+                            <option value="">Semua Status</option>
+                            <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Aktif</option>
+                            <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Tidak Aktif</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#11994F] transition-colors duration-200">
+                            <i class="fas fa-search mr-2"></i>Filter
+                        </button>
+                        <a href="{{ route('master-data.jns_akun') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
+                            <i class="fas fa-refresh mr-2"></i>Reset
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Tabel Transaksi -->
+    <!-- Tabel Data -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="p-4 border-b">
-            <h2 class="text-lg font-semibold">Riwayat Transaksi</h2>
+        @if(session('success'))
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
+            {{ session('success') }}
         </div>
+        @endif
+
+        <div class="p-4 border-b">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('master-data.jns_akun.create') }}"
+                        class="inline-flex items-center gap-2 bg-green-100 hover:bg-green-200 text-green-800 text-sm font-medium px-4 py-2 rounded-lg transition">
+                        <i class="fa-solid fa-plus fa-xs"></i>
+                        Tambah Jenis Akun
+                    </a>
+                </div>
+                <div class="flex flex-col md:flex-row md:items-center gap-2 md:ml-auto">
+                    <a href="{{ route('master-data.jns_akun.export') }}"
+                        class="flex items-center gap-2 bg-green-100 p-2 rounded-lg border-2 border-green-400 hover:bg-green-200 transition">
+                        <img src="{{ asset('img/icons-bootstrap/export/cloud-download.svg') }}" class="h-5 w-5" alt="Export Excel">
+                        <span class="text-sm">Export Excel</span>
+                    </a>
+                    <a href="{{ route('master-data.jns_akun.template') }}"
+                        class="flex items-center gap-2 bg-blue-100 p-2 rounded-lg border-2 border-blue-400 hover:bg-blue-200 transition">
+                        <i class="fas fa-download text-blue-600"></i>
+                        <span class="text-sm">Template</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <div class="overflow-x-auto">
-            <table class="table-auto w-full border border-gray-300 text-center">
-                <thead class="bg-gray-100">
-                    <tr class="text-sm">
-                        <th class="py-2 border">No</th>
-                        <th class="py-2 border">Kode Aktiva</th>
-                        <th class="py-2 border">Jenis Transaksi</th>
-                        <th class="py-2 border">Akun</th>
-                        <th class="py-2 border">Laba Rugi</th>
-                        <th class="py-2 border">Pemasukan</th>
-                        <th class="py-2 border">Pengeluaran</th>
-                        <th class="py-2 border">Status</th>
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-600 text-sm">
+                        <th class="px-4 py-3 border-b text-center w-12">#</th>
+                        <th class="px-4 py-3 border-b text-center">Kode Aktiva</th>
+                        <th class="px-4 py-3 border-b text-center">Jenis Transaksi</th>
+                        <th class="px-4 py-3 border-b text-center">Akun</th>
+                        <th class="px-4 py-3 border-b text-center">Laba Rugi</th>
+                        <th class="px-4 py-3 border-b text-center">Pemasukan</th>
+                        <th class="px-4 py-3 border-b text-center">Pengeluaran</th>
+                        <th class="px-4 py-3 border-b text-center">Status</th>
+                        <th class="px-4 py-3 border-b text-center w-32">Aksi</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach($dataAkun as $akun)
-                    <tr class="text-sm align-middle">
-                        <td class="py-2 border">
+                <tbody class="divide-y">
+                    @forelse($dataAkun as $akun)
+                    <tr class="expandable-row">
+                        <td class="px-4 py-3 text-center text-sm">
                             {{ ($dataAkun->currentPage() - 1) * $dataAkun->perPage() + $loop->iteration }}
                         </td>
-                        <td class="py-2 border">{{ $akun->kd_aktiva }}</td>
-                        <td class="py-2 border">{{ $akun->jns_trans }}</td>
-                        <td class="py-2 border">{{ $akun->akun }}</td>
-                        <td class="py-2 border">{{ $akun->laba_rugi }}</td>
-                        <td class="py-2 border">{{ $akun->pemasukan ? 'Ya' : 'Tidak' }}</td>
-                        <td class="py-2 border">{{ $akun->pengeluaran ? 'Ya' : 'Tidak' }}</td>
-                        <td class="py-2 border">{{ $akun->aktif ? 'Aktif' : 'Nonaktif' }}</td>
+                        <td class="px-4 py-3 text-center text-sm font-mono">{{ $akun->kd_aktiva }}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <div class="expandable-content">
+                                {{ $akun->jns_trans }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-center text-sm">
+                            <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                                {{ $akun->akun }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-center text-sm">{{ $akun->laba_rugi ?? '-' }}</td>
+                        <td class="px-4 py-3 text-center text-sm">
+                            @if($akun->pemasukan)
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                    <i class="fas fa-check mr-1"></i>Ya
+                                </span>
+                            @else
+                                <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                                    <i class="fas fa-times mr-1"></i>Tidak
+                                </span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-center text-sm">
+                            @if($akun->pengeluaran)
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                    <i class="fas fa-check mr-1"></i>Ya
+                                </span>
+                            @else
+                                <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                                    <i class="fas fa-times mr-1"></i>Tidak
+                                </span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-center text-sm">
+                            <span class="px-2 py-1 text-xs rounded-full {{ $akun->aktif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                {{ $akun->status_text }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                <a href="{{ route('master-data.jns_akun.show', $akun->id) }}"
+                                    class="text-blue-600 hover:text-blue-900" title="Detail">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ route('master-data.jns_akun.edit', $akun->id) }}"
+                                    class="text-green-600 hover:text-green-900" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form action="{{ route('master-data.jns_akun.destroy', $akun->id) }}" method="POST"
+                                    onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?');" class="inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-red-600 hover:text-red-900" title="Hapus">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
                     </tr>
-                    @endforeach
-
+                    @empty
+                    <tr>
+                        <td colspan="9" class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-2"></i>
+                            <p>Tidak ada data jenis akun</p>
+                        </td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
     </div>
-    <div class="mt-5 w-full relative px-2 py-2">
-        <div class="mx-auto w-fit">
-            <div
-                class="bg-white px-4 py-1 flex flex-row rounded-full justify-center items-center space-x-2 border border-gray-300 shadow-sm">
+
+    <!-- Pagination -->
+    <div class="mt-5 flex items-center justify-between px-4">
+        <div class="flex justify-center flex-1">
+            <div class="bg-white px-4 py-2 flex items-center gap-2 rounded-lg border shadow-sm">
                 @for ($i = 1; $i <= $dataAkun->lastPage(); $i++)
-                    @if ($i == 1 || $i == $dataAkun->lastPage() || ($i >= $dataAkun->currentPage() - 1 && $i <=
-                        $dataAkun->
-                        currentPage() + 1))
-                        <a href="{{ $dataAkun->url($i) }}">
-                            <div
-                                class="rounded-md px-2 py-0.5 text-sm border border-gray-300 {{ $dataAkun->currentPage() == $i ? 'bg-gray-100 font-bold' : '' }}">
-                                {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
-                            </div>
+                    @if ($i == 1 || $i == $dataAkun->lastPage() || ($i >= $dataAkun->currentPage() - 1 && $i <= $dataAkun->currentPage() + 1))
+                        <a href="{{ $dataAkun->url($i) }}"
+                            class="px-3 py-1 text-sm rounded-md {{ $dataAkun->currentPage() == $i ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50' }}">
+                            {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
                         </a>
-                        @elseif ($i == 2 || $i == $dataAkun->lastPage() - 1)
-                        <div class="rounded-md px-2 py-0.5 text-sm">...</div>
-                        @endif
-                        @endfor
+                    @elseif ($i == 2 || $i == $dataAkun->lastPage() - 1)
+                        <span class="px-2 text-gray-400">...</span>
+                    @endif
+                @endfor
             </div>
         </div>
-
-
-        <div class="absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-sm text-gray-400">
-            Displaying {{ $dataAkun->firstItem() }} to {{ $dataAkun->lastItem() }} of {{ $dataAkun->total() }} items
+        <div class="text-sm text-gray-500">
+            Showing {{ $dataAkun->firstItem() }} to {{ $dataAkun->lastItem() }} of {{ $dataAkun->total() }} entries
         </div>
-
     </div>
 </div>
 
-<div class="popup">
-
-</div>
+<script>
+function toggleCollapsible() {
+    const content = document.getElementById('collapsible-content');
+    const icon = document.getElementById('collapsible-icon');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    } else {
+        content.style.display = 'none';
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    }
+}
+</script>
 @endsection

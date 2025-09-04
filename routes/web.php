@@ -32,6 +32,10 @@ use App\Http\Controllers\LaporanKasAnggotaController;
 use App\Http\Controllers\LaporanJatuhTempoController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\LaporanKreditMacetController;
+use App\Http\Controllers\LaporanTargetRealisasiController;
+use App\Http\Controllers\LaporanPengeluaranPinjamanController;
+use App\Http\Controllers\LaporanAngsuranPinjamanController;
+use App\Http\Controllers\LaporanRekapitulasiController;
 use App\Http\Controllers\NotificationController;
 
 // Admin Routes
@@ -293,12 +297,82 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/pinjaman/lunas', [\App\Http\Controllers\DataPinjamanController::class, 'lunas'])->name('pinjaman.lunas');
 
     //Route untuk Master Data
+    // Master Data - Jenis Akun
     Route::get('/master-data/jns_akun',[JnsAkunController::class,'index'])->name('master-data.jns_akun');
-    Route::get('/master-data/jns_simpan',[JnsSimpanController::class,'index'])->name('master-data.jns_simpan');
-    Route::get('/master-data/data_pengguna',[DtaPenggunaController::class,'index'])->name('master-data.data_pengguna');
-    Route::get('/master-data/data_barang',[DtaBarangController::class,'index'])->name('master-data.data_barang');
-    Route::get('/master-data/data_mobil',[DtaMobilController::class,'index'])->name('master-data.data_mobil');
-    Route::get('/master-data/jenis_angsuran',[JnsAngusuranController::class,'index'])->name('master-data.jenis_angsuran');
+    Route::get('/master-data/jns_akun/create',[JnsAkunController::class,'create'])->name('master-data.jns_akun.create');
+    Route::post('/master-data/jns_akun',[JnsAkunController::class,'store'])->name('master-data.jns_akun.store');
+    Route::get('/master-data/jns_akun/{id}',[JnsAkunController::class,'show'])->name('master-data.jns_akun.show');
+    Route::get('/master-data/jns_akun/{id}/edit',[JnsAkunController::class,'edit'])->name('master-data.jns_akun.edit');
+    Route::put('/master-data/jns_akun/{id}',[JnsAkunController::class,'update'])->name('master-data.jns_akun.update');
+    Route::delete('/master-data/jns_akun/{id}',[JnsAkunController::class,'destroy'])->name('master-data.jns_akun.destroy');
+    Route::get('/master-data/jns_akun/export/excel',[JnsAkunController::class,'export'])->name('master-data.jns_akun.export');
+    Route::post('/master-data/jns_akun/import',[JnsAkunController::class,'import'])->name('master-data.jns_akun.import');
+    Route::get('/master-data/jns_akun/template/download',[JnsAkunController::class,'downloadTemplate'])->name('master-data.jns_akun.template');
+    // Jenis Simpanan
+    Route::resource('master-data/jns_simpan', JnsSimpanController::class)->names([
+        'index' => 'master-data.jns_simpan',
+        'create' => 'master-data.jns_simpan.create',
+        'store' => 'master-data.jns_simpan.store',
+        'show' => 'master-data.jns_simpan.show',
+        'edit' => 'master-data.jns_simpan.edit',
+        'update' => 'master-data.jns_simpan.update',
+        'destroy' => 'master-data.jns_simpan.destroy',
+    ]);
+    Route::get('/master-data/jns_simpan/export/excel', [JnsSimpanController::class, 'export'])->name('master-data.jns_simpan.export');
+    Route::post('/master-data/jns_simpan/import', [JnsSimpanController::class, 'import'])->name('master-data.jns_simpan.import');
+    Route::get('/master-data/jns_simpan/template/download', [JnsSimpanController::class, 'downloadTemplate'])->name('master-data.jns_simpan.template');
+    // Data Pengguna
+    Route::resource('master-data/data_pengguna', DtaPenggunaController::class)->names([
+        'index' => 'master-data.data_pengguna',
+        'create' => 'master-data.data_pengguna.create',
+        'store' => 'master-data.data_pengguna.store',
+        'show' => 'master-data.data_pengguna.show',
+        'edit' => 'master-data.data_pengguna.edit',
+        'update' => 'master-data.data_pengguna.update',
+        'destroy' => 'master-data.data_pengguna.destroy',
+    ]);
+    Route::get('/master-data/data_pengguna/export/excel', [DtaPenggunaController::class, 'export'])->name('master-data.data_pengguna.export');
+    Route::post('/master-data/data_pengguna/import', [DtaPenggunaController::class, 'import'])->name('master-data.data_pengguna.import');
+    Route::get('/master-data/data_pengguna/template/download', [DtaPenggunaController::class, 'downloadTemplate'])->name('master-data.data_pengguna.template');
+    // Data Barang
+    Route::resource('master-data/data_barang', DtaBarangController::class)->names([
+        'index' => 'master-data.data_barang',
+        'create' => 'master-data.data_barang.create',
+        'store' => 'master-data.data_barang.store',
+        'show' => 'master-data.data_barang.show',
+        'edit' => 'master-data.data_barang.edit',
+        'update' => 'master-data.data_barang.update',
+        'destroy' => 'master-data.data_barang.destroy',
+    ]);
+    Route::get('/master-data/data_barang/export/excel', [DtaBarangController::class, 'export'])->name('master-data.data_barang.export');
+    Route::post('/master-data/data_barang/import', [DtaBarangController::class, 'import'])->name('master-data.data_barang.import');
+    Route::get('/master-data/data_barang/template/download', [DtaBarangController::class, 'downloadTemplate'])->name('master-data.data_barang.template');
+    // Data Mobil
+    Route::resource('master-data/data_mobil', DtaMobilController::class)->names([
+        'index' => 'master-data.data_mobil',
+        'create' => 'master-data.data_mobil.create',
+        'store' => 'master-data.data_mobil.store',
+        'show' => 'master-data.data_mobil.show',
+        'edit' => 'master-data.data_mobil.edit',
+        'update' => 'master-data.data_mobil.update',
+        'destroy' => 'master-data.data_mobil.destroy',
+    ]);
+    Route::get('/master-data/data_mobil/export/excel', [DtaMobilController::class, 'export'])->name('master-data.data_mobil.export');
+    Route::post('/master-data/data_mobil/import', [DtaMobilController::class, 'import'])->name('master-data.data_mobil.import');
+    Route::get('/master-data/data_mobil/template/download', [DtaMobilController::class, 'downloadTemplate'])->name('master-data.data_mobil.template');
+    // Jenis Angsuran
+    Route::resource('master-data/jenis_angsuran', JnsAngusuranController::class)->names([
+        'index' => 'master-data.jenis_angsuran',
+        'create' => 'master-data.jenis_angsuran.create',
+        'store' => 'master-data.jenis_angsuran.store',
+        'show' => 'master-data.jenis_angsuran.show',
+        'edit' => 'master-data.jenis_angsuran.edit',
+        'update' => 'master-data.jenis_angsuran.update',
+        'destroy' => 'master-data.jenis_angsuran.destroy',
+    ]);
+    Route::get('/master-data/jenis_angsuran/export/excel', [JnsAngusuranController::class, 'export'])->name('master-data.jenis_angsuran.export');
+    Route::post('/master-data/jenis_angsuran/import', [JnsAngusuranController::class, 'import'])->name('master-data.jenis_angsuran.import');
+    Route::get('/master-data/jenis_angsuran/template/download', [JnsAngusuranController::class, 'downloadTemplate'])->name('master-data.jenis_angsuran.template');
     
     // Route untuk Data Anggota
     Route::get('/master-data/data_anggota',[DtaAnggotaController::class,'index'])->name('master-data.data_anggota');
@@ -311,7 +385,19 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::delete('/master-data/data_anggota/{id}', [DtaAnggotaController::class, 'destroy'])->name('master-data.data_anggota.destroy');
     Route::post('/master-data/data_anggota', [DtaAnggotaController::class, 'store'])->name('master-data.data_anggota.store');
     
-    Route::get('/master-data/data_Kas',[DtaKasController::class,'index'])->name('master-data.data_kas');
+    // Data Kas
+    Route::resource('master-data/data_kas', DtaKasController::class)->names([
+        'index' => 'master-data.data_kas',
+        'create' => 'master-data.data_kas.create',
+        'store' => 'master-data.data_kas.store',
+        'show' => 'master-data.data_kas.show',
+        'edit' => 'master-data.data_kas.edit',
+        'update' => 'master-data.data_kas.update',
+        'destroy' => 'master-data.data_kas.destroy',
+    ]);
+    Route::get('/master-data/data_kas/export/excel', [DtaKasController::class, 'export'])->name('master-data.data_kas.export');
+    Route::post('/master-data/data_kas/import', [DtaKasController::class, 'import'])->name('master-data.data_kas.import');
+    Route::get('/master-data/data_kas/template/download', [DtaKasController::class, 'downloadTemplate'])->name('master-data.data_kas.template');
 
     //Route untuk Setting
     Route::get('/settings/identitas_koperasi',[SettingController::class,'index'])->name('settings.identitas_koperasi');
