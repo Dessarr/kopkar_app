@@ -141,52 +141,99 @@
 
     <!-- Data Table -->
     <div class="mb-4">
+        <!-- Scroll Indicator -->
+        <div class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="flex items-center text-sm text-blue-700">
+                <i class="fas fa-info-circle mr-2"></i>
+                <span class="font-medium">Petunjuk:</span>
+                <span class="ml-2">Gunakan scroll horizontal (geser ke kanan/kiri) untuk melihat semua kolom data. Header tabel akan tetap terlihat saat scroll.</span>
+            </div>
+        </div>
         
-        <div class="overflow-x-auto">
-            <table class="min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Photo</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Identitas</th>
+        <div class="table-container border border-gray-200 rounded-lg">
+            <table class="w-full bg-white table-fixed">
+                <thead class="bg-gray-50 sticky top-0 z-10">
+                    <!-- Main Header Row -->
+                    <tr class="border-b-2 border-gray-300">
+                        <th class="w-16 px-4 py-4 text-center text-sm font-bold text-gray-700 uppercase tracking-wider border-r-2 border-gray-300">No</th>
+                        <th class="w-20 px-4 py-4 text-center text-sm font-bold text-gray-700 uppercase tracking-wider border-r-2 border-gray-300">Photo</th>
+                        <th class="w-48 px-4 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider border-r-2 border-gray-300">Identitas</th>
                         
                         @foreach($jenisSimpanan as $jenis)
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" colspan="3">
-                            {{ $jenis->jns_simpan }}
+                        <th class="w-48 px-4 py-4 text-center text-sm font-bold text-gray-700 uppercase tracking-wider border-r-2 border-gray-300" colspan="3">
+                            <div class="break-words leading-tight">{{ $jenis->jns_simpan }}</div>
                         </th>
                         @endforeach
                         
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" colspan="3">Total Simpanan</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" colspan="3">Tagihan Kredit</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" colspan="3">Tagihan Simpanan</th>
+                        <th class="w-48 px-4 py-4 text-center text-sm font-bold text-gray-700 uppercase tracking-wider border-r-2 border-gray-300" colspan="3">
+                            <div class="break-words leading-tight">Total Simpanan</div>
+                        </th>
+                        <th class="w-48 px-4 py-4 text-center text-sm font-bold text-gray-700 uppercase tracking-wider border-r-2 border-gray-300" colspan="3">
+                            <div class="break-words leading-tight">Tagihan Kredit</div>
+                        </th>
+                        <th class="w-48 px-4 py-4 text-center text-sm font-bold text-gray-700 uppercase tracking-wider" colspan="3">
+                            <div class="break-words leading-tight">Tagihan Simpanan</div>
+                        </th>
                     </tr>
-                    <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID | Nama | L/P | Jabatan | Dept | Alamat | Telp</th>
+                    
+                    <!-- Sub Header Row -->
+                    <tr class="bg-gray-100 border-b border-gray-200">
+                        <th class="w-16 px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300"></th>
+                        <th class="w-20 px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300"></th>
+                        <th class="w-48 px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
+                            <div class="space-y-1">
+                                <div>ID | Nama | L/P</div>
+                                <div>Jabatan | Dept</div>
+                                <div>Alamat | Telp</div>
+                            </div>
+                        </th>
                         
                         @foreach($jenisSimpanan as $jenis)
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Setor</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tarik</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo</th>
+                        <th class="w-48 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
+                            <div class="whitespace-nowrap">Setor</div>
+                        </th>
+                        <th class="w-48 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
+                            <div class="whitespace-nowrap">Tarik</div>
+                        </th>
+                        <th class="w-48 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
+                            <div class="whitespace-nowrap">Saldo</div>
+                        </th>
                         @endforeach
                         
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Setor</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tarik</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pinjaman</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Bayar</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sisa</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tagihan</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Bayar</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sisa</th>
+                        <th class="w-48 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
+                            <div class="whitespace-nowrap">Setor</div>
+                        </th>
+                        <th class="w-48 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
+                            <div class="whitespace-nowrap">Tarik</div>
+                        </th>
+                        <th class="w-48 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
+                            <div class="whitespace-nowrap">Saldo</div>
+                        </th>
+                        <th class="w-48 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
+                            <div class="whitespace-nowrap">Pinjaman</div>
+                        </th>
+                        <th class="w-48 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
+                            <div class="whitespace-nowrap">Bayar</div>
+                        </th>
+                        <th class="w-48 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
+                            <div class="whitespace-nowrap">Sisa</div>
+                        </th>
+                        <th class="w-48 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
+                            <div class="whitespace-nowrap">Tagihan</div>
+                        </th>
+                        <th class="w-48 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
+                            <div class="whitespace-nowrap">Bayar</div>
+                        </th>
+                        <th class="w-48 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <div class="whitespace-nowrap">Sisa</div>
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse($dataAnggota as $index => $anggota)
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm text-gray-900">{{ $dataAnggota->firstItem() + $index }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 text-center">
+                        <td class="w-16 px-3 py-3 text-sm text-gray-900 text-center border-r">{{ $dataAnggota->firstItem() + $index }}</td>
+                        <td class="w-20 px-3 py-3 text-sm text-gray-900 text-center border-r">
                             @if($anggota->file_pic)
                                 <img src="{{ asset('storage/' . $anggota->file_pic) }}" alt="Photo" class="w-8 h-8 rounded-full mx-auto">
                             @else
@@ -195,15 +242,15 @@
                                 </div>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-sm text-gray-900">
+                        <td class="w-48 px-3 py-3 text-sm text-gray-900 border-r">
                             <div class="space-y-1">
-                                <div><strong>ID:</strong> AG{{ str_pad($anggota->id, 4, '0', STR_PAD_LEFT) }}</div>
-                                <div><strong>Nama:</strong> {{ $anggota->nama }}</div>
-                                <div><strong>L/P:</strong> {{ $anggota->jk == 'L' ? 'Laki-laki' : 'Perempuan' }}</div>
-                                <div><strong>Jabatan:</strong> {{ $anggota->jabatan_id ? 'Pengurus' : 'Anggota' }}</div>
-                                <div><strong>Dept:</strong> {{ $anggota->departement ?? '-' }}</div>
-                                <div><strong>Alamat:</strong> {{ $anggota->alamat ?? '-' }}</div>
-                                <div><strong>Telp:</strong> {{ $anggota->notelp ?? '-' }}</div>
+                                <div class="text-xs"><strong>ID:</strong> AG{{ str_pad($anggota->id, 4, '0', STR_PAD_LEFT) }}</div>
+                                <div class="text-xs"><strong>Nama:</strong> {{ $anggota->nama }}</div>
+                                <div class="text-xs"><strong>L/P:</strong> {{ $anggota->jk == 'L' ? 'Laki-laki' : 'Perempuan' }}</div>
+                                <div class="text-xs"><strong>Jabatan:</strong> {{ $anggota->jabatan_id ? 'Pengurus' : 'Anggota' }}</div>
+                                <div class="text-xs"><strong>Dept:</strong> {{ $anggota->departement ?? '-' }}</div>
+                                <div class="text-xs"><strong>Alamat:</strong> {{ $anggota->alamat ?? '-' }}</div>
+                                <div class="text-xs"><strong>Telp:</strong> {{ $anggota->notelp ?? '-' }}</div>
                             </div>
                         </td>
                         
@@ -217,31 +264,31 @@
                             $tarik = $kas['penarikan'][$jenis->id] ?? 0;
                             $saldo = $setor - $tarik;
                         @endphp
-                        <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ number_format($setor) }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ number_format($tarik) }}</td>
-                        <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right {{ $saldo >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                        <td class="w-48 px-3 py-3 text-sm text-gray-900 text-right border-r">{{ number_format($setor) }}</td>
+                        <td class="w-48 px-3 py-3 text-sm text-gray-900 text-right border-r">{{ number_format($tarik) }}</td>
+                        <td class="w-48 px-3 py-3 text-sm font-semibold text-gray-900 text-right border-r {{ $saldo >= 0 ? 'text-green-600' : 'text-red-600' }}">
                             {{ number_format($saldo) }}
                         </td>
                         @endforeach
                         
                         <!-- Total Simpanan -->
-                        <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">{{ number_format($kas['total_setor'] ?? 0) }}</td>
-                        <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">{{ number_format($kas['total_tarik'] ?? 0) }}</td>
-                        <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right {{ ($kas['total_saldo'] ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                        <td class="w-48 px-3 py-3 text-sm font-semibold text-gray-900 text-right border-r">{{ number_format($kas['total_setor'] ?? 0) }}</td>
+                        <td class="w-48 px-3 py-3 text-sm font-semibold text-gray-900 text-right border-r">{{ number_format($kas['total_tarik'] ?? 0) }}</td>
+                        <td class="w-48 px-3 py-3 text-sm font-bold text-gray-900 text-right border-r {{ ($kas['total_saldo'] ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' }}">
                             {{ number_format($kas['total_saldo'] ?? 0) }}
                         </td>
                         
                         <!-- Tagihan Kredit -->
-                        <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ number_format($kas['tagihan_kredit'] ?? 0) }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ number_format($kas['bayar_kredit'] ?? 0) }}</td>
-                        <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right {{ ($kas['sisa_kredit'] ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                        <td class="w-48 px-3 py-3 text-sm text-gray-900 text-right border-r">{{ number_format($kas['tagihan_kredit'] ?? 0) }}</td>
+                        <td class="w-48 px-3 py-3 text-sm text-gray-900 text-right border-r">{{ number_format($kas['bayar_kredit'] ?? 0) }}</td>
+                        <td class="w-48 px-3 py-3 text-sm font-semibold text-gray-900 text-right border-r {{ ($kas['sisa_kredit'] ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' }}">
                             {{ number_format($kas['sisa_kredit'] ?? 0) }}
                         </td>
                         
                         <!-- Tagihan Simpanan -->
-                        <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ number_format($kas['tagihan_simpanan'] ?? 0) }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ number_format($kas['bayar'] ?? 0) }}</td>
-                        <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right {{ ($kas['sisa'] ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                        <td class="w-48 px-3 py-3 text-sm text-gray-900 text-right border-r">{{ number_format($kas['tagihan_simpanan'] ?? 0) }}</td>
+                        <td class="w-48 px-3 py-3 text-sm text-gray-900 text-right border-r">{{ number_format($kas['bayar'] ?? 0) }}</td>
+                        <td class="w-48 px-3 py-3 text-sm font-semibold text-gray-900 text-right {{ ($kas['sisa'] ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' }}">
                             {{ number_format($kas['sisa'] ?? 0) }}
                         </td>
                     </tr>
@@ -255,6 +302,11 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        
+        <!-- Scroll Progress Indicator -->
+        <div class="mt-2 h-1 bg-gray-200 rounded-full overflow-hidden">
+            <div class="scroll-indicator h-full bg-blue-500 transition-all duration-300 ease-out" style="width: 0%"></div>
         </div>
     </div>
 
@@ -425,10 +477,179 @@ document.getElementById('search').addEventListener('keypress', function(e) {
         submitFilter();
     }
 });
+
+// Table scroll feedback
+document.addEventListener('DOMContentLoaded', function() {
+    const tableContainer = document.querySelector('.table-container');
+    const scrollIndicator = document.querySelector('.scroll-indicator');
+    
+    if (tableContainer) {
+        // Add scroll event listener
+        tableContainer.addEventListener('scroll', function() {
+            const scrollLeft = this.scrollLeft;
+            const scrollWidth = this.scrollWidth;
+            const clientWidth = this.clientWidth;
+            const scrollPercentage = (scrollLeft / (scrollWidth - clientWidth)) * 100;
+            
+            // Update scroll indicator if exists
+            if (scrollIndicator) {
+                scrollIndicator.style.width = scrollPercentage + '%';
+            }
+        });
+        
+        // Add smooth scroll behavior
+        tableContainer.style.scrollBehavior = 'smooth';
+    }
+});
 </script>
 
-<!-- Print Styles -->
+<!-- Custom Styles -->
 <style>
+/* Table Scroll Styles */
+.table-container {
+    position: relative;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #3b82f6 #f1f5f9;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.table-container::-webkit-scrollbar {
+    height: 12px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 6px;
+    margin: 0 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #3b82f6;
+    border-radius: 6px;
+    border: 2px solid #f1f5f9;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #2563eb;
+}
+
+.table-container::-webkit-scrollbar-thumb:active {
+    background: #1d4ed8;
+}
+
+/* Table Fixed Layout */
+.table-fixed {
+    table-layout: fixed;
+    min-width: 1800px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+/* Sticky Header */
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #f9fafb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Header Styling */
+.table-fixed thead th {
+    vertical-align: middle;
+    text-align: center;
+}
+
+/* Sub-header specific styling */
+.table-fixed thead tr:last-child th div {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: unset;
+}
+
+/* Main Header Row */
+.table-fixed thead tr:first-child th {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    font-weight: 700;
+    color: #1e293b;
+    border-bottom: 2px solid #cbd5e1;
+}
+
+/* Sub Header Row */
+.table-fixed thead tr:last-child th {
+    background: #f1f5f9;
+    font-weight: 600;
+    color: #475569;
+    border-bottom: 1px solid #cbd5e1;
+}
+
+/* Break words for long text */
+.break-words {
+    word-break: break-word;
+    line-height: 1.2;
+}
+
+/* Table Row Hover Effect */
+.table-fixed tbody tr:hover {
+    background-color: #f8fafc;
+    transform: scale(1.001);
+    transition: all 0.2s ease;
+}
+
+/* Table Cell Styling */
+.table-fixed td,
+.table-fixed th {
+    border-right: 1px solid #e5e7eb;
+    vertical-align: middle;
+}
+
+.table-fixed td:last-child,
+.table-fixed th:last-child {
+    border-right: none;
+}
+
+/* Column Widths */
+.col-no { width: 64px; }
+.col-photo { width: 80px; }
+.col-identitas { width: 192px; }
+.col-simpanan { width: 192px; }
+.col-total { width: 192px; }
+.col-kredit { width: 192px; }
+.col-tagihan { width: 192px; }
+
+/* Responsive Text */
+@media (max-width: 768px) {
+    .table-fixed {
+        min-width: 1600px;
+    }
+    
+    .col-identitas {
+        width: 160px;
+    }
+    
+    .col-simpanan,
+    .col-total,
+    .col-kredit,
+    .col-tagihan {
+        width: 160px;
+    }
+    
+    .table-fixed thead th {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.25rem;
+    }
+    
+    .break-words {
+        font-size: 0.7rem;
+        line-height: 1.1;
+    }
+}
+
+/* Print Styles */
 @media print {
     .sidebar, .bg-[#14AE5C], button, a, #control-panel {
         display: none !important;
@@ -438,8 +659,13 @@ document.getElementById('search').addEventListener('keypress', function(e) {
         box-shadow: none !important;
     }
     
+    .table-container {
+        overflow: visible !important;
+    }
+    
     table {
         page-break-inside: avoid;
+        min-width: auto !important;
     }
     
     .mb-8 {
