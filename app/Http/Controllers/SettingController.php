@@ -14,7 +14,7 @@ class SettingController extends Controller
 
     public function update(Request $request)
     {
-        // Validation rules
+        // Validation rules - hanya untuk identitas dasar dan alamat kontak
         $rules = [
             'nama_lembaga' => 'required|string|max:255',
             'nama_ketua' => 'required|string|max:255',
@@ -24,23 +24,6 @@ class SettingController extends Controller
             'web' => 'nullable|url|max:255',
             'hp_ketua' => 'nullable|string|max:20',
             'telepon' => 'nullable|string|max:20',
-            'npwp' => 'nullable|string|max:50',
-            'no_badan_hukum' => 'nullable|string|max:100',
-            'tgl_berdiri' => 'nullable|date',
-            'tgl_pengesahan' => 'nullable|date',
-            'bidang_usaha' => 'nullable|string|max:255',
-            'status_kantor' => 'nullable|string|max:100',
-            'status_kepemilikan' => 'nullable|string|max:100',
-            'luas_tanah' => 'nullable|numeric|min:0',
-            'luas_bangunan' => 'nullable|numeric|min:0',
-            'modal_sendiri' => 'nullable|numeric|min:0',
-            'modal_luar' => 'nullable|numeric|min:0',
-            'jumlah_anggota' => 'nullable|integer|min:0',
-            'jumlah_karyawan' => 'nullable|integer|min:0',
-            'jumlah_pengurus' => 'nullable|integer|min:0',
-            'jumlah_pengawas' => 'nullable|integer|min:0',
-            'jumlah_simpanan' => 'nullable|numeric|min:0',
-            'jumlah_pinjaman' => 'nullable|numeric|min:0',
         ];
 
         $validated = $request->validate($rules);
