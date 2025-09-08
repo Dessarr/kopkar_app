@@ -106,4 +106,12 @@ class TblPinjamanH extends Table_Base
     {
         return $this->hasMany(TblPinjamanD::class, 'pinjam_id', 'id');
     }
+    
+    /**
+     * Get the detail angsuran for this pinjaman (alias).
+     */
+    public function detailAngsuran()
+    {
+        return $this->hasMany(TblPinjamanD::class, 'pinjam_id', 'id');
+    }
 } 

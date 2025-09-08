@@ -166,14 +166,12 @@
                             </button>
                             <div x-show="open" @click.away="open = false"
                                 class="dropdown-menu absolute right-0 mt-2 w-auto py-2 z-50">
-                                <a href="{{ route('member.laporan') }}"
-                                    class="dropdown-item block px-4 py-2 text-sm text-gray-700 whitespace-nowrap">Pinjaman</a>
-                                <a href="{{ route('member.laporan.simpanan') }}"
-                                    class="dropdown-item block px-4 py-2 text-sm text-gray-700 whitespace-nowrap">Pembayaran
-                                    Pinjaman</a>
                                 <a href="{{ route('member.laporan.pinjaman') }}"
-                                    class="dropdown-item block px-4 py-2 text-sm text-gray-700 whitespace-nowrap">Simpanan
-                                    - Toserda</a>
+                                    class="dropdown-item block px-4 py-2 text-sm text-gray-700 whitespace-nowrap">Pinjaman</a>
+                                <a href="{{ route('member.laporan.pembayaran') }}"
+                                    class="dropdown-item block px-4 py-2 text-sm text-gray-700 whitespace-nowrap">Pembayaran Pinjaman</a>
+                                <a href="{{ route('member.laporan.simpanan') }}"
+                                    class="dropdown-item block px-4 py-2 text-sm text-gray-700 whitespace-nowrap">Simpanan - Toserda</a>
                             </div>
                         </div>
 
@@ -189,13 +187,17 @@
                             </button>
                             <div x-show="open" @click.away="open = false"
                                 class="dropdown-menu absolute right-0 mt-2 w-48 py-2 z-50">
-                                <a href="" class="dropdown-item block px-4 py-2 text-sm text-gray-700">Ubah Pic</a>
-                                <a href="" class="dropdown-item block px-4 py-2 text-sm text-gray-700">Ubah Password</a>
-                                <form action="{{ route('admin.logout') }}" method="POST">
+                                <a href="{{ route('member.ubah.pic') }}" class="dropdown-item block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-camera mr-2"></i>Ubah Pic
+                                </a>
+                                <a href="{{ route('member.ubah.password') }}" class="dropdown-item block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-key mr-2"></i>Ubah Password
+                                </a>
+                                <form action="{{ route('member.logout') }}" method="POST">
                                     @csrf
                                     <button type="submit"
-                                        class="dropdown-item block w-full text-left px-4 py-2 text-sm text-gray-700">
-                                        Logout
+                                        class="dropdown-item block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
                                     </button>
                                 </form>
                             </div>
@@ -234,9 +236,17 @@
                     class="nav-item block px-3 py-2 rounded-md text-base font-medium text-white {{ request()->routeIs('member.pengajuan.penarikan') ? 'active' : '' }}">
                     Pengajuan Penarikan Simpanan
                 </a>
-                <a href="{{ route('member.laporan') }}"
-                    class="nav-item block px-3 py-2 rounded-md text-base font-medium text-white {{ request()->routeIs('member.laporan') ? 'active' : '' }}">
-                    Laporan
+                <a href="{{ route('member.laporan.pinjaman') }}"
+                    class="nav-item block px-3 py-2 rounded-md text-base font-medium text-white {{ request()->routeIs('member.laporan.*') ? 'active' : '' }}">
+                    Laporan Pinjaman
+                </a>
+                <a href="{{ route('member.laporan.pembayaran') }}"
+                    class="nav-item block px-3 py-2 rounded-md text-base font-medium text-white {{ request()->routeIs('member.laporan.*') ? 'active' : '' }}">
+                    Laporan Pembayaran
+                </a>
+                <a href="{{ route('member.laporan.simpanan') }}"
+                    class="nav-item block px-3 py-2 rounded-md text-base font-medium text-white {{ request()->routeIs('member.laporan.*') ? 'active' : '' }}">
+                    Laporan Simpanan
                 </a>
                 <form action="{{ route('member.logout') }}" method="POST">
                     @csrf

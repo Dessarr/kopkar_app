@@ -61,6 +61,7 @@ Route::post('/member/logout', [MemberController::class, 'logout'])->name('member
 Route::get('/member/toserda', [MemberController::class, 'toserdaPayment'])->name('member.toserda.payment')->middleware('auth:member');
 Route::post('/member/toserda/process/{billing_code}', [MemberController::class, 'processToserda'])->name('member.toserda.process')->middleware('auth:member');
 
+
 // Member Routes - Dashboard
 Route::get('/dashboard', [MemberController::class, 'memberDashboard'])->name('member.dashboard');
 Route::get('/detail-simpanan', [MemberController::class, 'getDetailSimpanan'])->name('member.detail.simpanan');
@@ -93,15 +94,39 @@ Route::middleware(['auth:member'])->group(function () {
     
     // Report Routes
     Route::prefix('member/laporan')->group(function () {
-        Route::get('/', [MemberController::class, 'laporan'])->name('member.laporan');
         Route::get('/simpanan', [MemberController::class, 'laporanSimpanan'])->name('member.laporan.simpanan');
         Route::get('/pinjaman', [MemberController::class, 'laporanPinjaman'])->name('member.laporan.pinjaman');
+        Route::get('/pembayaran', [MemberController::class, 'laporanPembayaran'])->name('member.laporan.pembayaran');
         Route::get('/transaksi', [MemberController::class, 'laporanTransaksi'])->name('member.laporan.transaksi');
+        
+        // Loan report export routes
+        Route::get('/pinjaman/export/pdf', [MemberController::class, 'exportLoanReportPdf'])->name('member.laporan.pinjaman.export.pdf');
+        Route::get('/pinjaman/export/excel', [MemberController::class, 'exportLoanReportExcel'])->name('member.laporan.pinjaman.export.excel');
+        
+        // Payment report export routes
+        Route::get('/pembayaran/export/pdf', [MemberController::class, 'exportPaymentReportPdf'])->name('member.laporan.pembayaran.export.pdf');
+        Route::get('/pembayaran/export/excel', [MemberController::class, 'exportPaymentReportExcel'])->name('member.laporan.pembayaran.export.excel');
+        
+        // Savings report export routes
+        Route::get('/simpanan/export/pdf', [MemberController::class, 'exportSavingsReportPdf'])->name('member.laporan.simpanan.export.pdf');
+        Route::get('/simpanan/export/excel', [MemberController::class, 'exportSavingsReportExcel'])->name('member.laporan.simpanan.export.excel');
     });
+    
+    // Loan detail route
+    Route::get('/member/pinjaman/{id}/detail', [MemberController::class, 'getLoanDetail'])->name('member.pinjaman.detail');
     
     // Profile Routes
     Route::get('/member/profile', [MemberController::class, 'profile'])->name('member.profile');
     Route::put('/member/profile', [MemberController::class, 'updateProfile'])->name('member.profile.update');
+    
+    // Profile Picture Routes
+    Route::get('/member/ubah-pic', [MemberController::class, 'ubahPic'])->name('member.ubah.pic');
+    Route::post('/member/update-pic', [MemberController::class, 'updatePic'])->name('member.update.pic');
+    
+    // Profile Password Routes
+    Route::get('/member/ubah-password', [MemberController::class, 'ubahPassword'])->name('member.ubah.password');
+    Route::post('/member/update-password', [MemberController::class, 'updatePassword'])->name('member.update.password');
+    
 });
 
 // Anggota Routes (Member)

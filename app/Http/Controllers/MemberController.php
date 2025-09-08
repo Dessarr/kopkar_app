@@ -12,6 +12,10 @@ use Carbon\Carbon;
 use App\Http\Requests\StorePengajuanPinjamanRequest;
 use App\Models\data_pengajuan;
 use App\Services\ActivityLogService;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Hash as HashFacade;
+use Illuminate\Support\Facades\DB;
 
 
 class MemberController extends Controller
@@ -959,6 +963,158 @@ class MemberController extends Controller
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
+}
+
+    // ==================== SAVINGS REPORT HELPER METHODS ====================
+
+    private function getMemberSavingsData($noKtp, $tgl_dari, $tgl_samp, $jenis_filter)
+    {
+        $query = \App\Models\TblTransSp::select([
+                'tbl_trans_sp.*',
+                'jns_simpan.jns_simpan as jenis_simpanan_nama',
+                'jns_simpan.jumlah as jenis_simpanan_jumlah'
+            ])
+            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sp.jenis_id')
+            ->where('tbl_trans_sp.no_ktp', $noKtp)
+            ->where('tbl_trans_sp.akun', 'Setoran')
+            ->where('tbl_trans_sp.dk', 'D')
+            ->whereBetween('tbl_trans_sp.tgl_transaksi', [$tgl_dari, $tgl_samp]);
+
+        // Apply jenis filter
+        if ($jenis_filter !== 'all') {
+            $query->where('tbl_trans_sp.jenis_id', $jenis_filter);
+        }
+
+        $savings = $query->orderBy('tbl_trans_sp.tgl_transaksi', 'desc')
+            ->paginate(15);
+
+        // Add calculated fields
+        $savings->getCollection()->transform(function ($saving) {
+            $saving->jenis_simpanan_text = $this->getSavingsTypeText($saving->jenis_id, $saving->jenis_simpanan_nama);
+            $saving->status_simpanan = $this->determineSavingsStatus($saving);
+            return $saving;
+        });
+
+        return $savings;
+    }
+
+    private function calculateSavingsStatistics($noKtp, $tgl_dari, $tgl_samp)
+    {
+        $stats = \App\Models\TblTransSp::select([
+                \DB::raw('COUNT(*) as total_transaksi'),
+                \DB::raw('SUM(tbl_trans_sp.jumlah) as total_setoran'),
+                \DB::raw('AVG(tbl_trans_sp.jumlah) as rata_rata_setoran'),
+                \DB::raw('MAX(tbl_trans_sp.jumlah) as setoran_terbesar'),
+                \DB::raw('MIN(tbl_trans_sp.jumlah) as setoran_terkecil')
+            ])
+            ->where('no_ktp', $noKtp)
+            ->where('akun', 'Setoran')
+            ->where('dk', 'D')
+            ->whereBetween('tgl_transaksi', [$tgl_dari, $tgl_samp])
+            ->first();
+
+        // Get breakdown by jenis simpanan
+        $breakdown = \App\Models\TblTransSp::select([
+                'tbl_trans_sp.jenis_id',
+                'jns_simpan.jns_simpan',
+                \DB::raw('COUNT(*) as jumlah_transaksi'),
+                \DB::raw('SUM(tbl_trans_sp.jumlah) as total_jumlah')
+            ])
+            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sp.jenis_id')
+            ->where('tbl_trans_sp.no_ktp', $noKtp)
+            ->where('tbl_trans_sp.akun', 'Setoran')
+            ->where('tbl_trans_sp.dk', 'D')
+            ->whereBetween('tbl_trans_sp.tgl_transaksi', [$tgl_dari, $tgl_samp])
+            ->groupBy('tbl_trans_sp.jenis_id', 'jns_simpan.jns_simpan')
+            ->get();
+
+        return [
+            'total_transaksi' => $stats->total_transaksi ?? 0,
+            'total_setoran' => $stats->total_setoran ?? 0,
+            'rata_rata_setoran' => $stats->rata_rata_setoran ?? 0,
+            'setoran_terbesar' => $stats->setoran_terbesar ?? 0,
+            'setoran_terkecil' => $stats->setoran_terkecil ?? 0,
+            'breakdown' => $breakdown
+        ];
+    }
+
+    private function getRecentSavingsActivities($noKtp)
+    {
+        return \App\Models\TblTransSp::select([
+                'tbl_trans_sp.*',
+                'jns_simpan.jns_simpan as jenis_simpanan_nama'
+            ])
+            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sp.jenis_id')
+            ->where('tbl_trans_sp.no_ktp', $noKtp)
+            ->where('tbl_trans_sp.akun', 'Setoran')
+            ->where('tbl_trans_sp.dk', 'D')
+            ->orderBy('tbl_trans_sp.tgl_transaksi', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function ($saving) {
+                $saving->jenis_simpanan_text = $this->getSavingsTypeText($saving->jenis_id, $saving->jenis_simpanan_nama);
+                return $saving;
+            });
+    }
+
+    private function getSavingsTypeText($jenisId, $jenisNama)
+    {
+        if (empty($jenisNama)) {
+            return 'Toserda';
+        }
+        
+        switch ($jenisId) {
+            case 1:
+                return 'Simpanan Wajib';
+            case 2:
+                return 'Simpanan Sukarela';
+            case 3:
+                return 'Simpanan Khusus';
+            default:
+                return $jenisNama ?: 'Toserda';
+        }
+    }
+
+    private function determineSavingsStatus($saving)
+    {
+        // Status berdasarkan jenis simpanan dan jumlah
+        if ($saving->jenis_id == 1) { // Simpanan Wajib
+            return 'Wajib';
+        } elseif ($saving->jenis_id == 2) { // Simpanan Sukarela
+            return 'Sukarela';
+        } else {
+            return 'Toserda';
+        }
+    }
+
+    public function exportSavingsReportPdf(Request $request)
+    {
+        $member = auth()->guard('member')->user();
+        $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
+        $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
+        $jenis_filter = $request->input('jenis', 'all');
+        
+        $savingsData = $this->getMemberSavingsData($member->no_ktp, $tgl_dari, $tgl_samp, $jenis_filter);
+        $statistics = $this->calculateSavingsStatistics($member->no_ktp, $tgl_dari, $tgl_samp);
+        
+        $pdf = PDF::loadView('member.exports.savings_report_pdf', compact(
+            'member', 'savingsData', 'statistics', 'tgl_dari', 'tgl_samp'
+        ))->setPaper('a4', 'landscape');
+        
+        return $pdf->download('laporan_simpanan_' . $member->no_ktp . '_' . date('Y-m-d') . '.pdf');
+    }
+
+    public function exportSavingsReportExcel(Request $request)
+    {
+        $member = auth()->guard('member')->user();
+        $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
+        $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
+        $jenis_filter = $request->input('jenis', 'all');
+        
+        $savingsData = $this->getMemberSavingsData($member->no_ktp, $tgl_dari, $tgl_samp, $jenis_filter);
+        
+        return Excel::download(new \App\Exports\MemberSavingsReportExport($savingsData, $member, $tgl_dari, $tgl_samp), 
+            'laporan_simpanan_' . $member->no_ktp . '_' . date('Y-m-d') . '.xlsx');
     }
 
     public function showPengajuanPenarikan(string $id)
@@ -978,32 +1134,143 @@ class MemberController extends Controller
         }
     }
 
-    public function laporan()
+
+    public function laporanSimpanan(Request $request)
     {
         $member = auth()->guard('member')->user();
-        return view('member.laporan', compact('member'));
+        $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
+        $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
+        $jenis_filter = $request->input('jenis', 'all');
+        
+        // Get member savings data
+        $savingsData = $this->getMemberSavingsData($member->no_ktp, $tgl_dari, $tgl_samp, $jenis_filter);
+        
+        // Calculate statistics
+        $statistics = $this->calculateSavingsStatistics($member->no_ktp, $tgl_dari, $tgl_samp);
+        
+        // Get recent savings activities
+        $recentSavings = $this->getRecentSavingsActivities($member->no_ktp);
+        
+        return view('member.laporan_simpanan', compact(
+            'member', 'savingsData', 'statistics', 'recentSavings', 'tgl_dari', 'tgl_samp', 'jenis_filter'
+        ));
     }
 
-    public function laporanSimpanan()
+    public function laporanPinjaman(Request $request)
     {
         $member = auth()->guard('member')->user();
-        $simpananData = \App\Models\TblTransSp::where('no_ktp', $member->no_ktp)
-            ->where('akun', 'Setoran')
-            ->where('dk', 'D')
-            ->orderBy('tgl_transaksi', 'desc')
-            ->paginate(15);
         
-        return view('member.laporan_simpanan', compact('member', 'simpananData'));
+        // Get filter parameters
+        $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
+        $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
+        $status_filter = $request->input('status', 'all');
+        $jenis_filter = $request->input('jenis', 'all');
+        
+        // Get comprehensive loan data with proper accounting logic
+        $loanData = $this->getMemberLoanData($member->no_ktp, $tgl_dari, $tgl_samp, $status_filter, $jenis_filter);
+        
+        // Calculate loan statistics
+        $statistics = $this->calculateLoanStatistics($member->no_ktp, $tgl_dari, $tgl_samp);
+        
+        // Get recent loan activities
+        $recentLoans = $this->getRecentLoanActivities($member->no_ktp);
+        
+        // Get loan summary
+        $loanSummary = $this->getLoanSummary($member->no_ktp);
+        
+        return view('member.laporan_pinjaman', compact(
+            'member',
+            'loanData',
+            'statistics',
+            'recentLoans',
+            'loanSummary',
+            'tgl_dari',
+            'tgl_samp',
+            'status_filter',
+            'jenis_filter'
+        ));
     }
 
-    public function laporanPinjaman()
+    /**
+     * Get loan detail for modal
+     */
+    public function getLoanDetail($id)
     {
         $member = auth()->guard('member')->user();
-        $pinjamanData = \App\Models\TblPinjamanH::where('no_ktp', $member->no_ktp)
-            ->orderBy('tgl_pinjaman', 'desc')
-            ->paginate(15);
         
-        return view('member.laporan_pinjaman', compact('member', 'pinjamanData'));
+        $loan = \App\Models\TblPinjamanH::where('id', $id)
+            ->where('no_ktp', $member->no_ktp)
+            ->first();
+        
+        if (!$loan) {
+            return response()->json(['error' => 'Pinjaman tidak ditemukan'], 404);
+        }
+        
+        // Get installment data
+        $angsuran = \App\Models\TblPinjamanD::where('pinjam_id', $loan->id)
+            ->orderBy('tgl_bayar', 'asc')
+            ->get();
+        
+        $jml_bayar = $angsuran->sum('jumlah_bayar');
+        $jml_denda = $angsuran->sum('denda_rp');
+        $jml_adm = $angsuran->sum('biaya_adm');
+        $jml_bunga = $angsuran->sum('bunga');
+        
+        $total_tagihan_loan = $loan->jumlah + ($loan->bunga_rp ?? 0) + ($loan->biaya_adm ?? 0);
+        $sisa_tagihan = $total_tagihan_loan - $jml_bayar;
+        
+        $html = view('member.partials.loan_detail', compact('loan', 'angsuran', 'jml_bayar', 'jml_denda', 'jml_adm', 'jml_bunga', 'total_tagihan_loan', 'sisa_tagihan'))->render();
+        
+        return response()->json(['html' => $html]);
+    }
+    
+    /**
+     * Export loan report to PDF
+     */
+    public function exportLoanReportPdf(Request $request)
+    {
+        $member = auth()->guard('member')->user();
+        
+        $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
+        $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
+        $status_filter = $request->input('status', 'all');
+        $jenis_filter = $request->input('jenis', 'all');
+        
+        $loanData = $this->getMemberLoanData($member->no_ktp, $tgl_dari, $tgl_samp, $status_filter, $jenis_filter);
+        $statistics = $this->calculateLoanStatistics($member->no_ktp, $tgl_dari, $tgl_samp);
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('member.exports.loan_report_pdf', [
+            'member' => $member,
+            'loanData' => $loanData,
+            'statistics' => $statistics,
+            'tgl_dari' => $tgl_dari,
+            'tgl_samp' => $tgl_samp
+        ]);
+        
+        $pdf->setPaper('A4', 'landscape');
+        
+        return $pdf->download('laporan_pinjaman_' . $member->no_ktp . '_' . date('Y-m-d') . '.pdf');
+    }
+    
+    /**
+     * Export loan report to Excel
+     */
+    public function exportLoanReportExcel(Request $request)
+    {
+        $member = auth()->guard('member')->user();
+        
+        $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
+        $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
+        $status_filter = $request->input('status', 'all');
+        $jenis_filter = $request->input('jenis', 'all');
+        
+        $loanData = $this->getMemberLoanData($member->no_ktp, $tgl_dari, $tgl_samp, $status_filter, $jenis_filter);
+        $statistics = $this->calculateLoanStatistics($member->no_ktp, $tgl_dari, $tgl_samp);
+        
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\MemberLoanReportExport($loanData, $statistics, $member, $tgl_dari, $tgl_samp),
+            'laporan_pinjaman_' . $member->no_ktp . '_' . date('Y-m-d') . '.xlsx'
+        );
     }
 
     public function laporanTransaksi()
@@ -1014,6 +1281,177 @@ class MemberController extends Controller
             ->paginate(15);
         
         return view('member.laporan_transaksi', compact('member', 'transaksiData'));
+    }
+
+    public function laporanPembayaran(Request $request)
+    {
+        $member = auth()->guard('member')->user();
+        
+        // Get filter parameters
+        $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
+        $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
+        $jenis_filter = $request->input('jenis', 'all');
+        
+        // Get payment data with proper accounting logic
+        $paymentData = $this->getMemberPaymentData($member->no_ktp, $tgl_dari, $tgl_samp, $jenis_filter);
+        
+        // Calculate payment statistics
+        $statistics = $this->calculatePaymentStatistics($member->no_ktp, $tgl_dari, $tgl_samp);
+        
+        // Get recent payment activities
+        $recentPayments = $this->getRecentPaymentActivities($member->no_ktp);
+        
+        return view('member.laporan_pembayaran', compact(
+            'member',
+            'paymentData',
+            'statistics',
+            'recentPayments',
+            'tgl_dari',
+            'tgl_samp',
+            'jenis_filter'
+        ));
+    }
+
+    private function getMemberPaymentData($noKtp, $tgl_dari, $tgl_samp, $jenis_filter)
+    {
+        $query = \App\Models\TblPinjamanD::select([
+                'tbl_pinjaman_d.*',
+                'tbl_pinjaman_h.jenis_pinjaman',
+                'tbl_pinjaman_h.tgl_pinjam',
+                'tbl_pinjaman_h.jumlah as total_pinjaman',
+                'tbl_pinjaman_h.lama_angsuran'
+            ])
+            ->join('tbl_pinjaman_h', 'tbl_pinjaman_h.id', '=', 'tbl_pinjaman_d.pinjam_id')
+            ->join('tbl_anggota', 'tbl_anggota.id', '=', 'tbl_pinjaman_h.anggota_id')
+            ->where('tbl_anggota.no_ktp', $noKtp)
+            ->whereNotNull('tbl_pinjaman_d.tgl_bayar')
+            ->whereBetween('tbl_pinjaman_d.tgl_bayar', [$tgl_dari, $tgl_samp]);
+
+        // Apply jenis filter
+        if ($jenis_filter !== 'all') {
+            $query->where('tbl_pinjaman_h.jenis_pinjaman', $jenis_filter);
+        }
+
+        $payments = $query->orderBy('tbl_pinjaman_d.tgl_bayar', 'desc')
+            ->paginate(15);
+
+        // Add calculated fields
+        $payments->getCollection()->transform(function ($payment) {
+            $payment->total_bayar = $payment->jumlah_bayar + $payment->bunga + $payment->denda_rp;
+            $payment->jenis_pinjaman_text = $payment->jenis_pinjaman == '1' ? 'Pinjaman Biasa' : 'Pinjaman Barang';
+            $payment->status_pembayaran = $this->determinePaymentStatus($payment);
+            return $payment;
+        });
+
+        return $payments;
+    }
+
+    private function calculatePaymentStatistics($noKtp, $tgl_dari, $tgl_samp)
+    {
+        $query = \App\Models\TblPinjamanD::select([
+                \DB::raw('COUNT(*) as total_pembayaran'),
+                \DB::raw('SUM(tbl_pinjaman_d.jumlah_bayar) as total_pokok_dibayar'),
+                \DB::raw('SUM(tbl_pinjaman_d.bunga) as total_bunga_dibayar'),
+                \DB::raw('SUM(tbl_pinjaman_d.denda_rp) as total_denda_dibayar'),
+                \DB::raw('SUM(tbl_pinjaman_d.jumlah_bayar + tbl_pinjaman_d.bunga + tbl_pinjaman_d.denda_rp) as total_semua_pembayaran')
+            ])
+            ->join('tbl_pinjaman_h', 'tbl_pinjaman_h.id', '=', 'tbl_pinjaman_d.pinjam_id')
+            ->join('tbl_anggota', 'tbl_anggota.id', '=', 'tbl_pinjaman_h.anggota_id')
+            ->where('tbl_anggota.no_ktp', $noKtp)
+            ->whereNotNull('tbl_pinjaman_d.tgl_bayar')
+            ->whereBetween('tbl_pinjaman_d.tgl_bayar', [$tgl_dari, $tgl_samp]);
+
+        $stats = $query->first();
+
+        // Get payment frequency
+        $paymentFrequency = \App\Models\TblPinjamanD::select([
+                \DB::raw('COUNT(*) as frekuensi'),
+                \DB::raw('AVG(tbl_pinjaman_d.jumlah_bayar + tbl_pinjaman_d.bunga + tbl_pinjaman_d.denda_rp) as rata_rata_pembayaran')
+            ])
+            ->join('tbl_pinjaman_h', 'tbl_pinjaman_h.id', '=', 'tbl_pinjaman_d.pinjam_id')
+            ->join('tbl_anggota', 'tbl_anggota.id', '=', 'tbl_pinjaman_h.anggota_id')
+            ->where('tbl_anggota.no_ktp', $noKtp)
+            ->whereNotNull('tbl_pinjaman_d.tgl_bayar')
+            ->whereBetween('tbl_pinjaman_d.tgl_bayar', [$tgl_dari, $tgl_samp])
+            ->first();
+
+        return [
+            'total_pembayaran' => $stats->total_pembayaran ?? 0,
+            'total_pokok_dibayar' => $stats->total_pokok_dibayar ?? 0,
+            'total_bunga_dibayar' => $stats->total_bunga_dibayar ?? 0,
+            'total_denda_dibayar' => $stats->total_denda_dibayar ?? 0,
+            'total_semua_pembayaran' => $stats->total_semua_pembayaran ?? 0,
+            'frekuensi_pembayaran' => $paymentFrequency->frekuensi ?? 0,
+            'rata_rata_pembayaran' => $paymentFrequency->rata_rata_pembayaran ?? 0
+        ];
+    }
+
+    private function getRecentPaymentActivities($noKtp)
+    {
+        return \App\Models\TblPinjamanD::select([
+                'tbl_pinjaman_d.*',
+                'tbl_pinjaman_h.jenis_pinjaman',
+                'tbl_pinjaman_h.tgl_pinjam'
+            ])
+            ->join('tbl_pinjaman_h', 'tbl_pinjaman_h.id', '=', 'tbl_pinjaman_d.pinjam_id')
+            ->join('tbl_anggota', 'tbl_anggota.id', '=', 'tbl_pinjaman_h.anggota_id')
+            ->where('tbl_anggota.no_ktp', $noKtp)
+            ->whereNotNull('tbl_pinjaman_d.tgl_bayar')
+            ->orderBy('tbl_pinjaman_d.tgl_bayar', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function ($payment) {
+                $payment->total_bayar = $payment->jumlah_bayar + $payment->bunga + $payment->denda_rp;
+                $payment->jenis_pinjaman_text = $payment->jenis_pinjaman == '1' ? 'Pinjaman Biasa' : 'Pinjaman Barang';
+                return $payment;
+            });
+    }
+
+    private function determinePaymentStatus($payment)
+    {
+        if ($payment->denda_rp > 0) {
+            return 'Terlambat';
+        } elseif ($payment->tgl_bayar <= $payment->tgl_tempo) {
+            return 'Tepat Waktu';
+        } else {
+            return 'Terlambat';
+        }
+    }
+
+    public function exportPaymentReportPdf(Request $request)
+    {
+        $member = auth()->guard('member')->user();
+        
+        // Get filter parameters
+        $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
+        $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
+        $jenis_filter = $request->input('jenis', 'all');
+        
+        // Get payment data
+        $paymentData = $this->getMemberPaymentData($member->no_ktp, $tgl_dari, $tgl_samp, $jenis_filter);
+        $statistics = $this->calculatePaymentStatistics($member->no_ktp, $tgl_dari, $tgl_samp);
+        
+        $pdf = PDF::loadView('member.exports.payment_report_pdf', compact(
+            'member', 'paymentData', 'statistics', 'tgl_dari', 'tgl_samp'
+        ))->setPaper('a4', 'landscape');
+        
+        return $pdf->download('laporan_pembayaran_pinjaman_' . $member->no_ktp . '_' . date('Y-m-d') . '.pdf');
+    }
+
+    public function exportPaymentReportExcel(Request $request)
+    {
+        $member = auth()->guard('member')->user();
+        
+        // Get filter parameters
+        $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
+        $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
+        $jenis_filter = $request->input('jenis', 'all');
+        
+        // Get payment data
+        $paymentData = $this->getMemberPaymentData($member->no_ktp, $tgl_dari, $tgl_samp, $jenis_filter);
+        
+        return Excel::download(new \App\Exports\MemberPaymentReportExport($paymentData->getCollection()), 
+            'laporan_pembayaran_pinjaman_' . $member->no_ktp . '_' . date('Y-m-d') . '.xlsx');
     }
 
     public function profile()
@@ -1047,7 +1485,396 @@ class MemberController extends Controller
         }
     }
 
+    public function ubahPic()
+    {
+        $member = auth()->guard('member')->user();
+        
+        // Refresh member data to get latest file_pic
+        $member->refresh();
+        
+        return view('member.ubah_pic', compact('member'));
+    }
+
+    public function updatePic(Request $request)
+    {
+        // Validasi sederhana dulu
+        if (!$request->hasFile('photo')) {
+            return redirect()->route('member.ubah.pic')->with('error', 'Tidak ada file yang dipilih.');
+        }
+
+        $file = $request->file('photo');
+        
+        // Validasi file
+        if (!$file->isValid()) {
+            return redirect()->route('member.ubah.pic')->with('error', 'File tidak valid.');
+        }
+
+        // Validasi tipe file
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+        if (!in_array($file->getMimeType(), $allowedTypes)) {
+            return redirect()->route('member.ubah.pic')->with('error', 'Format file tidak didukung. Gunakan JPG, PNG, atau GIF.');
+        }
+
+        // Validasi ukuran file (1MB = 1024KB)
+        if ($file->getSize() > 1024 * 1024) {
+            return redirect()->route('member.ubah.pic')->with('error', 'Ukuran file terlalu besar. Maksimal 1MB.');
+        }
+
+        try {
+            $member = auth()->guard('member')->user();
+            
+            // Hapus foto lama jika ada
+            if ($member->file_pic && \Storage::disk('public')->exists('anggota/' . $member->file_pic)) {
+                \Storage::disk('public')->delete('anggota/' . $member->file_pic);
+            }
+
+            // Upload foto baru
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            
+            // Simpan file
+            $path = $file->storeAs('anggota', $filename, 'public');
+            
+            // Resize gambar
+            $this->resizeImage(storage_path('app/public/' . $path), 250, 250);
+            
+            // Update database
+            $member->update(['file_pic' => $filename]);
+            
+            // Refresh member data
+            $member->refresh();
+            
+            return redirect()->route('member.ubah.pic')->with('success', 'Foto profil berhasil diperbarui!');
+            
+        } catch (\Exception $e) {
+            \Log::error('Error updating profile picture: ' . $e->getMessage());
+            return redirect()->route('member.ubah.pic')->with('error', 'Gagal memperbarui foto: ' . $e->getMessage());
+        }
+    }
+
+    private function resizeImage($path, $width, $height)
+    {
+        // Simple image resize using GD library
+        $imageInfo = getimagesize($path);
+        if (!$imageInfo) {
+            return false;
+        }
+        
+        $sourceWidth = $imageInfo[0];
+        $sourceHeight = $imageInfo[1];
+        $mimeType = $imageInfo['mime'];
+        
+        // Create source image based on type
+        switch ($mimeType) {
+            case 'image/jpeg':
+                $sourceImage = imagecreatefromjpeg($path);
+                break;
+            case 'image/png':
+                $sourceImage = imagecreatefrompng($path);
+                break;
+            case 'image/gif':
+                $sourceImage = imagecreatefromgif($path);
+                break;
+            default:
+                return false;
+        }
+        
+        // Calculate new dimensions maintaining aspect ratio
+        $ratio = min($width / $sourceWidth, $height / $sourceHeight);
+        $newWidth = intval($sourceWidth * $ratio);
+        $newHeight = intval($sourceHeight * $ratio);
+        
+        // Create new image
+        $newImage = imagecreatetruecolor($newWidth, $newHeight);
+        
+        // Preserve transparency for PNG and GIF
+        if ($mimeType == 'image/png' || $mimeType == 'image/gif') {
+            imagealphablending($newImage, false);
+            imagesavealpha($newImage, true);
+            $transparent = imagecolorallocatealpha($newImage, 255, 255, 255, 127);
+            imagefilledrectangle($newImage, 0, 0, $newWidth, $newHeight, $transparent);
+        }
+        
+        // Resize image
+        imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $sourceWidth, $sourceHeight);
+        
+        // Save resized image
+        switch ($mimeType) {
+            case 'image/jpeg':
+                imagejpeg($newImage, $path, 90);
+                break;
+            case 'image/png':
+                imagepng($newImage, $path);
+                break;
+            case 'image/gif':
+                imagegif($newImage, $path);
+                break;
+        }
+        
+        // Clean up memory
+        imagedestroy($sourceImage);
+        imagedestroy($newImage);
+        
+        return true;
+    }
+
+    public function ubahPassword()
+    {
+        $member = auth()->guard('member')->user();
+        
+        return view('member.ubah_password', compact('member'));
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'password_lama' => 'required|string',
+            'password_baru' => 'required|string|min:6|confirmed',
+            'password_baru_confirmation' => 'required|string|min:6'
+        ], [
+            'password_lama.required' => 'Password lama harus diisi.',
+            'password_baru.required' => 'Password baru harus diisi.',
+            'password_baru.min' => 'Password baru minimal 6 karakter.',
+            'password_baru.confirmed' => 'Konfirmasi password tidak sama.',
+            'password_baru_confirmation.required' => 'Konfirmasi password harus diisi.',
+            'password_baru_confirmation.min' => 'Konfirmasi password minimal 6 karakter.'
+        ]);
+
+        try {
+            $member = auth()->guard('member')->user();
+            
+            // Verifikasi password lama
+            if (!password_verify($request->password_lama, $member->pass_word)) {
+                return redirect()->route('member.ubah.password')->with('error', 'Password lama tidak benar.');
+            }
+
+            // Pastikan password baru tidak sama dengan password lama
+            if (password_verify($request->password_baru, $member->pass_word)) {
+                return redirect()->route('member.ubah.password')->with('error', 'Password baru harus berbeda dengan password lama.');
+            }
+
+            // Update password baru (langsung ke database untuk menghindari mutator)
+            DB::table('tbl_anggota')
+                ->where('id', $member->id)
+                ->update(['pass_word' => password_hash($request->password_baru, PASSWORD_DEFAULT)]);
+
+            return redirect()->route('member.ubah.password')->with('success', 'Password berhasil diubah.');
+            
+        } catch (\Exception $e) {
+            \Log::error('Error updating password: ' . $e->getMessage());
+            return redirect()->route('member.ubah.password')->with('error', 'Terjadi kesalahan saat mengubah password.');
+        }
+    }
+
+
+    /**
+     * Get comprehensive member loan data with proper accounting logic
+     * This implements the accounting principle for loan management and credit risk
+     */
+    private function getMemberLoanData($noKtp, $tgl_dari, $tgl_samp, $status_filter, $jenis_filter)
+    {
+        $query = \App\Models\TblPinjamanH::with(['anggota', 'detailAngsuran'])
+            ->where('no_ktp', $noKtp)
+            ->whereDate('tgl_pinjam', '>=', $tgl_dari)
+            ->whereDate('tgl_pinjam', '<=', $tgl_samp);
+        
+        // Apply status filter
+        if ($status_filter !== 'all') {
+            if ($status_filter === 'lunas') {
+                $query->where('lunas', 'Y');
+            } elseif ($status_filter === 'belum_lunas') {
+                $query->where('lunas', 'N');
+            }
+        }
+        
+        // Apply jenis filter
+        if ($jenis_filter !== 'all') {
+            $query->where('jns_pinjaman', $jenis_filter);
+        }
+        
+        $pinjaman = $query->orderBy('tgl_pinjam', 'desc')->get();
+        
+        $result = [];
+        foreach ($pinjaman as $row) {
+            // Get installment data
+            $angsuran = \App\Models\TblPinjamanD::where('pinjam_id', $row->id)->get();
+            $jml_bayar = $angsuran->sum('jumlah_bayar');
+            $jml_denda = $angsuran->sum('denda_rp');
+            $jml_adm = $angsuran->sum('biaya_adm');
+            $jml_bunga = $angsuran->sum('bunga');
+            
+            // Calculate total tagihan (principal + interest + admin fee)
+            $total_tagihan_loan = $row->jumlah + ($row->bunga_rp ?? 0) + ($row->biaya_adm ?? 0);
+            $sisa_tagihan = $total_tagihan_loan - $jml_bayar;
+            
+            // Calculate loan status
+            $status = $this->determineLoanStatus($row, $angsuran->count(), $sisa_tagihan);
+            
+            // Calculate progress percentage
+            $progress = $total_tagihan_loan > 0 ? ($jml_bayar / $total_tagihan_loan) * 100 : 0;
+            
+            $result[] = [
+                'id' => $row->id,
+                'tgl_pinjam' => $row->tgl_pinjam,
+                'lama_angsuran' => $row->lama_angsuran,
+                'jumlah' => $row->jumlah,
+                'bunga_rp' => $row->bunga_rp ?? 0,
+                'biaya_adm' => $row->biaya_adm ?? 0,
+                'angsuran_per_bulan' => $row->angsuran_per_bulan ?? 0,
+                'total_tagihan' => $total_tagihan_loan,
+                'tempo' => $row->tempo,
+                'lunas' => $row->lunas,
+                'keterangan' => $row->keterangan,
+                'jns_pinjaman' => $row->jns_pinjaman,
+                'jml_bayar' => $jml_bayar,
+                'jml_denda' => $jml_denda,
+                'jml_adm' => $jml_adm,
+                'jml_bunga' => $jml_bunga,
+                'sisa_tagihan' => $sisa_tagihan,
+                'status' => $status,
+                'progress' => round($progress, 2),
+                'angsuran_count' => $angsuran->count(),
+                'total_angsuran' => $row->lama_angsuran,
+                'angsuran_data' => $angsuran
+            ];
+        }
+        
+        return $result;
+    }
     
+    /**
+     * Calculate comprehensive loan statistics
+     */
+    private function calculateLoanStatistics($noKtp, $tgl_dari, $tgl_samp)
+    {
+        $pinjaman = \App\Models\TblPinjamanH::where('no_ktp', $noKtp)
+            ->whereDate('tgl_pinjam', '>=', $tgl_dari)
+            ->whereDate('tgl_pinjam', '<=', $tgl_samp)
+            ->get();
+        
+        $total_pinjaman = $pinjaman->sum('jumlah');
+        $total_bunga = $pinjaman->sum('bunga_rp');
+        $total_adm = $pinjaman->sum('biaya_adm');
+        $total_tagihan = $total_pinjaman + $total_bunga + $total_adm;
+        
+        // Calculate paid amounts
+        $total_dibayar = 0;
+        $total_denda = 0;
+        foreach ($pinjaman as $row) {
+            $angsuran = \App\Models\TblPinjamanD::where('pinjam_id', $row->id)->get();
+            $total_dibayar += $angsuran->sum('jumlah_bayar');
+            $total_denda += $angsuran->sum('denda_rp');
+        }
+        
+        $sisa_tagihan = $total_tagihan - $total_dibayar;
+        
+        // Count by status
+        $lunas_count = $pinjaman->where('lunas', 'Y')->count();
+        $belum_lunas_count = $pinjaman->where('lunas', 'N')->count();
+        
+        // Calculate average loan amount
+        $avg_pinjaman = $pinjaman->count() > 0 ? $total_pinjaman / $pinjaman->count() : 0;
+        
+        return [
+            'total_pinjaman' => $total_pinjaman,
+            'total_bunga' => $total_bunga,
+            'total_adm' => $total_adm,
+            'total_tagihan' => $total_tagihan,
+            'total_dibayar' => $total_dibayar,
+            'total_denda' => $total_denda,
+            'sisa_tagihan' => $sisa_tagihan,
+            'lunas_count' => $lunas_count,
+            'belum_lunas_count' => $belum_lunas_count,
+            'total_count' => $pinjaman->count(),
+            'avg_pinjaman' => $avg_pinjaman,
+            'payment_progress' => $total_tagihan > 0 ? ($total_dibayar / $total_tagihan) * 100 : 0
+        ];
+    }
+    
+    /**
+     * Get recent loan activities
+     */
+    private function getRecentLoanActivities($noKtp)
+    {
+        // Get recent loan applications
+        $pengajuan = \App\Models\data_pengajuan::where('anggota_id', function($query) use ($noKtp) {
+            $query->select('id')->from('tbl_anggota')->where('no_ktp', $noKtp);
+        })->orderBy('tgl_input', 'desc')->limit(5)->get();
+        
+        // Get recent loan disbursements
+        $pinjaman = \App\Models\TblPinjamanH::where('no_ktp', $noKtp)
+            ->orderBy('tgl_pinjam', 'desc')->limit(5)->get();
+        
+        // Get recent payments
+        $pembayaran = \App\Models\TblPinjamanD::whereHas('pinjaman', function($query) use ($noKtp) {
+            $query->where('no_ktp', $noKtp);
+        })->orderBy('tgl_bayar', 'desc')->limit(5)->get();
+        
+        return [
+            'pengajuan' => $pengajuan,
+            'pinjaman' => $pinjaman,
+            'pembayaran' => $pembayaran
+        ];
+    }
+    
+    /**
+     * Get loan summary for dashboard
+     */
+    private function getLoanSummary($noKtp)
+    {
+        $pinjaman = \App\Models\TblPinjamanH::where('no_ktp', $noKtp)->get();
+        
+        $active_loans = $pinjaman->where('lunas', 'N');
+        $total_active_amount = $active_loans->sum('jumlah');
+        $total_active_installments = $active_loans->sum('lama_angsuran');
+        
+        // Calculate next payment due
+        $next_payment = null;
+        if ($active_loans->count() > 0) {
+            $next_loan = $active_loans->sortBy('tempo')->first();
+            $next_payment = [
+                'amount' => $next_loan->angsuran_per_bulan ?? 0,
+                'due_date' => $next_loan->tempo,
+                'loan_id' => $next_loan->id
+            ];
+        }
+        
+        return [
+            'active_loans_count' => $active_loans->count(),
+            'total_active_amount' => $total_active_amount,
+            'total_active_installments' => $total_active_installments,
+            'next_payment' => $next_payment,
+            'total_loans_count' => $pinjaman->count(),
+            'completed_loans_count' => $pinjaman->where('lunas', 'Y')->count()
+        ];
+    }
+    
+    /**
+     * Determine loan status based on payment progress
+     */
+    private function determineLoanStatus($loan, $angsuran_count, $sisa_tagihan)
+    {
+        if ($loan->lunas === 'Y') {
+            return 'Lunas';
+        }
+        
+        if ($sisa_tagihan <= 0) {
+            return 'Lunas';
+        }
+        
+        $progress = $angsuran_count / $loan->lama_angsuran;
+        
+        if ($progress >= 1) {
+            return 'Lunas';
+        } elseif ($progress >= 0.8) {
+            return 'Hampir Lunas';
+        } elseif ($progress >= 0.5) {
+            return 'Sedang Berjalan';
+        } elseif ($progress > 0) {
+            return 'Baru Dimulai';
+        } else {
+            return 'Belum Bayar';
+        }
+    }
 
 public function hitungSimulasi(Request $request)
 {
