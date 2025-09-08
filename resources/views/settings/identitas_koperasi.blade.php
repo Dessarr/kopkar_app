@@ -4,7 +4,7 @@
 @section('sub-title', 'Pengaturan Data Profil Koperasi')
 
 @section('content')
-<div class="px-1 justify-center flex flex-col">
+<div class="px-6 justify-center flex flex-col w-full">
     <!-- Header Section -->
     <div class="flex justify-between items-center mb-6">
         <div>
@@ -106,7 +106,7 @@
     @endphp
 
     <!-- Main Form Container -->
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden max-w-7xl mx-auto">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden w-full">
         <!-- Form Header -->
         <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
             <div class="flex items-center justify-between">
@@ -143,9 +143,9 @@
                 </div>
 
                 <!-- Group Fields -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     @foreach($fields as $key => $fieldConfig)
-                    <div class="{{ isset($fieldConfig['colspan']) && $fieldConfig['colspan'] == 2 ? 'md:col-span-2' : '' }}">
+                    <div class="{{ isset($fieldConfig['colspan']) && $fieldConfig['colspan'] == 2 ? 'lg:col-span-2' : '' }}">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="{{ $fieldConfig['icon'] }} mr-2 text-gray-500"></i>
                             {{ $fieldConfig['label'] }}
