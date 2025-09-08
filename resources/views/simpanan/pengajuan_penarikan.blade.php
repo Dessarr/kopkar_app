@@ -696,18 +696,19 @@ select::-webkit-scrollbar-thumb:hover {
                                     <i class="fas fa-eye"></i>
                                 </a>
 
-                                <!-- Approve Button (only for pending) -->
-                                @if($pengajuan->status == 0)
+                                <!-- Approve Button (always active) -->
                                 <button onclick="showApproveModal('{{ $pengajuan->id }}')"
                                     class="text-green-600 hover:text-green-900 p-1" title="Setujui">
                                     <i class="fas fa-check"></i>
                                 </button>
 
+                                <!-- Reject Button (always active) -->
                                 <button onclick="showRejectModal('{{ $pengajuan->id }}')"
                                     class="text-red-600 hover:text-red-900 p-1" title="Tolak">
                                     <i class="fas fa-times"></i>
                                 </button>
 
+                                <!-- Delete Button (always active) -->
                                 <form action="{{ route('admin.pengajuan.penarikan.destroy', $pengajuan->id) }}"
                                     method="POST" class="inline"
                                     onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengajuan ini?')">
@@ -717,21 +718,6 @@ select::-webkit-scrollbar-thumb:hover {
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
-                                @endif
-
-                                <!-- Process Button (only for approved) -->
-                                @if($pengajuan->status == 1)
-                                <form action="{{ route('admin.pengajuan.penarikan.approve', $pengajuan->id) }}"
-                                    method="POST" class="inline"
-                                    onsubmit="return confirm('Apakah Anda yakin ingin memproses pengajuan ini?')">
-                                    @csrf
-                                    <input type="hidden" name="tgl_cair" value="{{ date('Y-m-d') }}">
-                                    <button type="submit" class="text-purple-600 hover:text-purple-900 p-1"
-                                        title="Proses">
-                                        <i class="fas fa-play"></i>
-                                    </button>
-                                </form>
-                                @endif
                             </div>
                         </td>
                     </tr>
@@ -851,8 +837,54 @@ select::-webkit-scrollbar-thumb:hover {
 
 @push('scripts')
 <script>
+// Modal functions - Define globally first
+function showApproveModal(id) {
+    const approveForm = document.getElementById('approveForm');
+    const approveModal = document.getElementById('approveModal');
+
+    if (approveForm && approveModal) {
+        if (id) {
+            approveForm.action = `{{ url('pengajuan-penarikan') }}/${id}/approve`;
+        } else {
+            approveForm.action =
+                `{{ url('pengajuan-penarikan') }}/{{ isset($pengajuan) ? $pengajuan->id : '' }}/approve`;
+        }
+        approveModal.classList.remove('hidden');
+    }
+}
+
+function closeApproveModal() {
+    const approveModal = document.getElementById('approveModal');
+    if (approveModal) {
+        approveModal.classList.add('hidden');
+    }
+}
+
+function showRejectModal(id) {
+    const rejectForm = document.getElementById('rejectForm');
+    const rejectModal = document.getElementById('rejectModal');
+
+    if (rejectForm && rejectModal) {
+        if (id) {
+            rejectForm.action = `{{ url('pengajuan-penarikan') }}/${id}/reject`;
+        } else {
+            rejectForm.action = `{{ url('pengajuan-penarikan') }}/{{ isset($pengajuan) ? $pengajuan->id : '' }}/reject`;
+        }
+        rejectModal.classList.remove('hidden');
+    }
+}
+
+function closeRejectModal() {
+    const rejectModal = document.getElementById('rejectModal');
+    if (rejectModal) {
+        rejectModal.classList.add('hidden');
+    }
+}
+
 // Filter functionality
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded - Initializing filters and modals');
+
     // Initialize current filter values
     initializeFilters();
 
@@ -867,9 +899,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Setup status filter functionality
     setupStatusFilter();
-    
+
     // Setup search functionality
     setupSearchFilter();
+
+    console.log('All functions initialized successfully');
 });
 
 function initializeFilters() {
@@ -1111,36 +1145,6 @@ function resetFilter() {
 
     // Redirect to base URL
     window.location.href = '{{ route("admin.pengajuan.penarikan.index") }}';
-}
-
-
-// Modal functions
-function showApproveModal(id) {
-    if (id) {
-        document.getElementById('approveForm').action = `{{ url('pengajuan-penarikan') }}/${id}/approve`;
-    } else {
-        document.getElementById('approveForm').action =
-            `{{ url('pengajuan-penarikan') }}/{{ isset($pengajuan) ? $pengajuan->id : '' }}/approve`;
-    }
-    document.getElementById('approveModal').classList.remove('hidden');
-}
-
-function closeApproveModal() {
-    document.getElementById('approveModal').classList.add('hidden');
-}
-
-function showRejectModal(id) {
-    if (id) {
-        document.getElementById('rejectForm').action = `{{ url('pengajuan-penarikan') }}/${id}/reject`;
-    } else {
-        document.getElementById('rejectForm').action =
-            `{{ url('pengajuan-penarikan') }}/{{ isset($pengajuan) ? $pengajuan->id : '' }}/reject`;
-    }
-    document.getElementById('rejectModal').classList.remove('hidden');
-}
-
-function closeRejectModal() {
-    document.getElementById('rejectModal').classList.add('hidden');
 }
 </script>
 @endpush
