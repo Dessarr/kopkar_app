@@ -12,6 +12,7 @@ use App\Models\TblTransTagihan;
 use App\Imports\SetoranImport;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 
 class SimpananController extends Controller
@@ -91,7 +92,7 @@ class SimpananController extends Controller
 
             $dataAnggota = data_anggota::where('aktif', 'Y')->paginate(10);
             $jenisSimpanan = jns_simpan::all();
-            $dataKas = DataKas::all();
+            $dataKas = NamaKasTbl::where('aktif', 'Y')->where('tmpl_simpan', 'Y')->get();
             $transaksiPenarikan = TransaksiSimpanan::where('akun', 'penarikan')
                 ->orderBy('update_data', 'desc')
                 ->paginate(10);
@@ -103,7 +104,7 @@ class SimpananController extends Controller
     public function storeSetoran(Request $request)
     {
         // Debug: Log the received data
-        \Log::info('StoreSetoran Request Data:', $request->all());
+        Log::info('StoreSetoran Request Data:', $request->all());
         
         $request->validate([
             'tgl_transaksi' => 'required|date',
@@ -219,19 +220,6 @@ class SimpananController extends Controller
         }
     }
 
-    public function setoranUpload()
-    {
-        try {
-            $dataAnggota = data_anggota::where('aktif', 'Y')->paginate(10);
-            $jenisSimpanan = jns_simpan::all();
-            $dataKas = DataKas::all();
-            $transaksiUpload = TblTransSpTemp::orderBy('created_at', 'desc')->paginate(10);
-            
-            return view('simpanan.setoran_upload', compact('dataAnggota', 'jenisSimpanan', 'dataKas', 'transaksiUpload'));
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
-    }
 
     /**
      * Get anggota photo for API
@@ -271,105 +259,60 @@ class SimpananController extends Controller
         }
     }
 
-    public function uploadSetoran(Request $request)
+
+
+    public function tagihan(Request $request)
     {
-        $request->validate([
-            'file' => 'required|mimes:xlsx,xls|max:2048',
-            'jenis_id' => 'required|exists:jns_simpan,id',
-            'kas_id' => 'required|exists:nama_kas_tbl,id',
-            'tgl_transaksi' => 'required|date'
-        ]);
-
         try {
-            DB::beginTransaction();
-
-            $file = $request->file('file');
-            $rows = Excel::toArray(new SetoranImport, $file)[0];
-
-            // Remove header row
-            array_shift($rows);
-
-            foreach ($rows as $row) {
-                if (!isset($row[0]) || !isset($row[1])) {
-                    continue; // Skip invalid rows
-                }
-
-                $anggota = data_anggota::where('no_ktp', $row[0])->where('aktif', 'Y')->first();
-                
-                if ($anggota) {
-                    TblTransSpTemp::create([
-                        'tgl_transaksi' => $request->tgl_transaksi,
-                        'no_ktp' => $row[0],
-                        'anggota_id' => $anggota->id,
-                        'jenis_id' => $request->jenis_id,
-                        'jumlah' => $row[1],
-                        'keterangan' => $row[2] ?? 'Setoran Upload',
-                        'akun' => 'setoran',
-                        'dk' => 'D',
-                        'kas_id' => $request->kas_id,
-                        'user_name' => Auth::user()->name ?? 'admin',
-                        'id_cabang' => $anggota->id_cabang
+            // Get filter parameters
+            $startDate = $request->get('start_date');
+            $endDate = $request->get('end_date');
+            $search = $request->get('search');
+            
+            // Build query
+            $query = TblTransTagihan::with(['anggota', 'jenisSimpanan'])
+                ->whereIn('jenis_id', [8, 31, 32, 40, 41, 51, 52]); // Filter jenis simpanan yang ditagih
+            
+            // Apply date filter
+            if ($startDate && $endDate) {
+                if ($startDate === $endDate) {
+                    $query->whereDate('tgl_transaksi', $startDate);
+                } else {
+                    $query->whereBetween('tgl_transaksi', [
+                        $startDate . ' 00:00:00',
+                        $endDate . ' 23:59:59'
                     ]);
                 }
             }
 
-            DB::commit();
-            return redirect()->back()->with('success', 'File berhasil diupload');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
-    }
-
-    public function prosesSetoran(Request $request)
-    {
-        try {
-            DB::beginTransaction();
-
-            $tempSetorans = TblTransSpTemp::all();
-
-            if ($tempSetorans->isEmpty()) {
-                return redirect()->back()->with('error', 'Tidak ada data setoran untuk diproses');
+            // Apply search filter - fixed logic for tagihan
+            if ($search) {
+                // Check if search is numeric (ID) or text (name/ktp)
+                if (is_numeric($search)) {
+                    // For numeric search, check both id and anggota_id
+                    $query->where(function($q) use ($search) {
+                        $q->where('id', $search)
+                          ->orWhere('anggota_id', $search);
+                    });
+                } else {
+                    // Case-insensitive search for text
+                    $query->whereHas('anggota', function($q) use ($search) {
+                        $q->whereRaw('LOWER(nama) LIKE ?', ['%' . strtolower($search) . '%'])
+                          ->orWhereRaw('LOWER(no_ktp) LIKE ?', ['%' . strtolower($search) . '%']);
+                    });
+                }
             }
-
-            foreach ($tempSetorans as $setoran) {
-                TransaksiSimpanan::create([
-                    'tgl_transaksi' => $setoran->tgl_transaksi,
-                    'no_ktp' => $setoran->no_ktp,
-                    'anggota_id' => $setoran->anggota_id,
-                    'jenis_id' => $setoran->jenis_id,
-                    'jumlah' => $setoran->jumlah,
-                    'keterangan' => $setoran->keterangan,
-                    'akun' => $setoran->akun,
-                    'dk' => $setoran->dk,
-                    'kas_id' => $setoran->kas_id,
-                    'update_data' => now(),
-                    'user_name' => Auth::user()->name ?? 'admin',
-                    'id_cabang' => $setoran->id_cabang
-                ]);
-            }
-
-            // Clear temporary data
-            TblTransSpTemp::truncate();
-
-            DB::commit();
-            return redirect()->back()->with('success', 'Setoran berhasil diproses');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
-    }
-
-    public function tagihan()
-    {
-        try {
-            $dataAnggota = data_anggota::where('aktif', 'Y')->paginate(10);
-            $jenisSimpanan = jns_simpan::all();
-            $tagihan = TblTransTagihan::with(['anggota', 'jenisSimpanan'])
-                ->orderBy('tgl_transaksi', 'desc')
-                ->paginate(10);
             
-            return view('simpanan.tagihan', compact('dataAnggota', 'jenisSimpanan', 'tagihan'));
+            $tagihan = $query->orderBy('tgl_transaksi', 'desc')->paginate(10);
+            
+            // Get data for dropdowns
+            $dataAnggota = data_anggota::where('aktif', 'Y')->get();
+            $jenisSimpanan = jns_simpan::whereIn('id', [8, 31, 32, 40, 41, 51, 52])->get();
+            
+            return view('simpanan.tagihan', compact(
+                'tagihan', 'dataAnggota', 'jenisSimpanan', 
+                'startDate', 'endDate', 'search'
+            ));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
@@ -377,37 +320,204 @@ class SimpananController extends Controller
 
     public function storeTagihan(Request $request)
     {
-        try {
+        // Clean jumlah field before validation (remove commas and dots)
+        $cleanJumlah = str_replace([',', '.'], '', $request->jumlah);
+        $request->merge(['jumlah' => $cleanJumlah]);
+
             $request->validate([
                 'tgl_transaksi' => 'required|date',
+            'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
                 'anggota_id' => 'required|exists:tbl_anggota,id',
                 'jenis_id' => 'required|exists:jns_simpan,id',
                 'jumlah' => 'required|numeric|min:0',
-                'keterangan' => 'nullable|string',
-                'jatuh_tempo' => 'required|date|after:tgl_transaksi'
-            ]);
+                'keterangan' => 'nullable|string'
+        ], [
+            'jumlah.numeric' => 'Jumlah harus berupa angka',
+            'jumlah.min' => 'Jumlah harus lebih dari 0',
+            'jenis_id.exists' => 'Jenis simpanan tidak valid',
+            'no_ktp.exists' => 'No KTP tidak ditemukan',
+            'anggota_id.exists' => 'Anggota tidak ditemukan'
+        ]);
 
+        try {
             DB::beginTransaction();
 
             $anggota = data_anggota::findOrFail($request->anggota_id);
 
             TblTransTagihan::create([
                 'tgl_transaksi' => $request->tgl_transaksi,
+                'no_ktp' => $request->no_ktp,
                 'anggota_id' => $request->anggota_id,
                 'jenis_id' => $request->jenis_id,
-                'jumlah' => $request->jumlah,
+                'jumlah' => $cleanJumlah,
                 'keterangan' => $request->keterangan ?? 'Tagihan Simpanan',
-                'jatuh_tempo' => $request->jatuh_tempo,
-                'status' => 'belum_bayar',
+                'akun' => 'Tagihan',
+                'dk' => 'D',
                 'user_name' => Auth::user()->name ?? 'admin',
-                'id_cabang' => $anggota->id_cabang
+                'id_cabang' => $anggota->id_cabang ?? 'CB0001'
             ]);
 
             DB::commit();
-            return redirect()->back()->with('success', 'Tagihan berhasil dibuat');
+            return response()->json([
+                'success' => true,
+                'message' => 'Tagihan berhasil dibuat'
+            ]);
         } catch (\Exception $e) {
             DB::rollback();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function updateTagihan(Request $request, $id)
+    {
+        // Clean jumlah field before validation (remove commas and dots)
+        $cleanJumlah = str_replace([',', '.'], '', $request->jumlah);
+        $request->merge(['jumlah' => $cleanJumlah]);
+
+        $request->validate([
+            'tgl_transaksi' => 'required|date',
+            'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
+            'anggota_id' => 'required|exists:tbl_anggota,id',
+            'jenis_id' => 'required|exists:jns_simpan,id',
+            'jumlah' => 'required|numeric|min:0',
+            'keterangan' => 'nullable|string'
+        ], [
+            'jumlah.numeric' => 'Jumlah harus berupa angka',
+            'jumlah.min' => 'Jumlah harus lebih dari 0',
+            'jenis_id.exists' => 'Jenis simpanan tidak valid',
+            'no_ktp.exists' => 'No KTP tidak ditemukan',
+            'anggota_id.exists' => 'Anggota tidak ditemukan'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $tagihan = TblTransTagihan::findOrFail($id);
+            
+            $tagihan->update([
+                'tgl_transaksi' => $request->tgl_transaksi,
+                'no_ktp' => $request->no_ktp,
+                'anggota_id' => $request->anggota_id,
+                'jenis_id' => $request->jenis_id,
+                'jumlah' => $cleanJumlah,
+                'keterangan' => $request->keterangan,
+                'update_data' => now(),
+                'user_name' => Auth::user()->name ?? 'admin'
+            ]);
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Tagihan berhasil diupdate'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function deleteTagihan(Request $request, $id)
+    {
+        try {
+            $tagihan = TblTransTagihan::findOrFail($id);
+            $tagihan->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tagihan berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function exportTagihan(Request $request)
+    {
+        try {
+            $startDate = $request->get('start_date');
+            $endDate = $request->get('end_date');
+            $search = $request->get('search');
+
+            $query = TblTransTagihan::with(['anggota', 'jenisSimpanan'])
+                ->whereIn('jenis_id', [8, 31, 32, 40, 41, 51, 52]);
+
+            if ($startDate && $endDate) {
+                if ($startDate === $endDate) {
+                    $query->whereDate('tgl_transaksi', $startDate);
+                } else {
+                    $query->whereBetween('tgl_transaksi', [
+                        $startDate . ' 00:00:00',
+                        $endDate . ' 23:59:59'
+                    ]);
+                }
+            }
+
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('anggota', function($subQ) use ($search) {
+                        $subQ->where('nama', 'like', "%{$search}%")
+                             ->orWhere('no_ktp', 'like', "%{$search}%");
+                    })->orWhere('id', 'like', "%{$search}%");
+                });
+            }
+
+            $tagihan = $query->orderBy('tgl_transaksi', 'desc')->get();
+
+            $filename = 'tagihan_' . date('Y-m-d_H-i-s') . '.csv';
+            
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+
+            $callback = function() use ($tagihan) {
+                $file = fopen('php://output', 'w');
+                
+                // Header CSV
+                fputcsv($file, [
+                    'No',
+                    'Kode Transaksi',
+                    'Tanggal Transaksi',
+                    'ID Anggota',
+                    'Nama Anggota',
+                    'No KTP',
+                    'Jenis Tagihan',
+                    'Jumlah',
+                    'Keterangan',
+                    'User'
+                ]);
+
+                $no = 1;
+                foreach ($tagihan as $t) {
+                    fputcsv($file, [
+                        $no++,
+                        'TRD' . str_pad($t->id, 5, '0', STR_PAD_LEFT),
+                        $t->tgl_transaksi ? \Carbon\Carbon::parse($t->tgl_transaksi)->format('d/m/Y') : '-',
+                        'AG' . str_pad($t->anggota ? $t->anggota->id : 0, 4, '0', STR_PAD_LEFT),
+                        $t->anggota ? $t->anggota->nama : 'N/A',
+                        $t->no_ktp ?? 'N/A',
+                        $t->jenisSimpanan ? $t->jenisSimpanan->jns_simpan : 'N/A',
+                        number_format($t->jumlah ?? 0, 0, ',', '.'),
+                        $t->keterangan ?? '',
+                        $t->user_name ?? '-'
+                    ]);
+                }
+
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat export: ' . $e->getMessage());
         }
     }
 

@@ -187,9 +187,6 @@
                 <a href="{{ route('simpanan.setoran.index') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">Setoran
                     Tunai</a>
-                <a href="{{ route('simpanan.upload') }}"
-                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">Setoran
-                    Upload</a>
                 <a href="{{ route('simpanan.tagihan') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">Tagihan</a>
                 <a href="{{ route('simpanan.pengajuan_penarikan') }}"

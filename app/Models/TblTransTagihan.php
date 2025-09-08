@@ -59,7 +59,7 @@ class TblTransTagihan extends Table_Base
     /**
      * Get the related jenis simpanan.
      */
-    public function jenis_simpanan()
+    public function jenisSimpanan()
     {
         return $this->belongsTo(jns_simpan::class, 'jenis_id');
     }

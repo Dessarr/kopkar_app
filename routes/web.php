@@ -452,8 +452,6 @@ Route::prefix('toserda')->group(function () {
     });
 });
 
-
-    
     // Simpanan Routes
     Route::prefix('simpanan')->group(function () {
         Route::get('/setoran', [SimpananController::class, 'setoranTunai'])->name('simpanan.setoran.index');
@@ -470,11 +468,11 @@ Route::prefix('toserda')->group(function () {
         Route::get('/penarikan', [SimpananController::class, 'penarikanTunai'])->name('simpanan.penarikan');
         Route::post('/penarikan', [SimpananController::class, 'storePenarikan'])->name('simpanan.store.penarikan');
         Route::get('/pengajuan-penarikan', [SimpananController::class, 'pengajuanPenarikan'])->name('simpanan.pengajuan_penarikan');
-        Route::get('/setoran-upload', [SimpananController::class, 'setoranUpload'])->name('simpanan.upload');
-        Route::post('/setoran-upload', [SimpananController::class, 'uploadSetoran'])->name('simpanan.upload.store');
-        Route::post('/setoran-upload/process', [SimpananController::class, 'prosesSetoran'])->name('simpanan.upload.process');
         Route::get('/tagihan', [SimpananController::class, 'tagihan'])->name('simpanan.tagihan');
         Route::post('/tagihan', [SimpananController::class, 'storeTagihan'])->name('simpanan.tagihan.store');
+        Route::post('/tagihan/{id}', [SimpananController::class, 'updateTagihan'])->name('simpanan.tagihan.update');
+        Route::post('/tagihan/{id}/delete', [SimpananController::class, 'deleteTagihan'])->name('simpanan.tagihan.delete');
+        Route::get('/tagihan/export', [SimpananController::class, 'exportTagihan'])->name('simpanan.tagihan.export');
         Route::get('/anggota/{noKtp}', [SimpananController::class, 'getAnggotaByKtp'])->name('simpanan.get-anggota');
     }); // End of simpanan routes
 
