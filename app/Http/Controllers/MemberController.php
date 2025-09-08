@@ -622,12 +622,42 @@ class MemberController extends Controller
         return view('member.beranda', compact('member'));
     }
 
-    public function pengajuanPinjaman()
+    public function pengajuanPinjaman(Request $request)
     {
         $member = auth()->guard('member')->user();
-        $dataPengajuan = data_pengajuan::where('anggota_id', $member->id)
-            ->orderByDesc('tgl_input')
-            ->paginate(10);
+        
+        $query = data_pengajuan::where('anggota_id', $member->id);
+        
+        // Filter tanggal
+        if ($request->filled('date_from') && $request->filled('date_to')) {
+            $query->whereBetween('tgl_input', [
+                $request->date_from . ' 00:00:00',
+                $request->date_to . ' 23:59:59'
+            ]);
+        }
+        
+        // Filter jenis
+        if ($request->filled('jenis')) {
+            $query->where('jenis', $request->jenis);
+        }
+        
+        // Filter status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        // Filter pencarian
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('keterangan', 'like', "%{$search}%")
+                  ->orWhere('alasan', 'like', "%{$search}%")
+                  ->orWhere('ajuan_id', 'like', "%{$search}%");
+            });
+        }
+        
+        $dataPengajuan = $query->orderByDesc('tgl_input')->paginate(10)->appends($request->query());
+        
         return view('member.pengajuan_pinjaman', compact('member','dataPengajuan'));
     }
 

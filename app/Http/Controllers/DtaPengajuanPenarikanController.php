@@ -105,16 +105,14 @@ class DtaPengajuanPenarikanController extends Controller
 
         // ===== FILTER SISTEM BARU =====
         
-        // 1. Filter Status (Multiple Selection)
-        if ($request->filled('status_filter')) {
-            $statusArray = is_array($request->status_filter) ? $request->status_filter : [$request->status_filter];
-            $query->whereIn('status', $statusArray);
+        // 1. Filter Status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
 
-        // 2. Filter Jenis Simpanan (Multiple Selection)
-        if ($request->filled('jenis_filter')) {
-            $jenisArray = is_array($request->jenis_filter) ? $request->jenis_filter : [$request->jenis_filter];
-            $query->whereIn('jenis', $jenisArray);
+        // 2. Filter Jenis Simpanan
+        if ($request->filled('jenis')) {
+            $query->where('jenis', $request->jenis);
         }
 
         // 3. Filter Tanggal (Date Range)
