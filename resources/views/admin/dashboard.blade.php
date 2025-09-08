@@ -164,7 +164,7 @@
             <div class="p-5 justify-center">
                 <div
                     class="group relative bg-green-500 w-full  rounded-full text-white flex flex-row place-content-between overflow-hidden hover:bg-green-600 transition-all duration-300 ease-in-out">
-                    <a href="{{ route('kas.pemasukan') }}"
+                    <a href="{{ route('laporan.saldo_kas') }}"
                         class="group relative bg-green-500 w-full px-4 py-1 rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out group-hover:bg-green-600 overflow-hidden">
                         <span>More Info</span>
                         <span
@@ -335,7 +335,7 @@
             <div class=" p-5 justify-center align-center ">
                 <div
                     class="group relative bg-green-500 w-full rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out hover:bg-green-600 overflow-hidden">
-                    <a href="#"
+                    <a href="{{ route('pinjaman.data_pengajuan') }}"
                         class="group relative bg-green-500 w-full px-4 py-1 rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out group-hover:bg-green-600 overflow-hidden">
                         <span>More Info</span>
                         <span
@@ -402,7 +402,7 @@
             <div class=" p-5 justify-center align-center ">
                 <div
                     class="group relative bg-green-500 w-full rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out hover:bg-green-600 overflow-hidden">
-                    <a href="#"
+                    <a href="{{ route('laporan.data.anggota') }}"
                         class="group relative bg-green-500 w-full px-4 py-1 rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out group-hover:bg-green-600 overflow-hidden">
                         <span>More Info</span>
                         <span
@@ -521,7 +521,7 @@
             <div class="p-5 justify-center align-center">
                     <div
                         class="group relative bg-green-500 w-full rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out hover:bg-green-600 overflow-hidden">
-                        <a href="#"
+                        <a href="{{ route('laporan.buku_besar') }}"
                         class="group relative bg-green-500 w-full px-4 py-3 rounded-full text-white flex flex-row place-content-between transition-all duration-300 ease-in-out group-hover:bg-green-600 overflow-hidden">
                             <span>More Info</span>
                             <span

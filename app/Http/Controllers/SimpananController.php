@@ -406,14 +406,12 @@ class SimpananController extends Controller
     {
         $request->validate([
             'tgl_transaksi' => 'required|date',
-            'no_ktp' => 'required|string',
-            'anggota_id' => 'required|exists:tbl_anggota,id',
             'jenis_id' => 'required|exists:jns_simpan,id',
             'jumlah' => 'required|numeric|min:0',
             'keterangan' => 'nullable|string',
             'akun' => 'required|string',
             'dk' => 'required|string',
-            'kas_id' => 'required|exists:data_kas,id',
+            'kas_id' => 'required|exists:nama_kas_tbl,id',
             'nama_penyetor' => 'required|string',
             'no_identitas' => 'required|string',
             'alamat' => 'required|string',
@@ -423,8 +421,6 @@ class SimpananController extends Controller
         try {
             $transaksi = TransaksiSimpanan::findOrFail($id);
             $transaksi->tgl_transaksi = $request->tgl_transaksi;
-            $transaksi->no_ktp = $request->no_ktp;
-            $transaksi->anggota_id = $request->anggota_id;
             $transaksi->jenis_id = $request->jenis_id;
             $transaksi->jumlah = $request->jumlah;
             $transaksi->keterangan = $request->keterangan;

@@ -162,7 +162,7 @@
                 <tbody>
                     @forelse($transaksiSetoran as $index => $transaksi)
                     <tr class="text-sm align-middle hover:bg-gray-50 cursor-pointer row-selectable"
-                        data-id="{{ $transaksi->id }}"
+                        data-id="{{ $transaksi->id }}" onclick="selectRow(this)"
                         data-kode="TRD{{ str_pad($transaksi->id, 5, '0', STR_PAD_LEFT) }}"
                         data-tanggal="{{ $transaksi->tgl_transaksi }}"
                         data-keterangan="{{ $transaksi->keterangan ?? '' }}" data-no-ktp="{{ $transaksi->no_ktp }}"
@@ -270,14 +270,9 @@
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Transaksi</label>
                     <div class="flex items-center space-x-2">
-                        <input type="text" name="tgl_transaksi_txt" id="tgl_transaksi_txt" readonly
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                            value="{{ date('d F Y - H:i') }}">
-                        <input type="hidden" name="tgl_transaksi" id="tgl_transaksi" value="{{ date('Y-m-d H:i:s') }}">
-                        <button type="button" onclick="openDatePicker()"
-                            class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-                            <i class="fas fa-calendar"></i>
-                        </button>
+                        <input type="datetime-local" name="tgl_transaksi" id="tgl_transaksi" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            value="{{ date('Y-m-d\TH:i') }}">
                     </div>
                 </div>
 
@@ -471,7 +466,7 @@
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
                             <option value="">Pilih Jenis Simpanan</option>
                             @foreach($jenisSimpanan as $jenis)
-                            <option value="{{ $jenis->id }}">{{ $jenis->nama_simpanan }}</option>
+                            <option value="{{ $jenis->id }}">{{ $jenis->jns_simpan }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -584,4 +579,511 @@
 </div>
 @endsection
 
-@include('simpanan.setoran_tunai-scripts')
+<script>
+// Global variables
+let selectedRowData = null;
+
+// Modal functions
+function openModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+
+    // Set default values untuk form add
+    if (modalId === 'addModal') {
+        // Reset form first
+        document.getElementById('addForm').reset();
+
+        // Set tanggal sekarang sebagai default
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const datetimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+        document.getElementById('tgl_transaksi').value = datetimeString;
+
+        // Set default values
+        document.querySelector('#addModal input[name="akun"]').value = 'Setoran';
+        document.querySelector('#addModal input[name="dk"]').value = 'D';
+        document.querySelector('#addModal input[name="id_cabang"]').value = '1';
+    }
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+    selectedRowData = null;
+}
+
+// Table row selection
+function selectRow(row) {
+    // Remove previous selection
+    document.querySelectorAll('tr').forEach(r => r.classList.remove('bg-blue-50'));
+
+    // Add selection to current row
+    row.classList.add('bg-blue-50');
+
+    // Get row data from data attributes
+    selectedRowData = {
+        id: row.dataset.id,
+        kode: row.dataset.kode,
+        tgl_transaksi: row.dataset.tanggal,
+        nama_anggota: row.dataset.namaAnggota,
+        id_anggota: row.dataset.idAnggota,
+        no_ktp: row.dataset.noKtp,
+        jenis_id: row.dataset.jenisId,
+        jumlah: row.dataset.jumlah,
+        keterangan: row.dataset.keterangan,
+        user: row.dataset.user,
+        akun: row.dataset.akun,
+        dk: row.dataset.dk,
+        kas_id: row.dataset.kasId,
+        nama_penyetor: row.dataset.namaPenyetor,
+        no_identitas: row.dataset.noIdentitas,
+        alamat: row.dataset.alamat,
+        id_cabang: row.dataset.idCabang
+    };
+}
+
+// Edit data function
+function editData() {
+    if (!selectedRowData) {
+        alert('Pilih data yang akan diedit terlebih dahulu!');
+        return;
+    }
+
+    // Populate edit form with selected data
+    // Convert datetime to datetime-local format
+    if (selectedRowData.tgl_transaksi) {
+        const date = new Date(selectedRowData.tgl_transaksi);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const datetimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+        document.getElementById('edit_tgl_transaksi').value = datetimeString;
+    }
+    document.getElementById('edit_nama_anggota').value = selectedRowData.nama_anggota;
+    document.getElementById('edit_no_ktp').value = selectedRowData.no_ktp;
+    document.getElementById('edit_anggota_id').value = selectedRowData.id_anggota;
+    document.getElementById('edit_setoran_id').value = selectedRowData.id;
+    document.getElementById('edit_jenis_id').value = selectedRowData.jenis_id;
+    document.getElementById('edit_jumlah').value = selectedRowData.jumlah;
+    document.getElementById('edit_keterangan').value = selectedRowData.keterangan || '';
+    document.getElementById('edit_akun').value = selectedRowData.akun;
+    document.getElementById('edit_dk').value = selectedRowData.dk;
+    document.getElementById('edit_kas_id').value = selectedRowData.kas_id;
+    document.getElementById('edit_nama_penyetor').value = selectedRowData.nama_penyetor;
+    document.getElementById('edit_no_identitas').value = selectedRowData.no_identitas;
+    document.getElementById('edit_alamat').value = selectedRowData.alamat;
+    document.getElementById('edit_id_cabang').value = selectedRowData.id_cabang;
+
+    openModal('editModal');
+}
+
+// Delete data function
+function deleteData() {
+    if (!selectedRowData) {
+        alert('Pilih data yang akan dihapus terlebih dahulu!');
+        return;
+    }
+
+    if (confirm(`Apakah Anda yakin ingin menghapus data kode transaksi: ${selectedRowData.kode}?`)) {
+        // Kirim request delete
+        const deleteUrl = `{{ url('simpanan/setoran') }}/${selectedRowData.id}/delete`;
+
+        fetch(deleteUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Data berhasil dihapus');
+                    location.reload();
+                } else {
+                    alert('Gagal menghapus data: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menghapus data');
+            });
+    }
+}
+
+// Number formatting functions
+function formatNumber(input) {
+    let value = input.value.replace(/[^0-9]/g, '');
+    if (value) {
+        value = parseInt(value).toLocaleString('id-ID');
+    }
+    input.value = value;
+}
+
+function getRawNumber(input) {
+    return input.value.replace(/[^0-9]/g, '');
+}
+
+function formatNumberSimple(input) {
+    let value = input.value.replace(/[^0-9]/g, '');
+    if (value) {
+        value = parseInt(value).toLocaleString('id-ID');
+    }
+    input.value = value;
+}
+
+function autoFillJumlah() {
+    const jenisSelect = document.getElementById('jenis_id');
+    const jumlahInput = document.getElementById('jumlah');
+    const selectedOption = jenisSelect.options[jenisSelect.selectedIndex];
+
+    if (selectedOption && selectedOption.dataset.jumlah) {
+        const jumlah = selectedOption.dataset.jumlah;
+        if (jumlah && jumlah > 0) {
+            jumlahInput.value = parseInt(jumlah).toLocaleString('id-ID');
+        }
+    }
+}
+
+// Form validation
+function validateForm(data) {
+    const errors = [];
+
+    if (!data.tgl_transaksi) {
+        errors.push('Tanggal Transaksi harus diisi');
+    }
+    if (!data.no_ktp) {
+        errors.push('No KTP harus diisi');
+    }
+    if (!data.jenis_id) {
+        errors.push('Jenis Simpanan harus dipilih');
+    }
+    if (!data.jumlah || parseFloat(data.jumlah) <= 0) {
+        errors.push('Jumlah harus lebih dari 0');
+    }
+    if (!data.kas_id) {
+        errors.push('Kas harus dipilih');
+    }
+    if (!data.nama_penyetor) {
+        errors.push('Nama Penyetor harus diisi');
+    }
+    if (!data.no_identitas) {
+        errors.push('No Identitas harus diisi');
+    }
+    if (!data.alamat) {
+        errors.push('Alamat harus diisi');
+    }
+
+    return errors;
+}
+
+// Form submission handlers
+document.addEventListener('DOMContentLoaded', function() {
+    // Add form submission
+    const addForm = document.getElementById('addForm');
+    if (addForm) {
+        addForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+
+            // Convert formatted number to raw number
+            const jumlahInput = document.getElementById('jumlah');
+            data.jumlah = getRawNumber(jumlahInput);
+
+            // Validation
+            const validationErrors = validateForm(data);
+            if (validationErrors.length > 0) {
+                alert('Error:\n' + validationErrors.join('\n'));
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Menyimpan...';
+
+            try {
+                const response = await fetch("{{ route('simpanan.setoran.store') }}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
+                            .getAttribute('content'),
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Data berhasil disimpan');
+                    closeModal('addModal');
+                    location.reload();
+                } else {
+                    alert('Gagal menyimpan data: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan koneksi, silahkan ulangi.');
+            } finally {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+    }
+
+    // Edit form submission
+    const editForm = document.getElementById('editForm');
+    if (editForm) {
+        editForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!selectedRowData) {
+                alert('Tidak ada data yang dipilih untuk diedit');
+                return;
+            }
+
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+
+            // Convert formatted number to raw number
+            const jumlahInput = document.getElementById('edit_jumlah');
+            data.jumlah = getRawNumber(jumlahInput);
+
+            // Show loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Mengupdate...';
+
+            try {
+                const updateUrl = `{{ url('simpanan/setoran') }}/${selectedRowData.id}`;
+                const response = await fetch(updateUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
+                            .getAttribute('content'),
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-HTTP-Method-Override': 'PUT'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Data berhasil diupdate');
+                    closeModal('editModal');
+                    location.reload();
+                } else {
+                    alert('Gagal mengupdate data: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat mengupdate data');
+            } finally {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+    }
+});
+
+// Import modal functions
+function openImportModal() {
+    document.getElementById('importModal').classList.remove('hidden');
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').classList.add('hidden');
+}
+
+// Anggota dropdown functions
+function toggleAnggotaDropdown() {
+    const dropdown = document.getElementById('anggotaDropdown');
+    dropdown.classList.toggle('hidden');
+}
+
+function selectAnggota(element) {
+    const id = element.dataset.id;
+    const noKtp = element.dataset.noKtp;
+    const nama = element.dataset.nama;
+
+    document.getElementById('nama_anggota').value = nama;
+    document.getElementById('no_ktp').value = noKtp;
+    document.getElementById('anggota_id').value = id;
+
+    document.getElementById('anggotaDropdown').classList.add('hidden');
+}
+
+function filterAnggota(searchTerm) {
+    const options = document.querySelectorAll('.anggota-option');
+    const term = searchTerm.toLowerCase();
+
+    options.forEach(option => {
+        const nama = option.dataset.nama.toLowerCase();
+        if (nama.includes(term)) {
+            option.style.display = 'block';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('anggotaDropdown');
+    const input = document.getElementById('nama_anggota');
+
+    if (!dropdown.contains(e.target) && !input.contains(e.target)) {
+        dropdown.classList.add('hidden');
+    }
+});
+
+// Filter functions
+function doSearch() {
+    const form = document.getElementById('filterForm');
+    if (form) {
+        form.submit();
+    }
+}
+
+function clearFilters() {
+    // Clear date inputs
+    document.getElementById('tgl_dari').value = '';
+    document.getElementById('tgl_sampai').value = '';
+    document.getElementById('daterange-text').textContent = 'Pilih Tanggal';
+
+    // Clear search input
+    document.getElementById('search').value = '';
+
+    // Submit form to reload with cleared filters
+    const form = document.getElementById('filterForm');
+    if (form) {
+        form.submit();
+    }
+}
+
+function cetakLaporan() {
+    // Get current filter values
+    const startDate = document.getElementById('tgl_dari').value;
+    const endDate = document.getElementById('tgl_sampai').value;
+    const search = document.getElementById('search').value;
+
+    // Build URL with current filters
+    let url = "{{ route('simpanan.setoran.export') }}?";
+    const params = [];
+
+    if (startDate) params.push(`start_date=${startDate}`);
+    if (endDate) params.push(`end_date=${endDate}`);
+    if (search) params.push(`search=${encodeURIComponent(search)}`);
+
+    if (params.length > 0) {
+        url += params.join('&');
+    }
+
+    // Open in new window
+    window.open(url, '_blank');
+}
+
+// Date range picker initialization
+document.addEventListener('DOMContentLoaded', function() {
+    // Set moment.js locale to Indonesian
+    if (typeof moment !== 'undefined') {
+        moment.locale('id');
+    }
+
+    // Initialize date range picker if daterangepicker is available
+    if (typeof $.fn.daterangepicker !== 'undefined') {
+        $('#daterange-btn').daterangepicker({
+            locale: {
+                format: 'DD/MM/YYYY',
+                separator: ' - ',
+                applyLabel: 'Terapkan',
+                cancelLabel: 'Batal',
+                fromLabel: 'Dari',
+                toLabel: 'Sampai',
+                customRangeLabel: 'Custom',
+                weekLabel: 'M',
+                daysOfWeek: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+                monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+                ],
+                firstDay: 1
+            },
+            ranges: {
+                'Hari Ini': [moment(), moment()],
+                'Kemarin': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                '7 Hari Terakhir': [moment().subtract(6, 'days'), moment()],
+                '30 Hari Terakhir': [moment().subtract(29, 'days'), moment()],
+                'Bulan Ini': [moment().startOf('month'), moment().endOf('month')],
+                'Bulan Lalu': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1,
+                    'month').endOf('month')]
+            },
+            startDate: moment().subtract(29, 'days'),
+            endDate: moment()
+        }, function(start, end, label) {
+            // Update hidden inputs
+            document.getElementById('tgl_dari').value = start.format('YYYY-MM-DD');
+            document.getElementById('tgl_sampai').value = end.format('YYYY-MM-DD');
+
+            // Update display text
+            document.getElementById('daterange-text').textContent = start.format('DD/MM/YYYY') + ' - ' +
+                end.format('DD/MM/YYYY');
+        });
+
+        // Set initial values if they exist
+        const startDate = document.getElementById('tgl_dari').value;
+        const endDate = document.getElementById('tgl_sampai').value;
+
+        if (startDate && endDate) {
+            const start = moment(startDate);
+            const end = moment(endDate);
+            document.getElementById('daterange-text').textContent = start.format('DD/MM/YYYY') + ' - ' + end
+                .format('DD/MM/YYYY');
+        }
+    } else {
+        // Fallback: Simple date inputs if daterangepicker is not available
+        console.log('DateRangePicker not available, using fallback');
+
+        // Create simple date inputs
+        const dateContainer = document.getElementById('daterange-btn');
+        if (dateContainer) {
+            dateContainer.innerHTML = `
+                <input type="date" id="start_date_input" class="px-2 py-1 border border-gray-300 rounded text-sm" 
+                       onchange="updateDateRange()" placeholder="Dari">
+                <span class="mx-2">-</span>
+                <input type="date" id="end_date_input" class="px-2 py-1 border border-gray-300 rounded text-sm" 
+                       onchange="updateDateRange()" placeholder="Sampai">
+            `;
+        }
+    }
+});
+
+function updateDateRange() {
+    const startInput = document.getElementById('start_date_input');
+    const endInput = document.getElementById('end_date_input');
+
+    if (startInput && endInput) {
+        document.getElementById('tgl_dari').value = startInput.value;
+        document.getElementById('tgl_sampai').value = endInput.value;
+
+        if (startInput.value && endInput.value) {
+            document.getElementById('daterange-text').textContent =
+                startInput.value + ' - ' + endInput.value;
+        }
+    }
+}
+</script>

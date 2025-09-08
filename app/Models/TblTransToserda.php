@@ -13,6 +13,17 @@ class TblTransToserda extends Model
     protected $table = 'tbl_trans_toserda';
     protected $guarded = ['id'];
     public $timestamps = false;
+    
+    /**
+     * The attributes that should have default values.
+     *
+     * @var array
+     */
+    protected $attributes = [
+        'jenis_id' => 155, // Default to Toserda
+        'dk' => 'D', // Default to Debit
+        'kas_id' => 1, // Default kas utama
+    ];
 
     /**
      * The attributes that should be cast.
@@ -28,7 +39,7 @@ class TblTransToserda extends Model
      */
     public function anggota()
     {
-        return $this->belongsTo(data_anggota::class, 'anggota_id', 'id');
+        return $this->belongsTo(data_anggota::class, 'no_ktp', 'no_ktp');
     }
 
     /**

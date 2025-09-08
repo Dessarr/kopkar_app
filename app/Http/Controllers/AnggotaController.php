@@ -8,6 +8,7 @@ use App\Models\TblShu;
 use App\Models\TblTransSp;
 use App\Models\billing;
 use App\Models\data_anggota;
+use App\Models\data_barang;
 use App\Models\NamaKasTbl;
 use App\Models\jns_akun;
 use Illuminate\Support\Facades\Auth;
@@ -554,8 +555,7 @@ class AnggotaController extends Controller
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
         
-        $query = TblTransSp::with('anggota', 'kas', 'jenis_transaksi')
-            ->whereIn('jenis_id', [154, 155]); // Lain-lain dan Toserda
+        $query = TblTransToserda::with('anggota', 'kas', 'barang');
         
         // Apply filters
         if ($search) {
@@ -595,12 +595,12 @@ class AnggotaController extends Controller
             $query->whereDate('tgl_transaksi', '<=', $endDate);
         }
         
-        $toserdaData = $query->orderBy('tgl_transaksi', 'desc')->paginate(15);
+        $toserdaData = $query->whereHas('anggota')->orderBy('tgl_transaksi', 'desc')->paginate(15);
         $anggota = data_anggota::where('aktif', 'Y')->get();
         $kas = NamaKasTbl::where('aktif', 'Y')->get();
-        $jenisTransaksi = jns_akun::whereIn('id', [154, 155])->get();
+        // Jenis transaksi hardcoded: 154=Lain-lain, 155=Toserda
         
-        return view('anggota.toserda', compact('toserdaData', 'anggota', 'kas', 'jenisTransaksi', 'search', 'startDate', 'endDate'));
+        return view('anggota.toserda', compact('toserdaData', 'anggota', 'kas', 'search', 'startDate', 'endDate'));
     }
     
     /**
@@ -608,11 +608,20 @@ class AnggotaController extends Controller
      */
     public function storeToserda(Request $request)
     {
+        // Clean jumlah field - remove commas and dots (thousand separators) and convert to numeric
+        $cleanJumlah = str_replace([',', '.'], '', $request->jumlah);
+        $request->merge(['jumlah' => $cleanJumlah]);
+        
         $request->validate([
             'tgl_transaksi' => 'required|date',
             'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
             'jenis_id' => 'required|in:154,155',
             'jumlah' => 'required|numeric|min:0'
+        ], [
+            'jumlah.numeric' => 'Format jumlah tidak valid. Gunakan angka saja.',
+            'jumlah.min' => 'Jumlah harus lebih dari 0.',
+            'jenis_id.in' => 'Jenis transaksi harus dipilih.',
+            'no_ktp.exists' => 'Anggota tidak ditemukan.',
         ]);
         
         try {
@@ -620,16 +629,26 @@ class AnggotaController extends Controller
             
             $anggota = data_anggota::where('no_ktp', $request->no_ktp)->first();
             
-            $toserda = new TblTransSp();
+            // Validasi jumlah harus lebih dari 0
+            if($request->jumlah <= 0) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gagal menyimpan data, pastikan nilai lebih dari 0 (NOL).'
+                    ]);
+                }
+                return redirect()->back()->with('error', 'Gagal menyimpan data, pastikan nilai lebih dari 0 (NOL).');
+            }
+            
+            $toserda = new TblTransToserda();
             $toserda->tgl_transaksi = $request->tgl_transaksi;
             $toserda->no_ktp = $request->no_ktp;
             $toserda->anggota_id = $anggota->id;
             $toserda->jenis_id = $request->jenis_id;
             $toserda->jumlah = $request->jumlah;
-            $toserda->akun = 'Setoran'; // TOSERDA adalah setoran
+            $toserda->keterangan = '';
             $toserda->dk = 'D'; // Debit
-            $toserda->kas_id = 1; // Default kas
-            $toserda->update_data = now();
+            $toserda->kas_id = 1; // Default kas utama
             $toserda->user_name = Auth::user()->u_name ?? 'admin';
             $toserda->save();
             
@@ -661,12 +680,12 @@ class AnggotaController extends Controller
      */
     public function editToserda($id)
     {
-        $toserda = TblTransSp::findOrFail($id);
+        $toserda = TblTransToserda::findOrFail($id);
         $anggota = data_anggota::where('aktif', 'Y')->get();
         $kas = NamaKasTbl::where('aktif', 'Y')->get();
-        $jenisTransaksi = jns_akun::whereIn('id', [154, 155])->get();
+        // Jenis transaksi hardcoded: 154=Lain-lain, 155=Toserda
         
-        return view('anggota.toserda', compact('toserda', 'anggota', 'kas', 'jenisTransaksi'));
+        return view('anggota.toserda', compact('toserda', 'anggota', 'kas'));
     }
     
     /**
@@ -674,21 +693,28 @@ class AnggotaController extends Controller
      */
     public function updateToserda(Request $request, $id)
     {
+        // Clean jumlah field - remove commas and dots (thousand separators) and convert to numeric
+        $cleanJumlah = str_replace([',', '.'], '', $request->jumlah);
+        $request->merge(['jumlah' => $cleanJumlah]);
+        
         $request->validate([
             'tgl_transaksi' => 'required|date',
             'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
             'jenis_id' => 'required|in:154,155',
             'jumlah' => 'required|numeric|min:0'
+        ], [
+            'jumlah.numeric' => 'Format jumlah tidak valid. Gunakan angka saja.',
+            'jumlah.min' => 'Jumlah harus lebih dari 0.',
+            'jenis_id.in' => 'Jenis transaksi harus dipilih.',
+            'no_ktp.exists' => 'Anggota tidak ditemukan.',
         ]);
         
         try {
-            $toserda = TblTransSp::findOrFail($id);
+            $toserda = TblTransToserda::findOrFail($id);
             $toserda->tgl_transaksi = $request->tgl_transaksi;
             $toserda->no_ktp = $request->no_ktp;
             $toserda->jenis_id = $request->jenis_id;
             $toserda->jumlah = $request->jumlah;
-            $toserda->akun = 'Setoran'; // TOSERDA adalah setoran
-            $toserda->update_data = now();
             $toserda->user_name = Auth::user()->u_name ?? 'admin';
             $toserda->save();
             
@@ -718,7 +744,7 @@ class AnggotaController extends Controller
     public function deleteToserda(Request $request, $id)
     {
         try {
-            $toserda = TblTransSp::findOrFail($id);
+            $toserda = TblTransToserda::findOrFail($id);
             $toserda->delete();
             
             if ($request->expectsJson()) {

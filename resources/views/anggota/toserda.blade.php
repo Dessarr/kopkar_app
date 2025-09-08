@@ -157,7 +157,7 @@
                     <tr class="text-sm align-middle hover:bg-gray-50 cursor-pointer row-selectable"
                         data-id="{{ $toserda->id }}" data-kode="TRD{{ str_pad($toserda->id, 5, '0', STR_PAD_LEFT) }}"
                         data-tanggal="{{ $toserda->tgl_transaksi }}" data-keterangan="{{ $toserda->keterangan ?? '' }}"
-                        data-no-ktp="{{ $toserda->no_ktp }}" data-nama-anggota="{{ $toserda->anggota->nama ?? 'N/A' }}"
+                        data-no-ktp="{{ $toserda->anggota->no_ktp ?? '' }}" data-nama-anggota="{{ $toserda->anggota->nama ?? 'N/A' }}"
                         data-id-anggota="{{ $toserda->anggota->id ?? 0 }}" data-jumlah="{{ $toserda->jumlah }}"
                         data-jenis-id="{{ $toserda->jenis_id }}" data-user="{{ $toserda->user_name }}">
                         <td class="py-3 border px-4">
@@ -177,13 +177,13 @@
                         <td class="py-3 border px-4 text-left">
                             <div>
                                 <div class="font-medium">{{ $toserda->anggota->nama ?? 'N/A' }}</div>
-                                <div class="text-xs text-gray-500">{{ $toserda->anggota->id_anggota ?? 'N/A' }}</div>
+                                <div class="text-xs text-gray-500">{{ $toserda->anggota->no_ktp ?? 'N/A' }}</div>
                             </div>
                         </td>
                         <td class="py-3 border px-4">
                             @if($toserda->jenis_id == 154)
                                 <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">Lain-lain</span>
-                            @elseif($toserda->jenis_id == 155)
+                            @elseif($toserda->jenis_id == 155 || is_null($toserda->jenis_id))
                                 <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Toserda</span>
                             @else
                                 <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">Lainnya</span>
@@ -288,18 +288,9 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Transaksi</label>
                         <select name="jenis_id" id="jenis_id" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <option value="">Pilih Jenis</option>
-                            @foreach($jenisTransaksi as $jenis)
-                            <option value="{{ $jenis->id }}">
-                                @if($jenis->id == 154)
-                                    Lain-lain
-                                @elseif($jenis->id == 155)
-                                    Toserda
-                                @else
-                                    {{ $jenis->akun ?? 'Lainnya' }}
-                                @endif
-                            </option>
-                            @endforeach
+                            <option value="">-- Pilih Jenis --</option>
+                            <option value="154">Lain-lain</option>
+                            <option value="155">Toserda</option>
                         </select>
                     </div>
                     <div>
@@ -356,18 +347,9 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Transaksi</label>
                         <select name="jenis_id" id="edit_jenis_id" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <option value="">Pilih Jenis</option>
-                            @foreach($jenisTransaksi as $jenis)
-                            <option value="{{ $jenis->id }}">
-                                @if($jenis->id == 154)
-                                    Lain-lain
-                                @elseif($jenis->id == 155)
-                                    Toserda
-                                @else
-                                    {{ $jenis->akun ?? 'Lainnya' }}
-                                @endif
-                            </option>
-                            @endforeach
+                            <option value="">-- Pilih Jenis --</option>
+                            <option value="154">Lain-lain</option>
+                            <option value="155">Toserda</option>
                         </select>
                     </div>
                     <div>

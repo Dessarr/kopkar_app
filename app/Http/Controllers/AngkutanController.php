@@ -116,7 +116,7 @@ class AngkutanController extends Controller
 
         if ($kasFilter) {
             // For pengeluaran (D), filter by dari_kas_id
-            $query->where('dari_kas_id', $kasFilter);
+                    $query->where('dari_kas_id', $kasFilter);
         }
 
         return $query;
@@ -185,8 +185,8 @@ class AngkutanController extends Controller
 
             // Check if request expects JSON (AJAX) or regular form submission
             if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
+            return response()->json([
+                'success' => true,
                     'message' => 'Pemasukan angkutan berhasil disimpan',
                     'data' => [
                         'id' => $transaksi->id,
@@ -213,10 +213,10 @@ class AngkutanController extends Controller
             ]);
             
             if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-                ], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
             } else {
                 return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
             }
@@ -304,7 +304,7 @@ class AngkutanController extends Controller
             
             // Enhanced validation
             $validated = $request->validate([
-                'tgl_catat' => 'required|date',
+            'tgl_catat' => 'required|date',
                 'keterangan' => 'required|string|max:255',
                 'jumlah' => 'required|numeric|min:0.01',
                 'dari_kas_id' => 'required|integer|exists:nama_kas_tbl,id',
@@ -332,7 +332,7 @@ class AngkutanController extends Controller
             }
 
             // Create transaction
-            $transaksi = new transaksi_kas();
+        $transaksi = new transaksi_kas();
             $transaksi->tgl_catat = $validated['tgl_catat'];
             $transaksi->keterangan = $validated['keterangan'];
             $transaksi->jumlah = $validated['jumlah'];
@@ -342,9 +342,9 @@ class AngkutanController extends Controller
             $transaksi->untuk_kas_id = null; // Pengeluaran tidak ada untuk_kas_id
             $transaksi->dk = 'D'; // Debit untuk pengeluaran
             $transaksi->no_polisi = '';
-            $transaksi->update_data = now();
+        $transaksi->update_data = now();
             $transaksi->user_name = Auth::user()->u_name ?? 'System';
-            $transaksi->id_cabang = 1;
+        $transaksi->id_cabang = 1;
             
             // Save with error handling
             if (!$transaksi->save()) {
@@ -365,7 +365,7 @@ class AngkutanController extends Controller
                     ]
                 ]);
             } else {
-                return redirect()->back()->with('success', 'Pengeluaran angkutan berhasil disimpan');
+        return redirect()->back()->with('success', 'Pengeluaran angkutan berhasil disimpan');
             }
         } catch (\Illuminate\Validation\ValidationException $e) {
             if ($request->expectsJson()) {

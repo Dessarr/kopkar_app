@@ -8,6 +8,39 @@
 // Global variables
 let selectedRowData = null;
 
+// Function to show message notifications
+function showMessage(title, message, type = 'info') {
+    const alertClass = type === 'error' ? 'bg-red-100 border-red-400 text-red-700' : 
+                      type === 'warning' ? 'bg-yellow-100 border-yellow-400 text-yellow-700' : 
+                      'bg-green-100 border-green-400 text-green-700';
+    
+    const icon = type === 'error' ? 'fa-ban' : 
+                 type === 'warning' ? 'fa-warning' : 
+                 'fa-check';
+    
+    const alertHtml = `
+        <div class="${alertClass} px-4 py-3 rounded relative mb-4" role="alert">
+            <span class="block sm:inline">
+                <i class="fas ${icon} mr-2"></i>${message}
+            </span>
+        </div>
+    `;
+    
+    // Create temporary alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.innerHTML = alertHtml;
+    alertDiv.className = 'fixed top-4 right-4 z-50 max-w-sm';
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 3000);
+}
+
 // Initialize when DOM is loaded
 $(document).ready(function() {
     initializeEventListeners();
@@ -27,15 +60,34 @@ function initializeEventListeners() {
             const formData = new FormData(this);
             const data = Object.fromEntries(formData);
 
+            // Validasi jenis harus dipilih
+            if (!data.jenis_id || data.jenis_id === '') {
+                showMessage('Peringatan!', 'Maaf, Jenis Akun belum dipilih.', 'warning');
+                document.getElementById('jenis_id').focus();
+                return;
+            }
+            
             // Simple validation - check required fields
             if (!data.tgl_transaksi || !data.no_ktp || !data.jumlah || !data.jenis_id) {
-                alert('Lengkapi seluruh pengisian data.');
+                showMessage('Peringatan!', 'Lengkapi seluruh pengisian data.', 'warning');
                 return;
             }
 
-            // Clean the amount value
+            // Clean the amount value - remove commas and dots (thousand separators)
             const jumlahInput = document.getElementById('jumlah');
-            data.jumlah = jumlahInput.value.replace(/[^0-9.]/g, '');
+            data.jumlah = jumlahInput.value.replace(/[^0-9]/g, '');
+            
+            // Validasi jumlah harus lebih dari 0
+            if (parseFloat(data.jumlah) <= 0) {
+                showMessage('Peringatan!', 'Gagal menyimpan data, pastikan nilai lebih dari 0 (NOL).', 'error');
+                return;
+            }
+            
+            // Pastikan jumlah adalah number yang valid
+            if (isNaN(parseFloat(data.jumlah))) {
+                showMessage('Peringatan!', 'Format jumlah tidak valid.', 'error');
+                return;
+            }
 
             // Only send fields that exist in the database table
             const cleanData = {
@@ -66,17 +118,17 @@ function initializeEventListeners() {
                 const result = await response.json();
 
                 if (result.success) {
-                    showMessage('success', result.message);
+                    showMessage('Informasi', 'Data TOSERDA berhasil ditambahkan', 'success');
                     closeModal('addModal');
                     setTimeout(() => {
                         window.location.reload();
                     }, 1000);
                 } else {
-                    showMessage('error', result.message || 'Terjadi kesalahan saat menyimpan data');
+                    showMessage('Error', result.message || 'Gagal menyimpan data, pastikan nilai lebih dari 0 (NOL).', 'error');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                showMessage('error', 'Terjadi kesalahan saat menyimpan data');
+                showMessage('Error', 'Terjadi kesalahan saat menyimpan data', 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalText;
@@ -93,9 +145,21 @@ function initializeEventListeners() {
             const formData = new FormData(this);
             const data = Object.fromEntries(formData);
 
-            // Clean the amount value
+            // Clean the amount value - remove commas and dots (thousand separators)
             const jumlahInput = document.getElementById('edit_jumlah');
-            data.jumlah = jumlahInput.value.replace(/[^0-9.]/g, '');
+            data.jumlah = jumlahInput.value.replace(/[^0-9]/g, '');
+            
+            // Validasi jumlah harus lebih dari 0
+            if (parseFloat(data.jumlah) <= 0) {
+                showMessage('Peringatan!', 'Gagal mengupdate data, pastikan nilai lebih dari 0 (NOL).', 'error');
+                return;
+            }
+            
+            // Pastikan jumlah adalah number yang valid
+            if (isNaN(parseFloat(data.jumlah))) {
+                showMessage('Peringatan!', 'Format jumlah tidak valid.', 'error');
+                return;
+            }
 
             // Only send fields that exist in the database table
             const cleanData = {
@@ -277,9 +341,10 @@ function editData() {
     document.getElementById('edit_toserda_id').value = selectedRowData.id;
     document.getElementById('edit_jenis_id').value = selectedRowData.jenis_id;
 
-    // Clean the amount value for display
-    const cleanAmount = selectedRowData.jumlah.toString().replace(/[^0-9.]/g, '');
-    document.getElementById('edit_jumlah').value = cleanAmount;
+    // Format the amount value for display with thousand separators
+    const amount = parseFloat(selectedRowData.jumlah);
+    const formattedAmount = amount.toLocaleString('id-ID');
+    document.getElementById('edit_jumlah').value = formattedAmount;
 }
 
 function deleteData() {

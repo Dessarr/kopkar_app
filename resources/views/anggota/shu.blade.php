@@ -79,7 +79,7 @@
                         <!-- Hidden inputs untuk form submission -->
                         <input type="hidden" name="start_date" id="tgl_dari" value="{{ $startDate }}">
                         <input type="hidden" name="end_date" id="tgl_sampai" value="{{ $endDate }}">
-                    </div>
+            </div>
 
                     <!-- 2. Search Kode Transaksi -->
                     <div class="flex items-center space-x-2">
@@ -88,14 +88,14 @@
                             placeholder="[TRD00001] atau Nama"
                             class="px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm w-36"
                             onkeypress="if(event.key==='Enter'){doSearch();}">
-                    </div>
+            </div>
 
                     <!-- 3. Button Filter -->
                     <button type="button" onclick="doSearch()" id="searchBtn"
                         class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
                         <i class="fas fa-search mr-1"></i>Cari
                     </button>
-                </div>
+            </div>
 
                 <!-- Right Side: Action Buttons -->
                 <div class="flex items-center space-x-2">
@@ -109,7 +109,7 @@
                     <button type="button" onclick="clearFilters()"
                         class="px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
                         <i class="fas fa-times mr-1"></i>Hapus Filter
-                    </button>
+                </button>
                 </div>
             </div>
         </form>
@@ -164,7 +164,7 @@
                         </td>
                         <td class="py-3 border px-4">
                             <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                                TRD{{ str_pad($shu->id, 5, '0', STR_PAD_LEFT) }}
+                            TRD{{ str_pad($shu->id, 5, '0', STR_PAD_LEFT) }}
                             </span>
                         </td>
                         <td class="py-3 border px-4">
@@ -191,9 +191,9 @@
             </table>
         </div>
 
-    </div>
+        </div>
 
-    <!-- Pagination -->
+        <!-- Pagination -->
     <div class="mt-5 w-full relative px-2 py-2">
         <div class="mx-auto w-fit">
             <div
@@ -219,7 +219,7 @@
         </div>
     </div>
 </div>
-</div>
+                </div>
 
 <!-- Add Modal -->
 <div id="addModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
@@ -249,7 +249,7 @@
                         <!-- Dropdown anggota -->
                         <div id="anggotaDropdown"
                             class="mt-2 border border-gray-300 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto hidden">
-                            @foreach($anggota as $ang)
+                        @foreach($anggota as $ang)
                             <div class="p-2 hover:bg-gray-100 cursor-pointer anggota-option" data-id="{{ $ang->id }}"
                                 data-no-ktp="{{ $ang->no_ktp }}" data-nama="{{ $ang->nama }}"
                                 data-foto="{{ $ang->file_pic ?? '' }}">
@@ -265,15 +265,15 @@
                                     </div>
                                 </div>
                             </div>
-                            @endforeach
+                        @endforeach
                         </div>
-                    </div>
+                </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah SHU</label>
                         <input type="text" name="jumlah_bayar" id="jumlah_bayar" required placeholder="Masukkan jumlah"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                             oninput="formatNumberSimple(this)" pattern="[0-9,.]*" inputmode="numeric">
-                    </div>
+                </div>
                 </div>
                 <div class="flex justify-end space-x-3 mt-6">
                     <button type="button" onclick="closeModal('addModal')"
