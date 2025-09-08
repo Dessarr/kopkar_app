@@ -135,7 +135,7 @@ class BillingUtamaController extends Controller
             'tgl_transaksi', 'no_ktp', 'anggota_id', 'jenis_id', 'jumlah', 'keterangan', 'akun', 'dk', 'kas_id'
         ], function ($query) use ($bulan, $tahun) {
             $query->select(
-                'a.tgl_transaksi', 'a.no_ktp', 'a.anggota_id', 
+                DB::raw('NOW() as tgl_transaksi'), 'a.no_ktp', 'a.anggota_id', 
                 DB::raw("'41' as jenis_id"), 'a.tagihan_simpanan_wajib', 
                 DB::raw("'Setoran Simpanan Wajib - " . $bulan . "-" . $tahun . "' as keterangan"), 
                 DB::raw("'Setoran' as akun"), DB::raw("'D' as dk"), DB::raw("'4' as kas_id")
@@ -150,7 +150,7 @@ class BillingUtamaController extends Controller
             'tgl_transaksi', 'no_ktp', 'anggota_id', 'jenis_id', 'jumlah', 'keterangan', 'akun', 'dk', 'kas_id'
         ], function ($query) use ($bulan, $tahun) {
             $query->select(
-                'a.tgl_transaksi', 'a.no_ktp', 'a.anggota_id', 
+                DB::raw('NOW() as tgl_transaksi'), 'a.no_ktp', 'a.anggota_id', 
                 DB::raw("'40' as jenis_id"), 'a.tagihan_simpanan_pokok', 
                 DB::raw("'Setoran Simpanan Pokok - " . $bulan . "-" . $tahun . "' as keterangan"), 
                 DB::raw("'Setoran' as akun"), DB::raw("'D' as dk"), DB::raw("'4' as kas_id")
@@ -165,7 +165,7 @@ class BillingUtamaController extends Controller
             'tgl_transaksi', 'no_ktp', 'anggota_id', 'jenis_id', 'jumlah', 'keterangan', 'akun', 'dk', 'kas_id'
         ], function ($query) use ($bulan, $tahun) {
             $query->select(
-                'a.tgl_transaksi', 'a.no_ktp', 'a.anggota_id', 
+                DB::raw('NOW() as tgl_transaksi'), 'a.no_ktp', 'a.anggota_id', 
                 DB::raw("'32' as jenis_id"), 'a.tagihan_simpanan_sukarela', 
                 DB::raw("'Setoran Simpanan Sukarela - " . $bulan . "-" . $tahun . "' as keterangan"), 
                 DB::raw("'Setoran' as akun"), DB::raw("'D' as dk"), DB::raw("'4' as kas_id")
@@ -180,7 +180,7 @@ class BillingUtamaController extends Controller
             'tgl_transaksi', 'no_ktp', 'anggota_id', 'jenis_id', 'jumlah', 'keterangan', 'akun', 'dk', 'kas_id'
         ], function ($query) use ($bulan, $tahun) {
             $query->select(
-                'a.tgl_transaksi', 'a.no_ktp', 'a.anggota_id', 
+                DB::raw('NOW() as tgl_transaksi'), 'a.no_ktp', 'a.anggota_id', 
                 DB::raw("'52' as jenis_id"), 'a.tagihan_simpanan_khusus_2', 
                 DB::raw("'Setoran Simpanan Khusus 2 - " . $bulan . "-" . $tahun . "' as keterangan"), 
                 DB::raw("'Setoran' as akun"), DB::raw("'D' as dk"), DB::raw("'4' as kas_id")
@@ -224,7 +224,7 @@ class BillingUtamaController extends Controller
             'tgl_transaksi', 'no_ktp', 'anggota_id', 'jenis_id', 'jumlah', 'keterangan', 'akun', 'dk', 'kas_id'
         ], function ($query) use ($bulan, $tahun) {
             $query->select(
-                'a.tgl_transaksi', 'a.no_ktp', 'a.anggota_id', 
+                DB::raw('NOW() as tgl_transaksi'), 'a.no_ktp', 'a.anggota_id', 
                 DB::raw("'155' as jenis_id"), 'a.tagihan_toserda', 'b.keterangan', 
                 DB::raw("'Setoran' as akun"), DB::raw("'D' as dk"), DB::raw("'4' as kas_id")
             )
@@ -349,6 +349,13 @@ class BillingUtamaController extends Controller
                 ->get();
             
             foreach ($tagihanPinjaman as $tagihan) {
+                // Get anggota_id from tbl_anggota
+                $anggota = DB::table('tbl_anggota')
+                    ->where('no_ktp', $tagihan->no_ktp)
+                    ->first();
+                
+                $anggotaId = $anggota ? $anggota->id : null;
+                
                 // Upsert ke tbl_trans_sp_bayar_temp
                 DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
                     [
@@ -356,7 +363,7 @@ class BillingUtamaController extends Controller
                         'no_ktp' => $tagihan->no_ktp,
                     ],
                     [
-                        'anggota_id' => null,
+                        'anggota_id' => $anggotaId,
                         'jumlah' => DB::raw('COALESCE(jumlah,0)'),
                         'keterangan' => 'Billing Pinjaman ' . $bulan . '-' . $tahun,
                         'tagihan_simpanan_wajib' => DB::raw('COALESCE(tagihan_simpanan_wajib,0)'),

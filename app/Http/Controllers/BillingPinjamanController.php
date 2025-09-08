@@ -153,6 +153,13 @@ class BillingPinjamanController extends Controller
                 ->get();
             
             foreach ($tagihanPinjaman as $tagihan) {
+                // Get anggota_id from tbl_anggota
+                $anggota = DB::table('tbl_anggota')
+                    ->where('no_ktp', $tagihan->no_ktp)
+                    ->first();
+                
+                $anggotaId = $anggota ? $anggota->id : null;
+                
                 // Upsert ke tbl_trans_sp_bayar_temp
                 DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
                     [
@@ -160,7 +167,7 @@ class BillingPinjamanController extends Controller
                         'no_ktp' => $tagihan->no_ktp,
                     ],
                     [
-                        'anggota_id' => null,
+                        'anggota_id' => $anggotaId,
                         'jumlah' => DB::raw('COALESCE(jumlah,0)'),
                         'keterangan' => 'Billing Pinjaman ' . $bulan . '-' . $tahun,
                         'tagihan_simpanan_wajib' => DB::raw('COALESCE(tagihan_simpanan_wajib,0)'),

@@ -74,13 +74,20 @@ class BillingToserdaController extends Controller
                 ->get();
 
             foreach ($rows as $r) {
+                // Get anggota_id from tbl_anggota
+                $anggota = DB::table('tbl_anggota')
+                    ->where('no_ktp', $r->no_ktp)
+                    ->first();
+                
+                $anggotaId = $anggota ? $anggota->id : null;
+                
                 DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
                     [
                         'tgl_transaksi' => \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth()->toDateString(),
                         'no_ktp' => $r->no_ktp,
                     ],
                     [
-                        'anggota_id' => null,
+                        'anggota_id' => $anggotaId,
                         'jumlah' => DB::raw('COALESCE(jumlah,0)'),
                         'keterangan' => 'Billing Toserda ' . $bulan . '-' . $tahun,
                         'tagihan_simpanan_wajib' => DB::raw('COALESCE(tagihan_simpanan_wajib,0)'),

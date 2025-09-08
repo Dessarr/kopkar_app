@@ -35,7 +35,16 @@ class SimpananController extends Controller
         
         // Apply date filter
         if ($startDate && $endDate) {
-            $query->whereBetween('tgl_transaksi', [$startDate, $endDate]);
+            // Jika start_date dan end_date sama, gunakan whereDate
+            if ($startDate === $endDate) {
+                $query->whereDate('tgl_transaksi', $startDate);
+            } else {
+                // Jika berbeda, gunakan whereBetween dengan waktu penuh
+                $query->whereBetween('tgl_transaksi', [
+                    $startDate . ' 00:00:00', 
+                    $endDate . ' 23:59:59'
+                ]);
+            }
         }
         
         // Apply search filter
@@ -404,8 +413,14 @@ class SimpananController extends Controller
 
     public function updateSetoran(Request $request, $id)
     {
+        // Clean jumlah field before validation (remove commas and dots)
+        $cleanJumlah = str_replace([',', '.'], '', $request->jumlah);
+        $request->merge(['jumlah' => $cleanJumlah]);
+
         $request->validate([
             'tgl_transaksi' => 'required|date',
+            'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
+            'anggota_id' => 'required|exists:tbl_anggota,id',
             'jenis_id' => 'required|exists:jns_simpan,id',
             'jumlah' => 'required|numeric|min:0',
             'keterangan' => 'nullable|string',
@@ -416,11 +431,20 @@ class SimpananController extends Controller
             'no_identitas' => 'required|string',
             'alamat' => 'required|string',
             'id_cabang' => 'required|string'
+        ], [
+            'jumlah.numeric' => 'Format jumlah tidak valid. Gunakan angka saja.',
+            'jumlah.min' => 'Jumlah harus lebih dari 0.',
+            'jenis_id.exists' => 'Jenis simpanan tidak valid.',
+            'no_ktp.exists' => 'Anggota tidak ditemukan.',
+            'anggota_id.exists' => 'ID anggota tidak valid.',
+            'kas_id.exists' => 'Kas tidak ditemukan.'
         ]);
 
         try {
             $transaksi = TransaksiSimpanan::findOrFail($id);
             $transaksi->tgl_transaksi = $request->tgl_transaksi;
+            $transaksi->no_ktp = $request->no_ktp;
+            $transaksi->anggota_id = $request->anggota_id;
             $transaksi->jenis_id = $request->jenis_id;
             $transaksi->jumlah = $request->jumlah;
             $transaksi->keterangan = $request->keterangan;

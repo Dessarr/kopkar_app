@@ -234,7 +234,7 @@
                     && $i
                     <= $transaksiSetoran->
                         currentPage() + 1))
-                        <a href="{{ $transaksiSetoran->url($i) }}">
+                        <a href="{{ $transaksiSetoran->appends(request()->query())->url($i) }}">
                             <div
                                 class="rounded-md px-2 py-0.5 text-sm border border-gray-300 {{ $transaksiSetoran->currentPage() == $i ? 'bg-gray-100 font-bold' : '' }}">
                                 {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
@@ -436,7 +436,7 @@
 <!-- Edit Modal -->
 <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
     <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between p-4 border-b">
                 <h3 class="text-lg font-semibold">Edit Data Setoran Tunai</h3>
                 <button onclick="closeModal('editModal')" class="text-gray-400 hover:text-gray-600">
@@ -444,94 +444,103 @@
                 </button>
             </div>
             <form id="editForm" class="p-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Transaksi</label>
+                <!-- Tanggal Transaksi -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Transaksi</label>
+                    <div class="flex items-center space-x-2">
                         <input type="datetime-local" name="tgl_transaksi" id="edit_tgl_transaksi" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Anggota</label>
-                        <input type="text" name="nama_anggota" id="edit_nama_anggota" required
-                            placeholder="Nama anggota"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                            readonly>
-                        <input type="hidden" name="no_ktp" id="edit_no_ktp">
-                        <input type="hidden" name="anggota_id" id="edit_anggota_id">
-                        <input type="hidden" name="setoran_id" id="edit_setoran_id">
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Identitas Penyetor -->
+                    <div class="space-y-4">
+                        <h4 class="text-md font-semibold text-gray-800 border-b pb-2">Identitas Penyetor</h4>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penyetor</label>
+                            <input type="text" name="nama_penyetor" id="edit_nama_penyetor" required
+                                placeholder="Nama lengkap penyetor"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Identitas</label>
+                            <input type="text" name="no_identitas" id="edit_no_identitas" required
+                                placeholder="No KTP/SIM penyetor"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Alamat</label>
+                            <textarea name="alamat" id="edit_alamat" rows="3" required
+                                placeholder="Alamat lengkap penyetor"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"></textarea>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Simpanan</label>
-                        <select name="jenis_id" id="edit_jenis_id" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <option value="">Pilih Jenis Simpanan</option>
-                            @foreach($jenisSimpanan as $jenis)
-                            <option value="{{ $jenis->id }}">{{ $jenis->jns_simpan }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
-                        <input type="text" name="jumlah" id="edit_jumlah" required placeholder="Masukkan jumlah"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                            oninput="formatNumberSimple(this)" pattern="[0-9,.]*" inputmode="numeric">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
-                        <input type="text" name="keterangan" id="edit_keterangan" placeholder="Keterangan (opsional)"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Akun</label>
-                        <select name="akun" id="edit_akun" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <option value="">Pilih Akun</option>
-                            <option value="Setoran">Setoran</option>
-                            <option value="Penarikan">Penarikan</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">D/K</label>
-                        <select name="dk" id="edit_dk" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <option value="">Pilih D/K</option>
-                            <option value="D">Debit (D)</option>
-                            <option value="K">Kredit (K)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Kas</label>
-                        <select name="kas_id" id="edit_kas_id" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <option value="">Pilih Kas</option>
-                            @foreach($dataKas as $kas)
-                            <option value="{{ $kas->id }}">{{ $kas->nama }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penyetor</label>
-                        <input type="text" name="nama_penyetor" id="edit_nama_penyetor" required
-                            placeholder="Nama penyetor"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">No Identitas</label>
-                        <input type="text" name="no_identitas" id="edit_no_identitas" required
-                            placeholder="No identitas"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Alamat</label>
-                        <input type="text" name="alamat" id="edit_alamat" required placeholder="Alamat"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">ID Cabang</label>
-                        <input type="text" name="id_cabang" id="edit_id_cabang" required placeholder="ID Cabang"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+
+                    <!-- Identitas Penerima -->
+                    <div class="space-y-4">
+                        <h4 class="text-md font-semibold text-gray-800 border-b pb-2">Identitas Penerima</h4>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Anggota</label>
+                            <input type="text" name="nama_anggota" id="edit_nama_anggota" required
+                                placeholder="Nama anggota"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-100"
+                                readonly>
+                            <input type="hidden" name="no_ktp" id="edit_no_ktp">
+                            <input type="hidden" name="anggota_id" id="edit_anggota_id">
+                            <input type="hidden" name="setoran_id" id="edit_setoran_id">
+                            <p class="text-xs text-gray-500 mt-1">Anggota tidak dapat diubah saat edit</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Simpanan</label>
+                            <select name="jenis_id" id="edit_jenis_id" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <option value="">-- Pilih Simpanan --</option>
+                                @foreach($jenisSimpanan as $jenis)
+                                <option value="{{ $jenis->id }}">{{ $jenis->jns_simpan }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah Simpanan</label>
+                            <input type="text" name="jumlah" id="edit_jumlah" required placeholder="Masukkan jumlah"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                oninput="formatNumberSimple(this)" pattern="[0-9,.]*" inputmode="numeric">
+                            <p class="text-xs text-gray-500 mt-1">Gunakan angka saja, separator akan ditambahkan
+                                otomatis</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
+                            <input type="text" name="keterangan" id="edit_keterangan"
+                                placeholder="Keterangan (opsional)"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Simpan Ke Kas</label>
+                            <select name="kas_id" id="edit_kas_id" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <option value="">-- Pilih Kas --</option>
+                                @foreach($dataKas as $kas)
+                                <option value="{{ $kas->id }}">{{ $kas->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Hidden Fields -->
+                <input type="hidden" name="akun" value="Setoran">
+                <input type="hidden" name="dk" value="D">
+                <input type="hidden" name="id_cabang" value="CB0001">
+
                 <div class="flex justify-end space-x-3 mt-6">
                     <button type="button" onclick="closeModal('editModal')"
                         class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center space-x-2">
@@ -663,20 +672,26 @@ function editData() {
         const datetimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
         document.getElementById('edit_tgl_transaksi').value = datetimeString;
     }
+
+    // Identitas Penerima (Anggota - DISABLED saat edit)
     document.getElementById('edit_nama_anggota').value = selectedRowData.nama_anggota;
     document.getElementById('edit_no_ktp').value = selectedRowData.no_ktp;
     document.getElementById('edit_anggota_id').value = selectedRowData.id_anggota;
     document.getElementById('edit_setoran_id').value = selectedRowData.id;
     document.getElementById('edit_jenis_id').value = selectedRowData.jenis_id;
-    document.getElementById('edit_jumlah').value = selectedRowData.jumlah;
+
+    // Format the amount value for display with thousand separators
+    const amount = parseFloat(selectedRowData.jumlah);
+    const formattedAmount = amount.toLocaleString('id-ID');
+    document.getElementById('edit_jumlah').value = formattedAmount;
+
     document.getElementById('edit_keterangan').value = selectedRowData.keterangan || '';
-    document.getElementById('edit_akun').value = selectedRowData.akun;
-    document.getElementById('edit_dk').value = selectedRowData.dk;
     document.getElementById('edit_kas_id').value = selectedRowData.kas_id;
+
+    // Identitas Penyetor
     document.getElementById('edit_nama_penyetor').value = selectedRowData.nama_penyetor;
     document.getElementById('edit_no_identitas').value = selectedRowData.no_identitas;
     document.getElementById('edit_alamat').value = selectedRowData.alamat;
-    document.getElementById('edit_id_cabang').value = selectedRowData.id_cabang;
 
     openModal('editModal');
 }
@@ -726,6 +741,10 @@ function formatNumber(input) {
 }
 
 function getRawNumber(input) {
+    return input.value.replace(/[^0-9]/g, '');
+}
+
+function getRawNumberEdit(input) {
     return input.value.replace(/[^0-9]/g, '');
 }
 
@@ -860,6 +879,44 @@ document.addEventListener('DOMContentLoaded', function() {
             const jumlahInput = document.getElementById('edit_jumlah');
             data.jumlah = getRawNumber(jumlahInput);
 
+            // Validation
+            if (!data.tgl_transaksi) {
+                alert('Tanggal Transaksi harus diisi');
+                return;
+            }
+            if (!data.no_ktp) {
+                alert('No KTP harus diisi');
+                return;
+            }
+            if (!data.anggota_id) {
+                alert('ID Anggota harus diisi');
+                return;
+            }
+            if (!data.jenis_id) {
+                alert('Jenis Simpanan harus dipilih');
+                return;
+            }
+            if (!data.jumlah || parseFloat(data.jumlah) <= 0) {
+                alert('Jumlah harus lebih dari 0');
+                return;
+            }
+            if (!data.kas_id) {
+                alert('Kas harus dipilih');
+                return;
+            }
+            if (!data.nama_penyetor) {
+                alert('Nama Penyetor harus diisi');
+                return;
+            }
+            if (!data.no_identitas) {
+                alert('No Identitas harus diisi');
+                return;
+            }
+            if (!data.alamat) {
+                alert('Alamat harus diisi');
+                return;
+            }
+
             // Show loading state
             const submitBtn = this.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
@@ -874,8 +931,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
                             .getAttribute('content'),
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-HTTP-Method-Override': 'PUT'
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify(data)
                 });
@@ -1085,5 +1141,16 @@ function updateDateRange() {
                 startInput.value + ' - ' + endInput.value;
         }
     }
+}
+
+// Function untuk cetak nota
+function cetakNota(id) {
+    if (!id) {
+        alert('ID transaksi tidak valid');
+        return;
+    }
+
+    const url = `{{ url('simpanan/setoran/nota') }}/${id}`;
+    window.open(url, '_blank');
 }
 </script>

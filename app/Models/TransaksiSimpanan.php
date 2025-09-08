@@ -35,7 +35,7 @@ class TransaksiSimpanan extends Model
     ];
 
     protected $casts = [
-        'tgl_transaksi' => 'date',
+        'tgl_transaksi' => 'datetime',
         'update_data' => 'datetime',
         'jumlah' => 'decimal:2'
     ];

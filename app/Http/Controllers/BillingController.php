@@ -370,6 +370,13 @@ class BillingController extends Controller
                 ->get();
 
             foreach ($billings as $b) {
+                // Get anggota_id from tbl_anggota
+                $anggota = DB::table('tbl_anggota')
+                    ->where('no_ktp', $b->no_ktp)
+                    ->first();
+                
+                $anggotaId = $anggota ? $anggota->id : null;
+                
                 // Upsert ke tbl_trans_sp_bayar_temp
                 DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
                     [
@@ -377,7 +384,7 @@ class BillingController extends Controller
                         'no_ktp' => $b->no_ktp,
                     ],
                     [
-                        'anggota_id' => null,
+                        'anggota_id' => $anggotaId,
                         'jumlah' => DB::raw('COALESCE(jumlah,0)'),
                         'keterangan' => 'Billing Simpanan ' . ($b->bulan_tahun ?? ($bulan.'-'.$tahun)),
                         'tagihan_simpanan_wajib' => $b->simpanan_wajib ?? 0,
