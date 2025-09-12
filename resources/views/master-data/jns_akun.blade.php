@@ -4,38 +4,111 @@
 @section('sub-title', 'Master Data Jenis Akun')
 
 @section('content')
-<style>
-.expandable-row {
-    transition: all 0.3s ease-in-out;
-}
-
-.expandable-row:hover {
-    padding-top: 1rem;
-    padding-bottom: 1rem;
-    background-color: rgb(249 250 251);
-}
-
-.expandable-content {
-    transition: all 0.3s ease-in-out;
-    max-height: 1.5rem;
-    overflow: hidden;
-}
-
-.expandable-row:hover .expandable-content {
-    max-height: 100px;
-}
-</style>
-
 <div class="px-1 justify-center flex flex-col">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Data Jenis Akun</h1>
+    <!-- Header Section -->
+    <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">Jenis Akun</h1>
+                <p class="text-green-100">Master Data Jenis Akun</p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{{ route('master-data.jns_akun.export') }}" 
+                   class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center">
+                    <i class="fas fa-file-excel mr-2"></i>Export Excel
+                </a>
+                <a href="{{ route('master-data.jns_akun.print') }}" 
+                   class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center">
+                    <i class="fas fa-print mr-2"></i>Cetak
+                </a>
+                <a href="{{ route('master-data.jns_akun.template') }}" 
+                   class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center">
+                    <i class="fas fa-download mr-2"></i>Template
+                </a>
+            </div>
+        </div>
     </div>
 
-    <!-- Collapsible Header -->
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                    <i class="fas fa-list-alt text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Total Jenis Akun</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ $totalJenisAkun }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100 text-green-600">
+                    <i class="fas fa-toggle-on text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Aktif</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ $akunAktif }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-red-100 text-red-600">
+                    <i class="fas fa-toggle-off text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Tidak Aktif</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ $akunTidakAktif }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                    <i class="fas fa-arrow-up text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Pemasukan</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ $akunPemasukan }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-orange-100 text-orange-600">
+                    <i class="fas fa-arrow-down text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Pengeluaran</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ $akunPengeluaran }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                    <i class="fas fa-chart-line text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Laba Rugi</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ $akunLabaRugi }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collapsible Filter -->
     <div class="bg-white rounded-lg shadow mb-4">
         <button onclick="toggleCollapsible()" class="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors">
             <div class="flex items-center">
-                <i class="fas fa-filter text-[#14AE5C] mr-3"></i>
+                <i class="fas fa-filter text-green-600 mr-3"></i>
                 <span class="font-semibold text-gray-700">Filter & Pencarian</span>
             </div>
             <i id="collapsible-icon" class="fas fa-chevron-down text-gray-500 transition-transform"></i>
@@ -43,54 +116,78 @@
         
         <!-- Collapsible Content -->
         <div id="collapsible-content" class="space-y-4 p-4 border-t" style="display: none;">
-            <!-- Filter Section -->
-            <div class="bg-gray-50 rounded-lg p-4">
-                <form method="GET" action="{{ route('master-data.jns_akun') }}" class="flex flex-wrap gap-4 items-end">
-                    <div class="flex-1 min-w-[200px]">
-                        <label for="search" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-search mr-2"></i>Pencarian
-                        </label>
-                        <input type="text" id="search" name="search" value="{{ request('search') }}" 
-                               placeholder="Cari kode, jenis transaksi, atau akun..."
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
-                    </div>
-                    <div class="flex-1 min-w-[150px]">
-                        <label for="akun_type" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-tag mr-2"></i>Tipe Akun
-                        </label>
-                        <select id="akun_type" name="akun_type" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
-                            <option value="">Semua Tipe</option>
-                            @foreach($accountTypes as $type)
-                                <option value="{{ $type }}" {{ request('akun_type') == $type ? 'selected' : '' }}>{{ $type }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="flex-1 min-w-[150px]">
-                        <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-toggle-on mr-2"></i>Status
-                        </label>
-                        <select id="status" name="status" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
-                            <option value="">Semua Status</option>
-                            <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Aktif</option>
-                            <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Tidak Aktif</option>
-                        </select>
-                    </div>
-                    <div class="flex gap-2">
-                        <button type="submit" class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#11994F] transition-colors duration-200">
-                            <i class="fas fa-search mr-2"></i>Filter
-                        </button>
-                        <a href="{{ route('master-data.jns_akun') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
-                            <i class="fas fa-refresh mr-2"></i>Reset
-                        </a>
-                    </div>
-                </form>
-            </div>
+            <form method="GET" action="{{ route('master-data.jns_akun.index') }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="search" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-search mr-2"></i>Pencarian
+                    </label>
+                    <input type="text" id="search" name="search" value="{{ request('search') }}" 
+                           placeholder="Cari kode, jenis transaksi, atau akun..."
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="akun_type" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-tag mr-2"></i>Tipe Akun
+                    </label>
+                    <select id="akun_type" name="akun_type" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Semua Tipe</option>
+                        @foreach($accountTypes as $type)
+                            <option value="{{ $type }}" {{ request('akun_type') == $type ? 'selected' : '' }}>{{ $type }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-toggle-on mr-2"></i>Status
+                    </label>
+                    <select id="status" name="status" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Semua Status</option>
+                        <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Aktif</option>
+                        <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Tidak Aktif</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="pemasukan" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-arrow-up mr-2"></i>Pemasukan
+                    </label>
+                    <select id="pemasukan" name="pemasukan" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Semua</option>
+                        <option value="1" {{ request('pemasukan') == '1' ? 'selected' : '' }}>Ya</option>
+                        <option value="0" {{ request('pemasukan') == '0' ? 'selected' : '' }}>Tidak</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="pengeluaran" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-arrow-down mr-2"></i>Pengeluaran
+                    </label>
+                    <select id="pengeluaran" name="pengeluaran" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Semua</option>
+                        <option value="1" {{ request('pengeluaran') == '1' ? 'selected' : '' }}>Ya</option>
+                        <option value="0" {{ request('pengeluaran') == '0' ? 'selected' : '' }}>Tidak</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-end space-x-2">
+                    <button type="submit" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
+                        <i class="fas fa-search mr-2"></i>Filter
+                    </button>
+                    <button type="button" onclick="clearFilters()" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
+                        <i class="fas fa-refresh mr-2"></i>Reset
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Tabel Data -->
+    <!-- Data Table -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
         @if(session('success'))
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
@@ -102,22 +199,14 @@
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div class="flex items-center gap-2">
                     <a href="{{ route('master-data.jns_akun.create') }}"
-                        class="inline-flex items-center gap-2 bg-green-100 hover:bg-green-200 text-green-800 text-sm font-medium px-4 py-2 rounded-lg transition">
+                        class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
                         <i class="fa-solid fa-plus fa-xs"></i>
                         Tambah Jenis Akun
                     </a>
                 </div>
-                <div class="flex flex-col md:flex-row md:items-center gap-2 md:ml-auto">
-                    <a href="{{ route('master-data.jns_akun.export') }}"
-                        class="flex items-center gap-2 bg-green-100 p-2 rounded-lg border-2 border-green-400 hover:bg-green-200 transition">
-                        <img src="{{ asset('img/icons-bootstrap/export/cloud-download.svg') }}" class="h-5 w-5" alt="Export Excel">
-                        <span class="text-sm">Export Excel</span>
-                    </a>
-                    <a href="{{ route('master-data.jns_akun.template') }}"
-                        class="flex items-center gap-2 bg-blue-100 p-2 rounded-lg border-2 border-blue-400 hover:bg-blue-200 transition">
-                        <i class="fas fa-download text-blue-600"></i>
-                        <span class="text-sm">Template</span>
-                    </a>
+                <div class="flex items-center gap-2 text-sm text-gray-600">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Menampilkan {{ $dataAkun->firstItem() ?? 0 }} - {{ $dataAkun->lastItem() ?? 0 }} dari {{ $dataAkun->total() }} data
                 </div>
             </div>
         </div>
@@ -128,7 +217,7 @@
                     <tr class="bg-gray-50 text-gray-600 text-sm">
                         <th class="px-4 py-3 border-b text-center w-12">#</th>
                         <th class="px-4 py-3 border-b text-center">Kode Aktiva</th>
-                        <th class="px-4 py-3 border-b text-center">Jenis Transaksi</th>
+                        <th class="px-4 py-3 border-b text-left">Jenis Transaksi</th>
                         <th class="px-4 py-3 border-b text-center">Akun</th>
                         <th class="px-4 py-3 border-b text-center">Laba Rugi</th>
                         <th class="px-4 py-3 border-b text-center">Pemasukan</th>
@@ -139,16 +228,12 @@
                 </thead>
                 <tbody class="divide-y">
                     @forelse($dataAkun as $akun)
-                    <tr class="expandable-row">
+                    <tr class="hover:bg-gray-50 transition-colors">
                         <td class="px-4 py-3 text-center text-sm">
                             {{ ($dataAkun->currentPage() - 1) * $dataAkun->perPage() + $loop->iteration }}
                         </td>
                         <td class="px-4 py-3 text-center text-sm font-mono">{{ $akun->kd_aktiva }}</td>
-                        <td class="px-4 py-3 text-sm">
-                            <div class="expandable-content">
-                                {{ $akun->jns_trans }}
-                            </div>
-                        </td>
+                        <td class="px-4 py-3 text-sm font-medium">{{ $akun->jns_trans }}</td>
                         <td class="px-4 py-3 text-center text-sm">
                             <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
                                 {{ $akun->akun }}
@@ -179,24 +264,24 @@
                         </td>
                         <td class="px-4 py-3 text-center text-sm">
                             <span class="px-2 py-1 text-xs rounded-full {{ $akun->aktif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                {{ $akun->status_text }}
+                                {{ $akun->aktif ? 'Aktif' : 'Tidak Aktif' }}
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex space-x-2">
                                 <a href="{{ route('master-data.jns_akun.show', $akun->id) }}"
-                                    class="text-blue-600 hover:text-blue-900" title="Detail">
+                                    class="text-blue-600 hover:text-blue-900 p-1 rounded" title="Detail">
                                     <i class="fas fa-eye"></i>
                                 </a>
                                 <a href="{{ route('master-data.jns_akun.edit', $akun->id) }}"
-                                    class="text-green-600 hover:text-green-900" title="Edit">
+                                    class="text-green-600 hover:text-green-900 p-1 rounded" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 <form action="{{ route('master-data.jns_akun.destroy', $akun->id) }}" method="POST"
                                     onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?');" class="inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900" title="Hapus">
+                                    <button type="submit" class="text-red-600 hover:text-red-900 p-1 rounded" title="Hapus">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
@@ -252,6 +337,11 @@ function toggleCollapsible() {
         icon.classList.remove('fa-chevron-up');
         icon.classList.add('fa-chevron-down');
     }
+}
+
+function clearFilters() {
+    // Redirect to base URL without query parameters
+    window.location.href = '{{ route("master-data.jns_akun.index") }}';
 }
 </script>
 @endsection

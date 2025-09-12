@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            CabangSeeder::class,
             memberUser::class,
             AdminUser::class,
             // Add other seeders here if needed

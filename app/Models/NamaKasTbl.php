@@ -17,6 +17,13 @@ class NamaKasTbl extends Model
     protected $table = 'nama_kas_tbl';
 
     /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public $timestamps = false;
+
+    /**
      * The primary key for the model.
      *
      * @var string
@@ -224,8 +231,6 @@ class NamaKasTbl extends Model
 
     public function scopeByKategori($query, $kategori)
     {
-        // This would need a more complex query to filter by calculated category
-        // For now, we'll filter by total active features
         switch ($kategori) {
             case 'komprehensif':
                 return $query->where(function($q) {

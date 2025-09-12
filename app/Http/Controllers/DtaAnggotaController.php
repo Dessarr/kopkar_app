@@ -3,33 +3,112 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\data_anggota;
+use App\Models\tbl_anggota;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\AnggotaExport;
+use App\Exports\TblAnggotaExport;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class DtaAnggotaController extends Controller
 {
     public function index(Request $request)
     {
-        $query = data_anggota::query();
+        $query = tbl_anggota::query();
 
         // Handle search
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('nama', 'like', '%' . $search . '%')
-                  ->orWhere('no_ktp', 'like', '%' . $search . '%')
-                  ->orWhere('departement', 'like', '%' . $search . '%');
+        if ($request->filled('search')) {
+            $query->search($request->search);
+        }
+
+        // Filter by status
+        if ($request->filled('status')) {
+            if ($request->status === 'aktif') {
+                $query->aktif();
+            } elseif ($request->status === 'tidak_aktif') {
+                $query->tidakAktif();
+            }
+        } else {
+            // Default to active members
+            $query->aktif();
+        }
+
+        // Filter by gender
+        if ($request->filled('jenis_kelamin')) {
+            $query->byJenisKelamin($request->jenis_kelamin);
+        }
+
+        // Filter by department
+        if ($request->filled('departement')) {
+            $query->byDepartemen($request->departement);
+        }
+
+        // Filter by city
+        if ($request->filled('kota')) {
+            $query->byKota($request->kota);
+        }
+
+        // Filter by age range
+        if ($request->filled('umur_min') || $request->filled('umur_max')) {
+            $query->where(function($q) use ($request) {
+                if ($request->filled('umur_min')) {
+                    $minDate = now()->subYears($request->umur_min)->format('Y-m-d');
+                    $q->where('tgl_lahir', '<=', $minDate);
+                }
+                if ($request->filled('umur_max')) {
+                    $maxDate = now()->subYears($request->umur_max)->format('Y-m-d');
+                    $q->where('tgl_lahir', '>=', $maxDate);
+                }
             });
         }
 
-        // Tampilkan anggota aktif
-        $dataAnggota = $query->where('aktif', 'Y')->orderBy('nama')->paginate(10);
+        // Filter by registration date range
+        if ($request->filled('tgl_daftar_dari') || $request->filled('tgl_daftar_sampai')) {
+            $query->where(function($q) use ($request) {
+                if ($request->filled('tgl_daftar_dari')) {
+                    $q->where('tgl_daftar', '>=', $request->tgl_daftar_dari);
+                }
+                if ($request->filled('tgl_daftar_sampai')) {
+                    $q->where('tgl_daftar', '<=', $request->tgl_daftar_sampai);
+                }
+            });
+        }
 
-        // Tampilkan anggota tidak aktif jika diminta
-        $dataAnggotaNonAktif = data_anggota::where('aktif', 'N')->orderBy('nama')->paginate(10, ['*'], 'nonaktif');
+        // Sort by
+        $sortBy = $request->get('sort_by', 'nama');
+        $sortOrder = $request->get('sort_order', 'asc');
+        
+        if (in_array($sortBy, ['nama', 'no_ktp', 'tgl_daftar', 'departement', 'kota'])) {
+            $query->orderBy($sortBy, $sortOrder);
+        } else {
+            $query->orderBy('nama', 'asc');
+        }
 
-        return view('master-data.data_anggota', compact('dataAnggota', 'dataAnggotaNonAktif'));
+        $dataAnggota = $query->paginate(15)->withQueryString();
+
+        // Get filter options for dropdowns
+        $departements = tbl_anggota::select('departement')
+            ->whereNotNull('departement')
+            ->where('departement', '!=', '')
+            ->distinct()
+            ->orderBy('departement')
+            ->pluck('departement');
+
+        $kota = tbl_anggota::select('kota')
+            ->whereNotNull('kota')
+            ->where('kota', '!=', '')
+            ->distinct()
+            ->orderBy('kota')
+            ->pluck('kota');
+
+        // Get statistics for summary cards
+        $totalAnggota = tbl_anggota::count();
+        $anggotaAktif = tbl_anggota::where('aktif', 'Y')->count();
+        $anggotaTidakAktif = tbl_anggota::where('aktif', 'N')->count();
+        $lakiLaki = tbl_anggota::where('jk', 'L')->count();
+        $perempuan = tbl_anggota::where('jk', 'P')->count();
+
+        return view('master-data.data_anggota', compact('dataAnggota', 'departements', 'kota', 'totalAnggota', 'anggotaAktif', 'anggotaTidakAktif', 'lakiLaki', 'perempuan'));
     }
 
     public function show($id)
@@ -215,26 +294,143 @@ class DtaAnggotaController extends Controller
             ->with('success', 'Data anggota berhasil dihapus');
     }
 
-    public function export() 
-    {
-        $fileName = 'data_anggota_' . date('Y-m-d') . '.xlsx';
-        
-        return Excel::download(new AnggotaExport, $fileName);
-    }
 
     public function nonaktif(Request $request)
     {
-        $query = data_anggota::query();
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('nama', 'like', '%' . $search . '%')
-                  ->orWhere('no_ktp', 'like', '%' . $search . '%')
-                  ->orWhere('departement', 'like', '%' . $search . '%');
-            });
+        $query = tbl_anggota::query();
+
+        // Handle search
+        if ($request->filled('search')) {
+            $query->search($request->search);
         }
-        $dataAnggotaNonAktif = $query->where('aktif', 'N')->orderBy('nama')->paginate(10, ['*'], 'nonaktif');
+
+        // Filter by status - only inactive
+        $query->tidakAktif();
+
+        // Filter by gender
+        if ($request->filled('jenis_kelamin')) {
+            $query->byJenisKelamin($request->jenis_kelamin);
+        }
+
+        // Filter by department
+        if ($request->filled('departement')) {
+            $query->byDepartemen($request->departement);
+        }
+
+        // Filter by city
+        if ($request->filled('kota')) {
+            $query->byKota($request->kota);
+        }
+
+        // Sort by
+        $sortBy = $request->get('sort_by', 'nama');
+        $sortOrder = $request->get('sort_order', 'asc');
+        
+        if (in_array($sortBy, ['nama', 'no_ktp', 'tgl_daftar', 'departement', 'kota'])) {
+            $query->orderBy($sortBy, $sortOrder);
+        } else {
+            $query->orderBy('nama', 'asc');
+        }
+
+        $dataAnggotaNonAktif = $query->paginate(15)->withQueryString();
+
+        // Get filter options for dropdowns
+        $departements = tbl_anggota::select('departement')
+            ->whereNotNull('departement')
+            ->where('departement', '!=', '')
+            ->distinct()
+            ->orderBy('departement')
+            ->pluck('departement');
+
+        $kota = tbl_anggota::select('kota')
+            ->whereNotNull('kota')
+            ->where('kota', '!=', '')
+            ->distinct()
+            ->orderBy('kota')
+            ->pluck('kota');
+
+        // Get statistics for summary cards
+        $totalTidakAktif = $dataAnggotaNonAktif->total();
+        $lakiLakiTidakAktif = $dataAnggotaNonAktif->where('jk', 'L')->count();
+        $perempuanTidakAktif = $dataAnggotaNonAktif->where('jk', 'P')->count();
+
         $tab = 'nonaktif';
-        return view('master-data.data_anggota_nonaktif', compact('dataAnggotaNonAktif', 'tab'));
+        return view('master-data.data_anggota_nonaktif', compact('dataAnggotaNonAktif', 'departements', 'kota', 'tab', 'totalTidakAktif', 'lakiLakiTidakAktif', 'perempuanTidakAktif'));
+    }
+
+    public function export(Request $request)
+    {
+        $query = tbl_anggota::query();
+
+        // Apply same filters as index
+        if ($request->filled('search')) {
+            $query->search($request->search);
+        }
+
+        if ($request->filled('status')) {
+            if ($request->status === 'aktif') {
+                $query->aktif();
+            } elseif ($request->status === 'tidak_aktif') {
+                $query->tidakAktif();
+            }
+        } else {
+            $query->aktif();
+        }
+
+        if ($request->filled('jenis_kelamin')) {
+            $query->byJenisKelamin($request->jenis_kelamin);
+        }
+
+        if ($request->filled('departement')) {
+            $query->byDepartemen($request->departement);
+        }
+
+        if ($request->filled('kota')) {
+            $query->byKota($request->kota);
+        }
+
+        $data = $query->orderBy('nama')->get();
+        $fileName = 'data_anggota_' . date('Y-m-d_H-i-s') . '.xlsx';
+
+        return Excel::download(new TblAnggotaExport($data), $fileName);
+    }
+
+    public function print(Request $request)
+    {
+        $query = tbl_anggota::query();
+
+        // Apply same filters as index
+        if ($request->filled('search')) {
+            $query->search($request->search);
+        }
+
+        if ($request->filled('status')) {
+            if ($request->status === 'aktif') {
+                $query->aktif();
+            } elseif ($request->status === 'tidak_aktif') {
+                $query->tidakAktif();
+            }
+        } else {
+            $query->aktif();
+        }
+
+        if ($request->filled('jenis_kelamin')) {
+            $query->byJenisKelamin($request->jenis_kelamin);
+        }
+
+        if ($request->filled('departement')) {
+            $query->byDepartemen($request->departement);
+        }
+
+        if ($request->filled('kota')) {
+            $query->byKota($request->kota);
+        }
+
+        $dataAnggota = $query->orderBy('nama')->get();
+
+        $pdf = PDF::loadView('master-data.data_anggota.print', compact('dataAnggota'));
+        $pdf->setPaper('A4', 'landscape');
+        
+        return $pdf->stream('data_anggota_' . date('Y-m-d') . '.pdf');
     }
 }

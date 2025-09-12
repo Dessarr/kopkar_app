@@ -25,9 +25,6 @@ class TblUserExport implements FromCollection, WithHeadings, WithMapping, WithSt
         $this->cabang = $cabang;
     }
 
-    /**
-     * @return \Illuminate\Support\Collection
-     */
     public function collection()
     {
         $query = TblUser::with('cabang');
@@ -51,9 +48,6 @@ class TblUserExport implements FromCollection, WithHeadings, WithMapping, WithSt
         return $query->ordered()->get();
     }
 
-    /**
-     * @return array
-     */
     public function headings(): array
     {
         return [
@@ -63,52 +57,46 @@ class TblUserExport implements FromCollection, WithHeadings, WithMapping, WithSt
             'Cabang',
             'Status Aktif',
             'Tanggal Dibuat',
-            'Tanggal Diupdate'
+            'Tanggal Diupdate',
         ];
     }
 
-    /**
-     * @param TblUser $user
-     * @return array
-     */
-    public function map($user): array
+    public function map($pengguna): array
     {
         return [
-            $user->id,
-            $user->u_name,
-            $user->level_text,
-            $user->cabang ? $user->cabang->nama : '-',
-            $user->status_aktif_text,
-            $user->created_at ? $user->created_at->format('d/m/Y H:i') : '-',
-            $user->updated_at ? $user->updated_at->format('d/m/Y H:i') : '-',
+            $pengguna->id,
+            $pengguna->u_name,
+            $pengguna->level_text,
+            $pengguna->cabang ? $pengguna->cabang->nama : '-',
+            $pengguna->status_aktif_text,
+            $pengguna->created_at ? $pengguna->created_at->format('d/m/Y H:i:s') : '-',
+            $pengguna->updated_at ? $pengguna->updated_at->format('d/m/Y H:i:s') : '-',
         ];
     }
 
-    /**
-     * @param Worksheet $sheet
-     * @return array
-     */
     public function styles(Worksheet $sheet)
     {
         return [
-            // Style the first row as bold text
-            1 => ['font' => ['bold' => true]],
+            1 => [
+                'font' => ['bold' => true],
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E3F2FD']
+                ]
+            ],
         ];
     }
 
-    /**
-     * @return array
-     */
     public function columnWidths(): array
     {
         return [
-            'A' => 10,  // ID
-            'B' => 20,  // Username
-            'C' => 20,  // Level
-            'D' => 25,  // Cabang
-            'E' => 15,  // Status Aktif
-            'F' => 20,  // Tanggal Dibuat
-            'G' => 20,  // Tanggal Diupdate
+            'A' => 8,
+            'B' => 20,
+            'C' => 20,
+            'D' => 25,
+            'E' => 15,
+            'F' => 20,
+            'G' => 20,
         ];
     }
 }

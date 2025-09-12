@@ -7,9 +7,10 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TblMobilExport implements FromCollection, WithHeadings, WithMapping, WithStyles
+class TblMobilExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths
 {
     protected $search;
     protected $jenis;
@@ -17,10 +18,10 @@ class TblMobilExport implements FromCollection, WithHeadings, WithMapping, WithS
     protected $pabrikan;
     protected $warna;
     protected $tahun;
-    protected $status_aktif;
-    protected $status_stnk;
+    protected $statusAktif;
+    protected $statusStnk;
 
-    public function __construct($search = null, $jenis = null, $merek = null, $pabrikan = null, $warna = null, $tahun = null, $status_aktif = null, $status_stnk = null)
+    public function __construct($search = null, $jenis = null, $merek = null, $pabrikan = null, $warna = null, $tahun = null, $statusAktif = null, $statusStnk = null)
     {
         $this->search = $search;
         $this->jenis = $jenis;
@@ -28,8 +29,8 @@ class TblMobilExport implements FromCollection, WithHeadings, WithMapping, WithS
         $this->pabrikan = $pabrikan;
         $this->warna = $warna;
         $this->tahun = $tahun;
-        $this->status_aktif = $status_aktif;
-        $this->status_stnk = $status_stnk;
+        $this->statusAktif = $statusAktif;
+        $this->statusStnk = $statusStnk;
     }
 
     public function collection()
@@ -60,12 +61,12 @@ class TblMobilExport implements FromCollection, WithHeadings, WithMapping, WithS
             $query->byTahun($this->tahun);
         }
 
-        if ($this->status_aktif) {
-            $query->byStatusAktif($this->status_aktif);
+        if ($this->statusAktif) {
+            $query->byStatusAktif($this->statusAktif);
         }
 
-        if ($this->status_stnk) {
-            $query->byStatusStnk($this->status_stnk);
+        if ($this->statusStnk) {
+            $query->byStatusStnk($this->statusStnk);
         }
 
         return $query->ordered()->get();
@@ -86,7 +87,6 @@ class TblMobilExport implements FromCollection, WithHeadings, WithMapping, WithS
             'No Mesin',
             'No BPKB',
             'Tgl Berlaku STNK',
-            'File PIC',
             'Status Aktif',
             'Status STNK',
         ];
@@ -97,17 +97,16 @@ class TblMobilExport implements FromCollection, WithHeadings, WithMapping, WithS
         return [
             $mobil->id,
             $mobil->nama,
-            $mobil->jenis,
-            $mobil->merek,
-            $mobil->pabrikan,
-            $mobil->warna,
-            $mobil->tahun,
-            $mobil->no_polisi,
-            $mobil->no_rangka,
-            $mobil->no_mesin,
-            $mobil->no_bpkb,
-            $mobil->tgl_berlaku_stnk,
-            $mobil->file_pic,
+            $mobil->jenis ?? '-',
+            $mobil->merek ?? '-',
+            $mobil->pabrikan ?? '-',
+            $mobil->warna ?? '-',
+            $mobil->tahun_formatted,
+            $mobil->no_polisi ?? '-',
+            $mobil->no_rangka ?? '-',
+            $mobil->no_mesin ?? '-',
+            $mobil->no_bpkb ?? '-',
+            $mobil->tgl_berlaku_stnk_formatted,
             $mobil->status_aktif_text,
             $mobil->status_stnk,
         ];
@@ -116,7 +115,33 @@ class TblMobilExport implements FromCollection, WithHeadings, WithMapping, WithS
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true]],
+            1 => [
+                'font' => ['bold' => true],
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E3F2FD']
+                ]
+            ],
+        ];
+    }
+
+    public function columnWidths(): array
+    {
+        return [
+            'A' => 8,
+            'B' => 25,
+            'C' => 15,
+            'D' => 15,
+            'E' => 15,
+            'F' => 12,
+            'G' => 8,
+            'H' => 15,
+            'I' => 20,
+            'J' => 20,
+            'K' => 20,
+            'L' => 18,
+            'M' => 15,
+            'N' => 15,
         ];
     }
 }

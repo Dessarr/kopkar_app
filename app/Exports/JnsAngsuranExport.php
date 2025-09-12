@@ -7,18 +7,19 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class JnsAngsuranExport implements FromCollection, WithHeadings, WithMapping, WithStyles
+class JnsAngsuranExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths
 {
     protected $search;
-    protected $status_aktif;
+    protected $statusAktif;
     protected $kategori;
 
-    public function __construct($search = null, $status_aktif = null, $kategori = null)
+    public function __construct($search = null, $statusAktif = null, $kategori = null)
     {
         $this->search = $search;
-        $this->status_aktif = $status_aktif;
+        $this->statusAktif = $statusAktif;
         $this->kategori = $kategori;
     }
 
@@ -30,8 +31,8 @@ class JnsAngsuranExport implements FromCollection, WithHeadings, WithMapping, Wi
             $query->search($this->search);
         }
 
-        if ($this->status_aktif) {
-            $query->byStatusAktif($this->status_aktif);
+        if ($this->statusAktif) {
+            $query->byStatusAktif($this->statusAktif);
         }
 
         if ($this->kategori) {
@@ -46,7 +47,7 @@ class JnsAngsuranExport implements FromCollection, WithHeadings, WithMapping, Wi
         return [
             'ID',
             'Jumlah Bulan',
-            'Kategori',
+            'Kategori Angsuran',
             'Status Aktif',
         ];
     }
@@ -55,7 +56,7 @@ class JnsAngsuranExport implements FromCollection, WithHeadings, WithMapping, Wi
     {
         return [
             $angsuran->id,
-            $angsuran->ket,
+            $angsuran->ket_formatted,
             $angsuran->kategori_angsuran,
             $angsuran->status_aktif_text,
         ];
@@ -64,7 +65,23 @@ class JnsAngsuranExport implements FromCollection, WithHeadings, WithMapping, Wi
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true]],
+            1 => [
+                'font' => ['bold' => true],
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E3F2FD']
+                ]
+            ],
+        ];
+    }
+
+    public function columnWidths(): array
+    {
+        return [
+            'A' => 10,
+            'B' => 20,
+            'C' => 25,
+            'D' => 20,
         ];
     }
 }

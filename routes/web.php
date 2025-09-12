@@ -323,7 +323,7 @@ Route::middleware(['auth:admin'])->group(function () {
 
     //Route untuk Master Data
     // Master Data - Jenis Akun
-    Route::get('/master-data/jns_akun',[JnsAkunController::class,'index'])->name('master-data.jns_akun');
+    Route::get('/master-data/jns_akun',[JnsAkunController::class,'index'])->name('master-data.jns_akun.index');
     Route::get('/master-data/jns_akun/create',[JnsAkunController::class,'create'])->name('master-data.jns_akun.create');
     Route::post('/master-data/jns_akun',[JnsAkunController::class,'store'])->name('master-data.jns_akun.store');
     Route::get('/master-data/jns_akun/{id}',[JnsAkunController::class,'show'])->name('master-data.jns_akun.show');
@@ -333,6 +333,7 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/master-data/jns_akun/export/excel',[JnsAkunController::class,'export'])->name('master-data.jns_akun.export');
     Route::post('/master-data/jns_akun/import',[JnsAkunController::class,'import'])->name('master-data.jns_akun.import');
     Route::get('/master-data/jns_akun/template/download',[JnsAkunController::class,'downloadTemplate'])->name('master-data.jns_akun.template');
+    Route::get('/master-data/jns_akun/print',[JnsAkunController::class,'print'])->name('master-data.jns_akun.print');
     // Jenis Simpanan
     Route::resource('master-data/jns_simpan', JnsSimpanController::class)->names([
         'index' => 'master-data.jns_simpan',
@@ -346,6 +347,7 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/master-data/jns_simpan/export/excel', [JnsSimpanController::class, 'export'])->name('master-data.jns_simpan.export');
     Route::post('/master-data/jns_simpan/import', [JnsSimpanController::class, 'import'])->name('master-data.jns_simpan.import');
     Route::get('/master-data/jns_simpan/template/download', [JnsSimpanController::class, 'downloadTemplate'])->name('master-data.jns_simpan.template');
+    Route::get('/master-data/jns_simpan/print', [JnsSimpanController::class, 'print'])->name('master-data.jns_simpan.print');
     // Data Pengguna
     Route::resource('master-data/data_pengguna', DtaPenggunaController::class)->names([
         'index' => 'master-data.data_pengguna',
@@ -359,6 +361,7 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/master-data/data_pengguna/export/excel', [DtaPenggunaController::class, 'export'])->name('master-data.data_pengguna.export');
     Route::post('/master-data/data_pengguna/import', [DtaPenggunaController::class, 'import'])->name('master-data.data_pengguna.import');
     Route::get('/master-data/data_pengguna/template/download', [DtaPenggunaController::class, 'downloadTemplate'])->name('master-data.data_pengguna.template');
+    Route::get('/master-data/data_pengguna/print', [DtaPenggunaController::class, 'print'])->name('master-data.data_pengguna.print');
     // Data Barang
     Route::resource('master-data/data_barang', DtaBarangController::class)->names([
         'index' => 'master-data.data_barang',
@@ -385,6 +388,7 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/master-data/data_mobil/export/excel', [DtaMobilController::class, 'export'])->name('master-data.data_mobil.export');
     Route::post('/master-data/data_mobil/import', [DtaMobilController::class, 'import'])->name('master-data.data_mobil.import');
     Route::get('/master-data/data_mobil/template/download', [DtaMobilController::class, 'downloadTemplate'])->name('master-data.data_mobil.template');
+    Route::get('/master-data/data_mobil/print', [DtaMobilController::class, 'print'])->name('master-data.data_mobil.print');
     // Jenis Angsuran
     Route::resource('master-data/jenis_angsuran', JnsAngusuranController::class)->names([
         'index' => 'master-data.jenis_angsuran',
@@ -398,11 +402,13 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/master-data/jenis_angsuran/export/excel', [JnsAngusuranController::class, 'export'])->name('master-data.jenis_angsuran.export');
     Route::post('/master-data/jenis_angsuran/import', [JnsAngusuranController::class, 'import'])->name('master-data.jenis_angsuran.import');
     Route::get('/master-data/jenis_angsuran/template/download', [JnsAngusuranController::class, 'downloadTemplate'])->name('master-data.jenis_angsuran.template');
+    Route::get('/master-data/jenis_angsuran/print', [JnsAngusuranController::class, 'print'])->name('master-data.jenis_angsuran.print');
     
     // Route untuk Data Anggota
     Route::get('/master-data/data_anggota',[DtaAnggotaController::class,'index'])->name('master-data.data_anggota');
     Route::get('/master-data/data_anggota/nonaktif', [DtaAnggotaController::class,  'nonaktif'])->name('master-data.data_anggota.nonaktif');
     Route::get('/master-data/data_anggota/export',[DtaAnggotaController::class,'export'])->name('master-data.data_anggota.export');
+    Route::get('/master-data/data_anggota/print',[DtaAnggotaController::class,'print'])->name('master-data.data_anggota.print');
     Route::get('/master-data/data_anggota/create', [DtaAnggotaController::class, 'create'])->name('master-data.data_anggota.create');
     Route::get('/master-data/data_anggota/{id}', [DtaAnggotaController::class, 'show'])->name('master-data.data_anggota.show');
     Route::get('/master-data/data_anggota/{id}/edit', [DtaAnggotaController::class, 'edit'])->name('master-data.data_anggota.edit');
@@ -423,6 +429,7 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/master-data/data_kas/export/excel', [DtaKasController::class, 'export'])->name('master-data.data_kas.export');
     Route::post('/master-data/data_kas/import', [DtaKasController::class, 'import'])->name('master-data.data_kas.import');
     Route::get('/master-data/data_kas/template/download', [DtaKasController::class, 'downloadTemplate'])->name('master-data.data_kas.template');
+    Route::get('/master-data/data_kas/print', [DtaKasController::class, 'print'])->name('master-data.data_kas.print');
 
     //Route untuk Setting
     Route::get('/settings/identitas_koperasi',[SettingController::class,'index'])->name('settings.identitas_koperasi');

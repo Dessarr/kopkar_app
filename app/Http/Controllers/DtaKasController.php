@@ -17,7 +17,11 @@ class DtaKasController extends Controller
 
         // Search
         if ($request->filled('search')) {
-            $query->search($request->search);
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama', 'like', '%' . $search . '%')
+                  ->orWhere('id', 'like', '%' . $search . '%');
+            });
         }
 
         // Filter by status
@@ -125,7 +129,11 @@ class DtaKasController extends Controller
 
         // Apply same filters as index
         if ($request->filled('search')) {
-            $query->search($request->search);
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama', 'like', '%' . $search . '%')
+                  ->orWhere('id', 'like', '%' . $search . '%');
+            });
         }
         if ($request->filled('status_aktif')) {
             $query->byStatusAktif($request->status_aktif);
@@ -175,5 +183,11 @@ class DtaKasController extends Controller
         ]);
 
         return Excel::download(new NamaKasTblExport($data), 'template_data_kas.xlsx');
+    }
+
+    public function print()
+    {
+        $dataKas = NamaKasTbl::ordered()->get();
+        return view('master-data.data_kas.print', compact('dataKas'));
     }
 }

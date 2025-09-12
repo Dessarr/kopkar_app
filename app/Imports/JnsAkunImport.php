@@ -7,14 +7,10 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\Importable;
-use Maatwebsite\Excel\Concerns\SkipsOnError;
-use Maatwebsite\Excel\Concerns\SkipsErrors;
-use Maatwebsite\Excel\Concerns\SkipsOnFailure;
-use Maatwebsite\Excel\Concerns\SkipsFailures;
 
-class JnsAkunImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure
+class JnsAkunImport implements ToModel, WithHeadingRow, WithValidation
 {
-    use Importable, SkipsErrors, SkipsFailures;
+    use Importable;
 
     public function model(array $row)
     {
@@ -23,9 +19,9 @@ class JnsAkunImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             'jns_trans' => $row['jenis_transaksi'],
             'akun' => $row['akun'],
             'laba_rugi' => $row['laba_rugi'] ?? null,
-            'pemasukan' => $this->convertToBoolean($row['pemasukan']),
-            'pengeluaran' => $this->convertToBoolean($row['pengeluaran']),
-            'aktif' => $this->convertToBoolean($row['status'])
+            'pemasukan' => $row['pemasukan'] === 'Ya' || $row['pemasukan'] === 1,
+            'pengeluaran' => $row['pengeluaran'] === 'Ya' || $row['pengeluaran'] === 1,
+            'aktif' => $row['status'] === 'Aktif' || $row['status'] === 1,
         ]);
     }
 
@@ -33,27 +29,12 @@ class JnsAkunImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     {
         return [
             'kode_aktiva' => 'required|string|max:10',
-            'jenis_transaksi' => 'required|string|max:255',
+            'jenis_transaksi' => 'required|string|max:50',
             'akun' => 'required|string|max:50',
             'laba_rugi' => 'nullable|string|max:50',
-            'pemasukan' => 'required|string',
-            'pengeluaran' => 'required|string',
-            'status' => 'required|string'
+            'pemasukan' => 'required|boolean',
+            'pengeluaran' => 'required|boolean',
+            'status' => 'required|string|in:Aktif,Tidak Aktif',
         ];
-    }
-
-    private function convertToBoolean($value)
-    {
-        if (is_bool($value)) {
-            return $value;
-        }
-
-        $value = strtolower(trim($value));
-        
-        if (in_array($value, ['ya', 'yes', '1', 'true', 'aktif'])) {
-            return true;
-        }
-        
-        return false;
     }
 }
