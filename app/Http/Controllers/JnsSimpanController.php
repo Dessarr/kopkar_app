@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\JnsSimpanExport;
 use App\Imports\JnsSimpanImport;
-use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class JnsSimpanController extends Controller
 {
@@ -17,7 +16,7 @@ class JnsSimpanController extends Controller
         $query = jns_simpan::query();
 
         // Handle search
-        if ($request->has('search') && !empty($request->search)) {
+        if ($request->has('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('id', 'like', '%' . $search . '%')
@@ -36,37 +35,12 @@ class JnsSimpanController extends Controller
             $query->where('jns_simpan', 'like', '%' . $request->type . '%');
         }
 
-        // Handle sorting
-        $sortBy = $request->get('sort_by', 'urut');
-        $sortOrder = $request->get('sort_order', 'asc');
-        
-        if (in_array($sortBy, ['id', 'jns_simpan', 'jumlah', 'tampil', 'urut'])) {
-            $query->orderBy($sortBy, $sortOrder);
-        } else {
-            $query->orderBy('urut', 'asc');
-        }
-
-        $dataSimpan = $query->paginate(10);
+        $dataSimpan = $query->orderBy('urut')->paginate(10);
         
         // Get unique types for filter
         $types = jns_simpan::select('jns_simpan')->distinct()->pluck('jns_simpan');
 
-        // Calculate statistics
-        $totalJenisSimpanan = jns_simpan::count();
-        $jenisSimpananAktif = jns_simpan::where('tampil', 'Y')->count();
-        $jenisSimpananTidakAktif = jns_simpan::where('tampil', 'T')->count();
-        $totalJumlahMinimum = jns_simpan::sum('jumlah');
-        $rataRataJumlah = $totalJenisSimpanan > 0 ? $totalJumlahMinimum / $totalJenisSimpanan : 0;
-
-        return view('master-data.jns_simpanan', compact(
-            'dataSimpan', 
-            'types', 
-            'totalJenisSimpanan',
-            'jenisSimpananAktif',
-            'jenisSimpananTidakAktif',
-            'totalJumlahMinimum',
-            'rataRataJumlah'
-        ));
+        return view('master-data.jns_simpanan', compact('dataSimpan', 'types'));
     }
 
     public function create()
@@ -127,11 +101,10 @@ class JnsSimpanController extends Controller
             ->with('success', 'Data jenis simpanan berhasil dihapus');
     }
 
-    public function export(Request $request)
+    public function export()
     {
-        $filters = $request->only(['search', 'status', 'type']);
         $fileName = 'jenis_simpanan_' . date('Y-m-d') . '.xlsx';
-        return Excel::download(new JnsSimpanExport($filters), $fileName);
+        return Excel::download(new JnsSimpanExport, $fileName);
     }
 
     public function import(Request $request)
@@ -152,44 +125,5 @@ class JnsSimpanController extends Controller
     {
         $fileName = 'template_jenis_simpanan.xlsx';
         return Excel::download(new JnsSimpanExport, $fileName);
-    }
-
-    public function print(Request $request)
-    {
-        $query = jns_simpan::query();
-
-        // Apply same filters as index method
-        if ($request->has('search') && !empty($request->search)) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('id', 'like', '%' . $search . '%')
-                  ->orWhere('jns_simpan', 'like', '%' . $search . '%')
-                  ->orWhere('jumlah', 'like', '%' . $search . '%');
-            });
-        }
-
-        if ($request->has('status') && $request->status !== '') {
-            $query->where('tampil', $request->status);
-        }
-
-        if ($request->has('type') && $request->type !== '') {
-            $query->where('jns_simpan', 'like', '%' . $request->type . '%');
-        }
-
-        $sortBy = $request->get('sort_by', 'urut');
-        $sortOrder = $request->get('sort_order', 'asc');
-        
-        if (in_array($sortBy, ['id', 'jns_simpan', 'jumlah', 'tampil', 'urut'])) {
-            $query->orderBy($sortBy, $sortOrder);
-        } else {
-            $query->orderBy('urut', 'asc');
-        }
-
-        $dataSimpan = $query->get();
-
-        $pdf = PDF::loadView('master-data.jns_simpanan.print', compact('dataSimpan'));
-        $pdf->setPaper('A4', 'landscape');
-        
-        return $pdf->download('jenis_simpanan_' . date('Y-m-d_H-i-s') . '.pdf');
     }
 }

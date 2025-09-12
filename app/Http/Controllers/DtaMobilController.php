@@ -6,7 +6,6 @@ use App\Models\tbl_mobil;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\TblMobilExport;
 use App\Imports\TblMobilImport;
-use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class DtaMobilController extends Controller
 {
@@ -54,17 +53,7 @@ class DtaMobilController extends Controller
             $query->byStatusStnk($request->status_stnk);
         }
 
-        // Sort by
-        $sortBy = $request->get('sort_by', 'nama');
-        $sortOrder = $request->get('sort_order', 'asc');
-        
-        if (in_array($sortBy, ['nama', 'jenis', 'merek', 'tahun', 'aktif'])) {
-            $query->orderBy($sortBy, $sortOrder);
-        } else {
-            $query->orderBy('nama', 'asc');
-        }
-
-        $dataMobil = $query->paginate(15)->withQueryString();
+        $dataMobil = $query->ordered()->paginate(10);
         
         // Get unique values for filters
         $jenis = tbl_mobil::distinct()->pluck('jenis')->filter()->sort()->values();
@@ -73,16 +62,7 @@ class DtaMobilController extends Controller
         $warna = tbl_mobil::distinct()->pluck('warna')->filter()->sort()->values();
         $tahun = tbl_mobil::distinct()->pluck('tahun')->filter()->sort()->values();
 
-        // Get statistics for summary cards
-        $totalMobil = tbl_mobil::count();
-        $mobilAktif = tbl_mobil::where('aktif', 'Y')->count();
-        $mobilTidakAktif = tbl_mobil::where('aktif', 'N')->count();
-        $stnkKadaluarsa = tbl_mobil::where('tgl_berlaku_stnk', '<', now())->count();
-        $stnkAkanKadaluarsa = tbl_mobil::where('tgl_berlaku_stnk', '>=', now())
-            ->where('tgl_berlaku_stnk', '<=', now()->addDays(30))->count();
-        $stnkMasihBerlaku = tbl_mobil::where('tgl_berlaku_stnk', '>', now()->addDays(30))->count();
-
-        return view('master-data.data_mobil', compact('dataMobil', 'jenis', 'merek', 'pabrikan', 'warna', 'tahun', 'totalMobil', 'mobilAktif', 'mobilTidakAktif', 'stnkKadaluarsa', 'stnkAkanKadaluarsa', 'stnkMasihBerlaku'));
+        return view('master-data.data_mobil', compact('dataMobil', 'jenis', 'merek', 'pabrikan', 'warna', 'tahun'));
     }
 
     public function create()
@@ -184,50 +164,5 @@ class DtaMobilController extends Controller
     public function downloadTemplate()
     {
         return Excel::download(new TblMobilExport(), 'template_data_mobil.xlsx');
-    }
-
-    public function print(Request $request)
-    {
-        $query = tbl_mobil::query();
-
-        // Apply same filters as index
-        if ($request->filled('search')) {
-            $query->search($request->search);
-        }
-
-        if ($request->filled('jenis')) {
-            $query->byJenis($request->jenis);
-        }
-
-        if ($request->filled('merek')) {
-            $query->byMerek($request->merek);
-        }
-
-        if ($request->filled('pabrikan')) {
-            $query->byPabrikan($request->pabrikan);
-        }
-
-        if ($request->filled('warna')) {
-            $query->byWarna($request->warna);
-        }
-
-        if ($request->filled('tahun')) {
-            $query->byTahun($request->tahun);
-        }
-
-        if ($request->filled('status_aktif')) {
-            $query->byStatusAktif($request->status_aktif);
-        }
-
-        if ($request->filled('status_stnk')) {
-            $query->byStatusStnk($request->status_stnk);
-        }
-
-        $dataMobil = $query->ordered()->get();
-
-        $pdf = PDF::loadView('master-data.data_mobil.print', compact('dataMobil'));
-        $pdf->setPaper('A4', 'landscape');
-        
-        return $pdf->download('data_mobil_' . date('Y-m-d_H-i-s') . '.pdf');
     }
 }

@@ -1,0 +1,615 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\JnsAkunController;
+use App\Http\Controllers\KasController;
+use App\Http\Controllers\JnsSimpanController;
+use App\Http\Controllers\DtaPenggunaController;
+use App\Http\Controllers\DtaBarangController;
+use App\Http\Controllers\DtaMobilController;
+use App\Http\Controllers\JnsAngusuranController;
+use App\Http\Controllers\DtaAnggotaController;
+use App\Http\Controllers\DtaKasController;
+use App\Http\Controllers\DtaPengajuanController;
+use App\Http\Controllers\DtaPengajuanPenarikanController;
+use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BillingToserdaController;
+use App\Http\Controllers\BillingPinjamanController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\TransaksiKasController;
+use App\Http\Controllers\SettingController;
+use App\Http\Controllers\SukuBungaController;
+use App\Http\Controllers\SimpananController;
+use App\Http\Controllers\ToserdaController;
+use App\Http\Controllers\AngkutanController;
+use App\Http\Controllers\MemberController;
+use App\Http\Controllers\AnggotaController;
+use App\Http\Controllers\LaporanAngkutanKaryawanController;
+use App\Http\Controllers\LaporanDataAnggotaController;
+use App\Http\Controllers\LaporanTransaksiKasController;
+use App\Http\Controllers\LaporanKasAnggotaController;
+use App\Http\Controllers\LaporanJatuhTempoController;
+use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\LaporanKreditMacetController;
+use App\Http\Controllers\LaporanTargetRealisasiController;
+use App\Http\Controllers\LaporanPengeluaranPinjamanController;
+use App\Http\Controllers\LaporanAngsuranPinjamanController;
+use App\Http\Controllers\LaporanRekapitulasiController;
+use App\Http\Controllers\NotificationController;
+
+// Admin Routes
+Route::get('/', [AdminController::class, 'showLoginForm'])->name('admin.login.form');
+Route::get('/admin/login', [AdminController::class, 'showLoginForm'])->name('admin.login.form');
+Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.login.post');
+Route::get('/admin/dashboard', [AdminController::class, 'adminDashboard'])->name('admin.dashboard')->middleware('auth:admin');
+Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.logout');
+
+// Notification Routes
+Route::middleware(['auth:admin'])->group(function () {
+    Route::get('/notifications/counts', [NotificationController::class, 'getCounts'])->name('notifications.counts');
+    Route::get('/notifications/details', [NotificationController::class, 'getDetails'])->name('notifications.details');
+});
+
+
+
+// Member Routes
+Route::get('/member/login', [MemberController::class, 'showLoginForm'])->name('member.login');
+Route::post('/member/login', [MemberController::class, 'login'])->name('member.login.post');
+Route::get('/member/dashboard', [MemberController::class, 'memberDashboard'])->name('member.dashboard')->middleware('auth:member');
+Route::post('/member/logout', [MemberController::class, 'logout'])->name('member.logout');
+Route::get('/member/toserda', [MemberController::class, 'toserdaPayment'])->name('member.toserda.payment')->middleware('auth:member');
+Route::post('/member/toserda/process/{billing_code}', [MemberController::class, 'processToserda'])->name('member.toserda.process')->middleware('auth:member');
+
+
+// Member Routes - Dashboard
+Route::get('/dashboard', [MemberController::class, 'memberDashboard'])->name('member.dashboard');
+Route::get('/detail-simpanan', [MemberController::class, 'getDetailSimpanan'])->name('member.detail.simpanan');
+
+// Member Routes
+Route::middleware(['auth:member'])->group(function () {
+    // Dashboard & Home
+    Route::get('/member/beranda', [MemberController::class, 'beranda'])->name('member.beranda');
+    
+    // Loan Application Routes
+    Route::prefix('member/pengajuan')->group(function () {
+        Route::get('/pinjaman', [MemberController::class, 'pengajuanPinjaman'])->name('member.pengajuan.pinjaman');
+        Route::get('/pinjaman/tambah', [MemberController::class, 'tambahPengajuanPinjaman'])->name('member.tambah.pengajuan.pinjaman');
+        Route::post('/simulasi-angsuran', [MemberController::class, 'hitungSimulasi'])->name('member.simulasi.angsuran');
+        Route::post('/pinjaman/store', [MemberController::class, 'storePengajuanPinjaman'])->name('member.pengajuan.pinjaman.store');
+        Route::get('/pinjaman/{id}', [MemberController::class, 'showPengajuan'])->name('member.pengajuan.pinjaman.show');
+        Route::post('/pinjaman/{id}/cancel', [MemberController::class, 'cancelPengajuan'])->name('member.pengajuan.pinjaman.cancel');
+        Route::get('/pinjaman/{id}/cetak', [MemberController::class, 'cetakPengajuan'])->name('member.pengajuan.pinjaman.cetak');
+    });
+    
+
+    // Penarikan Routes
+    Route::get('/penarikan', [MemberController::class, 'pengajuanPenarikan'])->name('member.pengajuan.penarikan');
+    Route::get('/penarikan/form', [MemberController::class, 'formPengajuanPenarikan'])->name('member.pengajuan.penarikan.form');
+    Route::post('/penarikan/store', [MemberController::class, 'storePengajuanPenarikan'])->name('member.pengajuan.penarikan.store');
+    Route::post('/penarikan/{id}/cancel', [MemberController::class, 'cancelPengajuanPenarikan'])->name('member.pengajuan.penarikan.cancel');
+    Route::get('/penarikan/{id}/detail', [MemberController::class, 'showPengajuanPenarikan'])->name('member.pengajuan.penarikan.show');
+    Route::get('/penarikan/{id}/show', [MemberController::class, 'showPengajuanPenarikan'])->name('member.pengajuan.penarikan.show');
+    Route::get('/saldo-simpanan', [MemberController::class, 'getSaldoSimpanan'])->name('member.saldo.simpanan');
+    
+    // Report Routes
+    Route::prefix('member/laporan')->group(function () {
+        Route::get('/simpanan', [MemberController::class, 'laporanSimpanan'])->name('member.laporan.simpanan');
+        Route::get('/pinjaman', [MemberController::class, 'laporanPinjaman'])->name('member.laporan.pinjaman');
+        Route::get('/pembayaran', [MemberController::class, 'laporanPembayaran'])->name('member.laporan.pembayaran');
+        Route::get('/transaksi', [MemberController::class, 'laporanTransaksi'])->name('member.laporan.transaksi');
+        
+        // Loan report export routes
+        Route::get('/pinjaman/export/pdf', [MemberController::class, 'exportLoanReportPdf'])->name('member.laporan.pinjaman.export.pdf');
+        Route::get('/pinjaman/export/excel', [MemberController::class, 'exportLoanReportExcel'])->name('member.laporan.pinjaman.export.excel');
+        
+        // Payment report export routes
+        Route::get('/pembayaran/export/pdf', [MemberController::class, 'exportPaymentReportPdf'])->name('member.laporan.pembayaran.export.pdf');
+        Route::get('/pembayaran/export/excel', [MemberController::class, 'exportPaymentReportExcel'])->name('member.laporan.pembayaran.export.excel');
+        
+        // Savings report export routes
+        Route::get('/simpanan/export/pdf', [MemberController::class, 'exportSavingsReportPdf'])->name('member.laporan.simpanan.export.pdf');
+        Route::get('/simpanan/export/excel', [MemberController::class, 'exportSavingsReportExcel'])->name('member.laporan.simpanan.export.excel');
+    });
+    
+    // Loan detail route
+    Route::get('/member/pinjaman/{id}/detail', [MemberController::class, 'getLoanDetail'])->name('member.pinjaman.detail');
+    
+    // Profile Routes
+    Route::get('/member/profile', [MemberController::class, 'profile'])->name('member.profile');
+    Route::put('/member/profile', [MemberController::class, 'updateProfile'])->name('member.profile.update');
+    
+    // Profile Picture Routes
+    Route::get('/member/ubah-pic', [MemberController::class, 'ubahPic'])->name('member.ubah.pic');
+    Route::post('/member/update-pic', [MemberController::class, 'updatePic'])->name('member.update.pic');
+    
+    // Profile Password Routes
+    Route::get('/member/ubah-password', [MemberController::class, 'ubahPassword'])->name('member.ubah.password');
+    Route::post('/member/update-password', [MemberController::class, 'updatePassword'])->name('member.update.password');
+    
+});
+
+// Anggota Routes (Member)
+Route::middleware(['auth:member'])->group(function () {
+    Route::get('/anggota/bayar-toserda', [AnggotaController::class, 'bayarToserda'])->name('anggota.bayar.toserda');
+    Route::post('/anggota/bayar-toserda/process/{billing_code}', [AnggotaController::class, 'processPayment'])->name('anggota.bayar.toserda.process');
+    Route::get('/anggota/get-transaksi-period', [AnggotaController::class, 'getTransaksiByPeriod'])->name('anggota.get.transaksi.period');
+});
+
+// Anggota Routes (Admin)
+Route::middleware(['auth:admin'])->group(function () {
+    // SHU Routes
+    Route::prefix('anggota/shu')->group(function () {
+        Route::get('/', [AnggotaController::class, 'shu'])->name('anggota.shu');
+        Route::post('/store', [AnggotaController::class, 'storeShu'])->name('anggota.shu.store');
+        Route::put('/update/{id}', [AnggotaController::class, 'updateShu'])->name('anggota.shu.update');
+        Route::delete('/delete/{id}', [AnggotaController::class, 'deleteShu'])->name('anggota.shu.delete');
+        Route::get('/anggota-data', [AnggotaController::class, 'getAnggotaData'])->name('anggota.shu.data');
+        Route::get('/export/pdf', [AnggotaController::class, 'exportShuPdf'])->name('anggota.shu.export.pdf');
+        Route::get('/export/excel', [AnggotaController::class, 'exportShuExcel'])->name('anggota.shu.export.excel');
+        Route::get('/cetak/{id}', [AnggotaController::class, 'cetakShu'])->name('anggota.shu.cetak');
+    });
+
+    // TOSERDA Routes
+    Route::prefix('anggota/toserda')->group(function () {
+        Route::get('/', [AnggotaController::class, 'toserda'])->name('anggota.toserda');
+        Route::post('/store', [AnggotaController::class, 'storeToserda'])->name('anggota.toserda.store');
+        Route::get('/edit/{id}', [AnggotaController::class, 'editToserda'])->name('anggota.toserda.edit');
+        Route::put('/update/{id}', [AnggotaController::class, 'updateToserda'])->name('anggota.toserda.update');
+        Route::delete('/delete/{id}', [AnggotaController::class, 'deleteToserda'])->name('anggota.toserda.delete');
+        Route::post('/import', [AnggotaController::class, 'importToserda'])->name('anggota.toserda.import');
+        Route::get('/export/pdf', [AnggotaController::class, 'exportToserdaPdf'])->name('anggota.toserda.export.pdf');
+        Route::get('/export/excel', [AnggotaController::class, 'exportToserdaExcel'])->name('anggota.toserda.export.excel');
+        Route::get('/cetak/{id}', [AnggotaController::class, 'cetakToserda'])->name('anggota.toserda.cetak');
+    });
+});
+
+// Protected Routes (Admin Only)
+Route::middleware(['auth:admin'])->group(function () { 
+    // Route untuk modul kas dengan sistem filter baru
+    Route::prefix('transaksi-kas')->group(function () {
+        // Pemasukan Kas
+        Route::get('/pemasukan', [TransaksiKasController::class, 'pemasukan'])->name('admin.transaksi.pemasukan');
+        Route::post('/pemasukan', [TransaksiKasController::class, 'storePemasukan'])->name('admin.transaksi.pemasukan.store');
+        Route::put('/pemasukan/{id}', [TransaksiKasController::class, 'updatePemasukan'])->name('admin.transaksi.pemasukan.update');
+        Route::delete('/pemasukan/{id}', [TransaksiKasController::class, 'destroyPemasukan'])->name('admin.transaksi.pemasukan.destroy');
+        Route::get('/pemasukan/export/pdf', [TransaksiKasController::class, 'exportPemasukanPdf'])->name('admin.transaksi.pemasukan.export.pdf');
+
+        
+        // Pengeluaran Kas
+        Route::get('/pengeluaran', [TransaksiKasController::class, 'pengeluaran'])->name('admin.transaksi.pengeluaran');
+        Route::post('/pengeluaran', [TransaksiKasController::class, 'storePengeluaran'])->name('admin.transaksi.pengeluaran.store');
+        Route::put('/pengeluaran/{id}', [TransaksiKasController::class, 'updatePengeluaran'])->name('admin.transaksi.pengeluaran.update');
+        Route::delete('/pengeluaran/{id}', [TransaksiKasController::class, 'destroyPengeluaran'])->name('admin.transaksi.pengeluaran.destroy');
+        Route::get('/pengeluaran/export/pdf', [TransaksiKasController::class, 'exportPengeluaranPdf'])->name('admin.transaksi.pengeluaran.export.pdf');
+
+        
+        // Transfer Kas
+        Route::get('/transfer', [TransaksiKasController::class, 'transfer'])->name('admin.transaksi.transfer');
+        Route::post('/transfer', [TransaksiKasController::class, 'storeTransfer'])->name('admin.transaksi.transfer.store');
+        Route::put('/transfer/{id}', [TransaksiKasController::class, 'updateTransfer'])->name('admin.transaksi.transfer.update');
+        Route::delete('/transfer/{id}', [TransaksiKasController::class, 'destroyTransfer'])->name('admin.transaksi.transfer.destroy');
+        Route::get('/transfer/export/pdf', [TransaksiKasController::class, 'exportTransferPdf'])->name('admin.transaksi.transfer.export.pdf');
+
+        
+        // CRUD Operations
+        Route::get('/{id}', [TransaksiKasController::class, 'show'])->name('admin.transaksi.show');
+        Route::put('/{id}', [TransaksiKasController::class, 'update'])->name('admin.transaksi.update');
+        Route::delete('/{id}', [TransaksiKasController::class, 'destroy'])->name('admin.transaksi.destroy');
+    });
+
+    // Route untuk modul kas (legacy - untuk backward compatibility)
+    Route::get('/transaksi_kas/pemasukan', [TransaksiKasController::class, 'pemasukan'])->name('kas.pemasukan');
+    Route::get('/transaksi_kas/pengeluaran', [TransaksiKasController::class, 'pengeluaran'])->name('kas.pengeluaran');
+    Route::get('/transaksi_kas/transfer', [TransaksiKasController::class, 'transfer'])->name('kas.transfer');
+
+    //Route billing
+    Route::prefix('billing')->group(function () {
+        Route::get('/', [BillingController::class, 'index'])->name('billing.index');
+        Route::post('/process/{billing_code}', [BillingController::class, 'processPayment'])->name('billing.process');
+        Route::get('/export/excel', [BillingController::class, 'exportExcel'])->name('billing.export.excel');
+        Route::get('/export/pdf', [BillingController::class, 'exportPdf'])->name('billing.export.pdf');
+        
+        // New routes for processed billings
+        Route::get('/processed', [BillingController::class, 'processed'])->name('billing.processed');
+        Route::post('/cancel/{billing_process_id}', [BillingController::class, 'cancelPayment'])->name('billing.cancel');
+        Route::get('/processed/export/excel', [BillingController::class, 'exportProcessedExcel'])->name('billing.processed.export.excel');
+        Route::get('/processed/export/pdf', [BillingController::class, 'exportProcessedPdf'])->name('billing.processed.export.pdf');
+
+        // Simpanan -> Proses semua ke Billing Utama (tbl_trans_sp_bayar_temp)
+        Route::post('/simpanan/process-all', [BillingController::class, 'processAllToMain'])->name('billing.simpanan.process_all');
+    });
+
+    // Route Billing Toserda
+    Route::prefix('billing-toserda')->group(function () {
+        Route::get('/', [BillingToserdaController::class, 'index'])->name('billing.toserda');
+        // Proses semua Toserda bulan/tahun terpilih ke Billing Utama
+        Route::post('/process-all', [BillingToserdaController::class, 'processAllToMain'])->name('billing.toserda.process_all');
+    });
+
+    // Route Billing Pinjaman
+    Route::prefix('billing-pinjaman')->group(function () {
+        Route::get('/', [\App\Http\Controllers\BillingPinjamanController::class, 'index'])->name('billing.pinjaman');
+        // Proses semua Pinjaman bulan/tahun terpilih ke Billing Utama
+        Route::post('/process-all', [\App\Http\Controllers\BillingPinjamanController::class, 'processAllToMain'])->name('billing.pinjaman.process_all');
+    });
+
+    // Billing Utama (ambil dari tbl_trans_sp_bayar_temp)
+    Route::get('/billing-utama', [\App\Http\Controllers\BillingUtamaController::class, 'index'])->name('billing.utama');
+    
+    // Billing Periode (untuk table kecil periode)
+    Route::get('/billing-periode/summary/{bulan}/{tahun}', [\App\Http\Controllers\BillingPeriodeController::class, 'getPeriodSummary'])->name('billing.periode.summary');
+    Route::get('/billing-periode/trans-lalu/{periode}', [\App\Http\Controllers\BillingPeriodeController::class, 'transLalu'])->name('billing.periode.trans_lalu');
+    Route::get('/billing-periode/debug/{bulan}/{tahun}', [\App\Http\Controllers\BillingPeriodeController::class, 'debugPeriodData'])->name('billing.periode.debug');
+
+    // Billing Upload Excel
+    Route::post('/billing-upload/excel', [\App\Http\Controllers\BillingUploadController::class, 'uploadExcel'])->name('billing.upload.excel');
+    
+    // Billing Proceed (Process all billing data)
+    Route::post('/billing/proceed', [\App\Http\Controllers\BillingUtamaController::class, 'proceed'])->name('billing.proceed');
+    
+    // Billing Tagihan Routes
+    Route::get('/billing-tagihan', [\App\Http\Controllers\BillingTagihanController::class, 'index'])->name('billing.tagihan');
+    Route::post('/billing-tagihan/generate', [\App\Http\Controllers\BillingTagihanController::class, 'generateBilling'])->name('billing.tagihan.generate');
+    Route::post('/billing-tagihan/delete', [\App\Http\Controllers\BillingTagihanController::class, 'deleteBilling'])->name('billing.tagihan.delete');
+    Route::get('/billing-tagihan/view', [\App\Http\Controllers\BillingTagihanController::class, 'viewBilling'])->name('billing.tagihan.view');
+
+    //Route untuk Pinjaman
+    Route::get('/pinjaman/data_pengajuan', [DtaPengajuanController::class, 'index'])->name('pinjaman.data_pengajuan');
+    Route::post('/pinjaman/data_pengajuan/{id}/approve', [DtaPengajuanController::class, 'approve'])->name('pinjaman.data_pengajuan.approve');
+    Route::post('/pinjaman/data_pengajuan/{id}/reject', [DtaPengajuanController::class, 'reject'])->name('pinjaman.data_pengajuan.reject');
+    Route::post('/pinjaman/data_pengajuan/{id}/cancel', [DtaPengajuanController::class, 'cancel'])->name('pinjaman.data_pengajuan.cancel');
+    Route::post('/pinjaman/data_pengajuan/{id}/terlaksana', [DtaPengajuanController::class, 'terlaksana'])->name('pinjaman.data_pengajuan.terlaksana');
+    Route::delete('/pinjaman/data_pengajuan/{id}', [DtaPengajuanController::class, 'destroy'])->name('pinjaman.data_pengajuan.destroy');
+    Route::get('/pinjaman/data_pengajuan/{id}/cetak', [DtaPengajuanController::class, 'cetak'])->name('pinjaman.data_pengajuan.cetak');
+    Route::post('/pinjaman/data_pengajuan/{id}/update-field', [DtaPengajuanController::class, 'updateField'])->name('pinjaman.data_pengajuan.update-field');
+
+    // Route untuk Data Pinjaman
+    Route::get('/pinjaman/data_pinjaman', [\App\Http\Controllers\DataPinjamanController::class, 'index'])->name('pinjaman.data_pinjaman');
+    Route::get('/pinjaman/data_pinjaman/create', [\App\Http\Controllers\DataPinjamanController::class, 'create'])->name('pinjaman.data_pinjaman.create');
+    Route::post('/pinjaman/data_pinjaman', [\App\Http\Controllers\DataPinjamanController::class, 'store'])->name('pinjaman.data_pinjaman.store');
+    Route::get('/pinjaman/data_pinjaman/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'show'])->name('pinjaman.data_pinjaman.show');
+    Route::get('/pinjaman/data_pinjaman/{id}/edit', [\App\Http\Controllers\DataPinjamanController::class, 'edit'])->name('pinjaman.data_pinjaman.edit');
+    Route::put('/pinjaman/data_pinjaman/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'update'])->name('pinjaman.data_pinjaman.update');
+    Route::delete('/pinjaman/data_pinjaman/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'destroy'])->name('pinjaman.data_pinjaman.destroy');
+    Route::post('/pinjaman/data_pinjaman/bulk-delete', [\App\Http\Controllers\DataPinjamanController::class, 'bulkDestroy'])->name('pinjaman.data_pinjaman.bulk_destroy');
+    Route::get('/pinjaman/data_pinjaman/{id}/data', [\App\Http\Controllers\DataPinjamanController::class, 'getPinjamanData'])->name('pinjaman.data_pinjaman.data');
+    Route::get('/pinjaman/nota/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'nota'])->name('pinjaman.nota');
+
+    // Route untuk Pengajuan Penarikan Simpanan (Admin)
+    Route::prefix('pengajuan-penarikan')->group(function () {
+        Route::get('/', [DtaPengajuanPenarikanController::class, 'index'])->name('admin.pengajuan.penarikan.index');
+        Route::get('/test-database', [DtaPengajuanPenarikanController::class, 'testDatabase'])->name('admin.pengajuan.penarikan.test');
+        Route::get('/test-search', [DtaPengajuanPenarikanController::class, 'testSearch'])->name('admin.pengajuan.penarikan.test-search');
+        Route::get('/{id}', [DtaPengajuanPenarikanController::class, 'show'])->name('admin.pengajuan.penarikan.show');
+        Route::post('/{id}/approve', [DtaPengajuanPenarikanController::class, 'approve'])->name('admin.pengajuan.penarikan.approve');
+        Route::post('/{id}/reject', [DtaPengajuanPenarikanController::class, 'reject'])->name('admin.pengajuan.penarikan.reject');
+        Route::delete('/{id}', [DtaPengajuanPenarikanController::class, 'destroy'])->name('admin.pengajuan.penarikan.destroy');
+        Route::get('/export/excel', [DtaPengajuanPenarikanController::class, 'exportExcel'])->name('admin.pengajuan.penarikan.export.excel');
+        Route::get('/export/pdf', [DtaPengajuanPenarikanController::class, 'exportPdf'])->name('admin.pengajuan.penarikan.export.pdf');
+    });
+
+    // Route untuk Log Aktivitas Admin
+    Route::prefix('logs')->group(function () {
+        Route::get('/', [\App\Http\Controllers\AdminLogController::class, 'index'])->name('admin.logs.index');
+        Route::post('/clear', [\App\Http\Controllers\AdminLogController::class, 'clear'])->name('admin.logs.clear');
+    });
+
+    // Route untuk Activity Logs (Sistem)
+    Route::prefix('activity-logs')->group(function () {
+        Route::get('/', [ActivityLogController::class, 'index'])->name('admin.activity_logs.index');
+        Route::get('/{id}', [ActivityLogController::class, 'show'])->name('admin.activity_logs.show');
+        Route::get('/export/excel', [ActivityLogController::class, 'exportExcel'])->name('admin.activity_logs.export.excel');
+        Route::get('/export/pdf', [ActivityLogController::class, 'exportPdf'])->name('admin.activity_logs.export.pdf');
+        Route::post('/clear', [ActivityLogController::class, 'clearOldLogs'])->name('admin.activity_logs.clear');
+    });
+
+    // Route untuk Data Angsuran
+    Route::get('/pinjaman/data_angsuran', [\App\Http\Controllers\DataAngsuranController::class, 'index'])->name('pinjaman.data_angsuran');
+    Route::get('/pinjaman/data_angsuran/{id}', [\App\Http\Controllers\DataAngsuranController::class, 'show'])->name('pinjaman.data_angsuran.show');
+    Route::post('/pinjaman/data_angsuran/{pinjamanId}', [\App\Http\Controllers\DataAngsuranController::class, 'store'])->name('pinjaman.data_angsuran.store');
+    Route::get('/pinjaman/data_angsuran/{id}/edit', [\App\Http\Controllers\DataAngsuranController::class, 'edit'])->name('pinjaman.data_angsuran.edit');
+    Route::put('/pinjaman/data_angsuran/{id}', [\App\Http\Controllers\DataAngsuranController::class, 'update'])->name('pinjaman.data_angsuran.update');
+    Route::delete('/pinjaman/data_angsuran/{id}', [\App\Http\Controllers\DataAngsuranController::class, 'destroy'])->name('pinjaman.data_angsuran.destroy');
+    Route::get('/pinjaman/data_angsuran/{id}/cetak', [\App\Http\Controllers\DataAngsuranController::class, 'cetak'])->name('pinjaman.data_angsuran.cetak');
+
+    // Route untuk Pelunasan
+    Route::get('/pinjaman/pelunasan', [\App\Http\Controllers\PelunasanController::class, 'index'])->name('pinjaman.pelunasan');
+    Route::get('/pinjaman/pelunasan/{id}', [\App\Http\Controllers\PelunasanController::class, 'show'])->name('pinjaman.pelunasan.show');
+    Route::post('/pinjaman/pelunasan/{pinjamanId}', [\App\Http\Controllers\PelunasanController::class, 'store'])->name('pinjaman.pelunasan.store');
+
+    // Route untuk Pinjaman Lunas
+    Route::get('/pinjaman/lunas', [\App\Http\Controllers\DataPinjamanController::class, 'lunas'])->name('pinjaman.lunas');
+
+    //Route untuk Master Data
+    // Master Data - Jenis Akun
+    Route::get('/master-data/jns_akun',[JnsAkunController::class,'index'])->name('master-data.jns_akun.index');
+    Route::get('/master-data/jns_akun/create',[JnsAkunController::class,'create'])->name('master-data.jns_akun.create');
+    Route::post('/master-data/jns_akun',[JnsAkunController::class,'store'])->name('master-data.jns_akun.store');
+    Route::get('/master-data/jns_akun/{id}',[JnsAkunController::class,'show'])->name('master-data.jns_akun.show');
+    Route::get('/master-data/jns_akun/{id}/edit',[JnsAkunController::class,'edit'])->name('master-data.jns_akun.edit');
+    Route::put('/master-data/jns_akun/{id}',[JnsAkunController::class,'update'])->name('master-data.jns_akun.update');
+    Route::delete('/master-data/jns_akun/{id}',[JnsAkunController::class,'destroy'])->name('master-data.jns_akun.destroy');
+    Route::get('/master-data/jns_akun/export/excel',[JnsAkunController::class,'export'])->name('master-data.jns_akun.export');
+    Route::post('/master-data/jns_akun/import',[JnsAkunController::class,'import'])->name('master-data.jns_akun.import');
+    Route::get('/master-data/jns_akun/template/download',[JnsAkunController::class,'downloadTemplate'])->name('master-data.jns_akun.template');
+    Route::get('/master-data/jns_akun/print',[JnsAkunController::class,'print'])->name('master-data.jns_akun.print');
+    // Jenis Simpanan
+    Route::resource('master-data/jns_simpan', JnsSimpanController::class)->names([
+        'index' => 'master-data.jns_simpan',
+        'create' => 'master-data.jns_simpan.create',
+        'store' => 'master-data.jns_simpan.store',
+        'show' => 'master-data.jns_simpan.show',
+        'edit' => 'master-data.jns_simpan.edit',
+        'update' => 'master-data.jns_simpan.update',
+        'destroy' => 'master-data.jns_simpan.destroy',
+    ]);
+    Route::get('/master-data/jns_simpan/export/excel', [JnsSimpanController::class, 'export'])->name('master-data.jns_simpan.export');
+    Route::post('/master-data/jns_simpan/import', [JnsSimpanController::class, 'import'])->name('master-data.jns_simpan.import');
+    Route::get('/master-data/jns_simpan/template/download', [JnsSimpanController::class, 'downloadTemplate'])->name('master-data.jns_simpan.template');
+    Route::get('/master-data/jns_simpan/print', [JnsSimpanController::class, 'print'])->name('master-data.jns_simpan.print');
+    // Data Pengguna
+    Route::resource('master-data/data_pengguna', DtaPenggunaController::class)->names([
+        'index' => 'master-data.data_pengguna',
+        'create' => 'master-data.data_pengguna.create',
+        'store' => 'master-data.data_pengguna.store',
+        'show' => 'master-data.data_pengguna.show',
+        'edit' => 'master-data.data_pengguna.edit',
+        'update' => 'master-data.data_pengguna.update',
+        'destroy' => 'master-data.data_pengguna.destroy',
+    ]);
+    Route::get('/master-data/data_pengguna/export/excel', [DtaPenggunaController::class, 'export'])->name('master-data.data_pengguna.export');
+    Route::post('/master-data/data_pengguna/import', [DtaPenggunaController::class, 'import'])->name('master-data.data_pengguna.import');
+    Route::get('/master-data/data_pengguna/template/download', [DtaPenggunaController::class, 'downloadTemplate'])->name('master-data.data_pengguna.template');
+    Route::get('/master-data/data_pengguna/print', [DtaPenggunaController::class, 'print'])->name('master-data.data_pengguna.print');
+    // Data Barang
+    Route::resource('master-data/data_barang', DtaBarangController::class)->names([
+        'index' => 'master-data.data_barang',
+        'create' => 'master-data.data_barang.create',
+        'store' => 'master-data.data_barang.store',
+        'show' => 'master-data.data_barang.show',
+        'edit' => 'master-data.data_barang.edit',
+        'update' => 'master-data.data_barang.update',
+        'destroy' => 'master-data.data_barang.destroy',
+    ]);
+    Route::get('/master-data/data_barang/export/excel', [DtaBarangController::class, 'export'])->name('master-data.data_barang.export');
+    Route::post('/master-data/data_barang/import', [DtaBarangController::class, 'import'])->name('master-data.data_barang.import');
+    Route::get('/master-data/data_barang/template/download', [DtaBarangController::class, 'downloadTemplate'])->name('master-data.data_barang.template');
+    // Data Mobil
+    Route::resource('master-data/data_mobil', DtaMobilController::class)->names([
+        'index' => 'master-data.data_mobil',
+        'create' => 'master-data.data_mobil.create',
+        'store' => 'master-data.data_mobil.store',
+        'show' => 'master-data.data_mobil.show',
+        'edit' => 'master-data.data_mobil.edit',
+        'update' => 'master-data.data_mobil.update',
+        'destroy' => 'master-data.data_mobil.destroy',
+    ]);
+    Route::get('/master-data/data_mobil/export/excel', [DtaMobilController::class, 'export'])->name('master-data.data_mobil.export');
+    Route::post('/master-data/data_mobil/import', [DtaMobilController::class, 'import'])->name('master-data.data_mobil.import');
+    Route::get('/master-data/data_mobil/template/download', [DtaMobilController::class, 'downloadTemplate'])->name('master-data.data_mobil.template');
+    Route::get('/master-data/data_mobil/print', [DtaMobilController::class, 'print'])->name('master-data.data_mobil.print');
+    // Jenis Angsuran
+    Route::resource('master-data/jenis_angsuran', JnsAngusuranController::class)->names([
+        'index' => 'master-data.jenis_angsuran',
+        'create' => 'master-data.jenis_angsuran.create',
+        'store' => 'master-data.jenis_angsuran.store',
+        'show' => 'master-data.jenis_angsuran.show',
+        'edit' => 'master-data.jenis_angsuran.edit',
+        'update' => 'master-data.jenis_angsuran.update',
+        'destroy' => 'master-data.jenis_angsuran.destroy',
+    ]);
+    Route::get('/master-data/jenis_angsuran/export/excel', [JnsAngusuranController::class, 'export'])->name('master-data.jenis_angsuran.export');
+    Route::post('/master-data/jenis_angsuran/import', [JnsAngusuranController::class, 'import'])->name('master-data.jenis_angsuran.import');
+    Route::get('/master-data/jenis_angsuran/template/download', [JnsAngusuranController::class, 'downloadTemplate'])->name('master-data.jenis_angsuran.template');
+    Route::get('/master-data/jenis_angsuran/print', [JnsAngusuranController::class, 'print'])->name('master-data.jenis_angsuran.print');
+    
+    // Route untuk Data Anggota
+    Route::get('/master-data/data_anggota',[DtaAnggotaController::class,'index'])->name('master-data.data_anggota');
+    Route::get('/master-data/data_anggota/nonaktif', [DtaAnggotaController::class,  'nonaktif'])->name('master-data.data_anggota.nonaktif');
+    Route::get('/master-data/data_anggota/export',[DtaAnggotaController::class,'export'])->name('master-data.data_anggota.export');
+    Route::get('/master-data/data_anggota/print',[DtaAnggotaController::class,'print'])->name('master-data.data_anggota.print');
+    Route::get('/master-data/data_anggota/create', [DtaAnggotaController::class, 'create'])->name('master-data.data_anggota.create');
+    Route::get('/master-data/data_anggota/{id}', [DtaAnggotaController::class, 'show'])->name('master-data.data_anggota.show');
+    Route::get('/master-data/data_anggota/{id}/edit', [DtaAnggotaController::class, 'edit'])->name('master-data.data_anggota.edit');
+    Route::put('/master-data/data_anggota/{id}', [DtaAnggotaController::class, 'update'])->name('master-data.data_anggota.update');
+    Route::delete('/master-data/data_anggota/{id}', [DtaAnggotaController::class, 'destroy'])->name('master-data.data_anggota.destroy');
+    Route::post('/master-data/data_anggota', [DtaAnggotaController::class, 'store'])->name('master-data.data_anggota.store');
+    
+    // Data Kas
+    Route::resource('master-data/data_kas', DtaKasController::class)->names([
+        'index' => 'master-data.data_kas',
+        'create' => 'master-data.data_kas.create',
+        'store' => 'master-data.data_kas.store',
+        'show' => 'master-data.data_kas.show',
+        'edit' => 'master-data.data_kas.edit',
+        'update' => 'master-data.data_kas.update',
+        'destroy' => 'master-data.data_kas.destroy',
+    ]);
+    Route::get('/master-data/data_kas/export/excel', [DtaKasController::class, 'export'])->name('master-data.data_kas.export');
+    Route::post('/master-data/data_kas/import', [DtaKasController::class, 'import'])->name('master-data.data_kas.import');
+    Route::get('/master-data/data_kas/template/download', [DtaKasController::class, 'downloadTemplate'])->name('master-data.data_kas.template');
+    Route::get('/master-data/data_kas/print', [DtaKasController::class, 'print'])->name('master-data.data_kas.print');
+
+    //Route untuk Setting
+    Route::get('/settings/identitas_koperasi',[SettingController::class,'index'])->name('settings.identitas_koperasi');
+    Route::post('/settings/identitas_koperasi/update', [SettingController::class, 'update'])->name('settings.identitas_koperasi.update');
+    Route::get('/settings/suku_bunga',[SukuBungaController::class,'index'])->name('settings.suku_bunga');
+    Route::post('/settings/suku_bunga/update', [SukuBungaController::class, 'update'])->name('settings.suku_bunga.update');
+
+    // Toserda Routes
+Route::prefix('toserda')->group(function () {
+    Route::get('/penjualan', [ToserdaController::class, 'penjualan'])->name('toserda.penjualan');
+    Route::get('/pembelian', [ToserdaController::class, 'pembelian'])->name('toserda.pembelian');
+    Route::get('/biaya-usaha', [ToserdaController::class, 'biayaUsaha'])->name('toserda.biaya-usaha');
+    Route::get('/lain-lain', [ToserdaController::class, 'lainLain'])->name('toserda.lain-lain');
+
+    Route::post('/penjualan', [ToserdaController::class, 'storePenjualan'])->name('toserda.store.penjualan');
+    Route::put('/penjualan/{id}', [ToserdaController::class, 'updatePenjualan'])->name('toserda.penjualan.update');
+    Route::delete('/penjualan/{id}', [ToserdaController::class, 'destroyPenjualan'])->name('toserda.penjualan.destroy');
+    Route::post('/pembelian', [ToserdaController::class, 'storePembelian'])->name('toserda.store.pembelian');
+    Route::put('/pembelian/{id}', [ToserdaController::class, 'updatePembelian'])->name('toserda.pembelian.update');
+    Route::delete('/pembelian/{id}', [ToserdaController::class, 'destroyPembelian'])->name('toserda.pembelian.destroy');
+    Route::post('/biaya-usaha', [ToserdaController::class, 'storeBiayaUsaha'])->name('toserda.store.biaya-usaha');
+    Route::put('/biaya-usaha/{id}', [ToserdaController::class, 'updateBiayaUsaha'])->name('toserda.biaya-usaha.update');
+    Route::delete('/biaya-usaha/{id}', [ToserdaController::class, 'destroyBiayaUsaha'])->name('toserda.biaya-usaha.destroy');
+    Route::post('/upload', [ToserdaController::class, 'storeUploadToserda'])->name('toserda.upload.store');
+    Route::post('/billing/process', [ToserdaController::class, 'processMonthlyBilling'])->name('toserda.billing.process');
+    Route::get('/template/download', [ToserdaController::class, 'downloadTemplate'])->name('toserda.template.download');
+    
+    // Export routes
+    Route::get('/penjualan/export', [ToserdaController::class, 'exportPenjualan'])->name('toserda.penjualan.export');
+    Route::get('/penjualan/export/pdf', [ToserdaController::class, 'exportPenjualanPdf'])->name('toserda.penjualan.export.pdf');
+    Route::get('/pembelian/export', [ToserdaController::class, 'exportPembelian'])->name('toserda.pembelian.export');
+    Route::get('/pembelian/export/pdf', [ToserdaController::class, 'exportPembelianPdf'])->name('toserda.pembelian.export.pdf');
+    Route::get('/biaya-usaha/export', [ToserdaController::class, 'exportBiayaUsaha'])->name('toserda.biaya-usaha.export');
+    Route::get('/biaya-usaha/export/pdf', [ToserdaController::class, 'exportBiayaUsahaPdf'])->name('toserda.biaya-usaha.export.pdf');
+    
+    // Angkutan Routes
+    Route::prefix('angkutan')->group(function () {
+        Route::get('/pemasukan', [AngkutanController::class, 'pemasukan'])->name('angkutan.pemasukan');
+        Route::get('/pengeluaran', [AngkutanController::class, 'pengeluaran'])->name('angkutan.pengeluaran');
+        Route::post('/pemasukan', [AngkutanController::class, 'storePemasukan'])->name('angkutan.store.pemasukan');
+        Route::post('/pemasukan/{id}', [AngkutanController::class, 'updatePemasukan'])->name('angkutan.update.pemasukan');
+        Route::delete('/pemasukan/{id}', [AngkutanController::class, 'deletePemasukan'])->name('angkutan.delete.pemasukan');
+        Route::post('/pengeluaran', [AngkutanController::class, 'storePengeluaran'])->name('angkutan.store.pengeluaran');
+        Route::post('/pengeluaran/{id}', [AngkutanController::class, 'updatePengeluaran'])->name('angkutan.update.pengeluaran');
+        Route::delete('/pengeluaran/{id}', [AngkutanController::class, 'deletePengeluaran'])->name('angkutan.delete.pengeluaran');
+        Route::get('/export/pdf/pemasukan', [AngkutanController::class, 'exportPdfPemasukan'])->name('angkutan.export.pdf.pemasukan');
+        Route::get('/export/pdf/pengeluaran', [AngkutanController::class, 'exportPdfPengeluaran'])->name('angkutan.export.pdf.pengeluaran');
+        Route::get('/export/excel/pemasukan', [AngkutanController::class, 'exportExcelPemasukan'])->name('angkutan.export.excel.pemasukan');
+        Route::get('/export/excel/pengeluaran', [AngkutanController::class, 'exportExcelPengeluaran'])->name('angkutan.export.excel.pengeluaran');
+        
+        
+    });
+});
+
+    // Simpanan Routes
+    Route::prefix('simpanan')->group(function () {
+        Route::get('/setoran', [SimpananController::class, 'setoranTunai'])->name('simpanan.setoran.index');
+        Route::post('/setoran', [SimpananController::class, 'storeSetoran'])->name('simpanan.setoran.store');
+        Route::post('/setoran/{id}', [SimpananController::class, 'updateSetoran'])->name('simpanan.setoran.update');
+        Route::post('/setoran/{id}/delete', [SimpananController::class, 'deleteSetoran'])->name('simpanan.setoran.delete');
+        Route::post('/setoran/import', [SimpananController::class, 'importSetoran'])->name('simpanan.setoran.import');
+        Route::get('/setoran/export', [SimpananController::class, 'exportSetoran'])->name('simpanan.setoran.export');
+        Route::get('/setoran/nota/{id}', [SimpananController::class, 'cetakNota'])->name('simpanan.setoran.nota');
+        
+        // API routes for setoran tunai
+        Route::get('/api/anggota/photo/{id}', [SimpananController::class, 'getAnggotaPhoto'])->name('api.anggota.photo');
+        
+        Route::get('/penarikan', [SimpananController::class, 'penarikanTunai'])->name('simpanan.penarikan');
+        Route::post('/penarikan', [SimpananController::class, 'storePenarikan'])->name('simpanan.store.penarikan');
+        Route::get('/pengajuan-penarikan', [SimpananController::class, 'pengajuanPenarikan'])->name('simpanan.pengajuan_penarikan');
+        Route::get('/tagihan', [SimpananController::class, 'tagihan'])->name('simpanan.tagihan');
+        Route::post('/tagihan', [SimpananController::class, 'storeTagihan'])->name('simpanan.tagihan.store');
+        Route::post('/tagihan/{id}', [SimpananController::class, 'updateTagihan'])->name('simpanan.tagihan.update');
+        Route::post('/tagihan/{id}/delete', [SimpananController::class, 'deleteTagihan'])->name('simpanan.tagihan.delete');
+        Route::get('/tagihan/export', [SimpananController::class, 'exportTagihan'])->name('simpanan.tagihan.export');
+        Route::get('/anggota/{noKtp}', [SimpananController::class, 'getAnggotaByKtp'])->name('simpanan.get-anggota');
+    }); // End of simpanan routes
+
+    // Laporan Routes
+    Route::prefix('laporan')->group(function () {
+        Route::get('/angkutan-karyawan', [LaporanAngkutanKaryawanController::class, 'index'])->name('laporan.angkutan.karyawan');
+        Route::get('/angkutan-karyawan/export/pdf', [LaporanAngkutanKaryawanController::class, 'exportPdf'])->name('laporan.angkutan.karyawan.export.pdf');
+        Route::get('/angkutan-karyawan/export/excel', [LaporanAngkutanKaryawanController::class, 'exportExcel'])->name('laporan.angkutan.karyawan.export.excel');
+        
+        Route::get('/data-anggota', [LaporanDataAnggotaController::class, 'index'])->name('laporan.data.anggota');
+        Route::get('/data-anggota/export/pdf', [LaporanDataAnggotaController::class, 'exportPdf'])->name('laporan.data.anggota.export.pdf');
+        Route::get('/data-anggota/export/excel', [LaporanDataAnggotaController::class, 'exportExcel'])->name('laporan.data.anggota.export.excel');
+        
+        Route::get('/transaksi-kas', [LaporanTransaksiKasController::class, 'index'])->name('laporan.transaksi.kas');
+        Route::get('/transaksi-kas/export/pdf', [LaporanTransaksiKasController::class, 'exportPdf'])->name('laporan.transaksi.kas.export.pdf');
+        
+        Route::get('/kas-anggota', [LaporanKasAnggotaController::class, 'index'])->name('laporan.kas.anggota');
+        Route::get('/kas-anggota/export/pdf', [LaporanKasAnggotaController::class, 'exportPdf'])->name('laporan.kas.anggota.export.pdf');
+        Route::get('/kas-anggota/export/excel', [LaporanKasAnggotaController::class, 'exportExcel'])->name('laporan.kas.anggota.export.excel');
+        Route::get('/kas-anggota/export/detail', [LaporanKasAnggotaController::class, 'exportExcelDetail'])->name('laporan.kas.anggota.export.detail');
+        Route::get('/kas-anggota/export/tagihan', action: [LaporanKasAnggotaController::class, 'exportExcelTagihan'])->name('laporan.kas.anggota.export.tagihan');
+        Route::get('/kas-anggota/export/simpanan', [LaporanKasAnggotaController::class, 'exportExcelSimpanan'])->name('laporan.kas.anggota.export.simpanan');
+        
+        Route::get('/jatuh-tempo', [LaporanJatuhTempoController::class, 'index'])->name('laporan.jatuh.tempo');
+        Route::get('/jatuh-tempo/export/pdf', [LaporanJatuhTempoController::class, 'exportPdf'])->name('laporan.jatuh.tempo.export.pdf');
+        
+        Route::get('/kredit-macet', [LaporanKreditMacetController::class, 'index'])->name('laporan.kredit.macet');
+        Route::get('/kredit-macet/export/pdf', [LaporanKreditMacetController::class, 'exportPdf'])->name('laporan.kredit.macet.export.pdf');
+    });
+
+    // Route Laporan Buku Besar
+    Route::prefix('laporan')->group(function () {
+        Route::get('/buku-besar', [\App\Http\Controllers\LaporanBukuBesarController::class, 'index'])->name('laporan.buku_besar');
+        Route::get('/buku-besar/export/pdf', [\App\Http\Controllers\LaporanBukuBesarController::class, 'exportPdf'])->name('laporan.buku_besar.export.pdf');
+        Route::get('/buku-besar/export/excel', [\App\Http\Controllers\LaporanBukuBesarController::class, 'exportExcel'])->name('laporan.buku_besar.export.excel');
+    });
+
+    // Route Laporan Neraca Saldo
+    Route::prefix('laporan')->group(function () {
+        Route::get('/neraca-saldo', [\App\Http\Controllers\LaporanNeracaSaldoController::class, 'index'])->name('laporan.neraca_saldo');
+        Route::get('/neraca-saldo/export/pdf', [\App\Http\Controllers\LaporanNeracaSaldoController::class, 'exportPdf'])->name('laporan.neraca_saldo.export.pdf');
+        Route::get('/neraca-saldo/export/excel', [\App\Http\Controllers\LaporanNeracaSaldoController::class, 'exportExcel'])->name('laporan.neraca_saldo.export.excel');
+    });
+
+    // Route Laporan Kas Simpanan
+    Route::prefix('laporan')->group(function () {
+        Route::get('/kas-simpanan', [\App\Http\Controllers\LaporanKasSimpananController::class, 'index'])->name('laporan.kas_simpanan');
+        Route::get('/kas-simpanan/export/pdf', [\App\Http\Controllers\LaporanKasSimpananController::class, 'exportPdf'])->name('laporan.kas_simpanan.export.pdf');
+        Route::get('/kas-simpanan/export/excel', [\App\Http\Controllers\LaporanKasSimpananController::class, 'exportExcel'])->name('laporan.kas_simpanan.export.excel');
+    });
+
+    // Route Laporan Kas Pinjaman
+    Route::prefix('laporan')->group(function () {
+        Route::get('/kas-pinjaman', [\App\Http\Controllers\LaporanKasPinjamanController::class, 'index'])->name('laporan.kas_pinjaman');
+        Route::get('/kas-pinjaman/export/pdf', [\App\Http\Controllers\LaporanKasPinjamanController::class, 'exportPdf'])->name('laporan.kas_pinjaman.export.pdf');
+        Route::get('/kas-pinjaman/export/excel', [\App\Http\Controllers\LaporanKasPinjamanController::class, 'exportExcel'])->name('laporan.kas_pinjaman.export.excel');
+    });
+
+    // Route Laporan Target & Realisasi
+    Route::prefix('laporan')->group(function () {
+        Route::get('/target-realisasi', [\App\Http\Controllers\LaporanTargetRealisasiController::class, 'index'])->name('laporan.target_realisasi');
+        Route::get('/target-realisasi/export/pdf', [\App\Http\Controllers\LaporanTargetRealisasiController::class, 'exportPdf'])->name('laporan.target_realisasi.export.pdf');
+        Route::get('/target-realisasi/export/excel', [\App\Http\Controllers\LaporanTargetRealisasiController::class, 'exportExcel'])->name('laporan.target_realisasi.export.excel');
+    });
+
+    // Route Laporan Pengeluaran Pinjaman
+    Route::prefix('laporan')->group(function () {
+        Route::get('/pengeluaran-pinjaman', [\App\Http\Controllers\LaporanPengeluaranPinjamanController::class, 'index'])->name('laporan.pengeluaran_pinjaman');
+        Route::get('/pengeluaran-pinjaman/export/pdf', [\App\Http\Controllers\LaporanPengeluaranPinjamanController::class, 'exportPdf'])->name('laporan.pengeluaran_pinjaman.export.pdf');
+        Route::get('/pengeluaran-pinjaman/export/excel', [\App\Http\Controllers\LaporanPengeluaranPinjamanController::class, 'exportExcel'])->name('laporan.pengeluaran_pinjaman.export.excel');
+    });
+
+    // Route Laporan Angsuran Pinjaman
+    Route::prefix('laporan')->group(function () {
+        Route::get('/angsuran-pinjaman', [\App\Http\Controllers\LaporanAngsuranPinjamanController::class, 'index'])->name('laporan.angsuran_pinjaman');
+        Route::get('/angsuran-pinjaman/export/pdf', [\App\Http\Controllers\LaporanAngsuranPinjamanController::class, 'exportPdf'])->name('laporan.angsuran_pinjaman.export.pdf');
+        Route::get('/angsuran-pinjaman/export/excel', [\App\Http\Controllers\LaporanAngsuranPinjamanController::class, 'exportExcel'])->name('laporan.angsuran_pinjaman.export.excel');
+    });
+
+    // Route Laporan Rekapitulasi
+    Route::prefix('laporan')->group(function () {
+        Route::get('/rekapitulasi', [\App\Http\Controllers\LaporanRekapitulasiController::class, 'index'])->name('laporan.rekapitulasi');
+        Route::get('/rekapitulasi/export/pdf', [\App\Http\Controllers\LaporanRekapitulasiController::class, 'exportPdf'])->name('laporan.rekapitulasi.export.pdf');
+        Route::get('/rekapitulasi/export/excel', [\App\Http\Controllers\LaporanRekapitulasiController::class, 'exportExcel'])->name('laporan.rekapitulasi.export.excel');
+    });
+
+    // Route Laporan Saldo Kas
+    Route::prefix('laporan')->group(function () {
+        Route::get('/saldo-kas', [\App\Http\Controllers\LaporanSaldoKasController::class, 'index'])->name('laporan.saldo_kas');
+        Route::get('/saldo-kas/export/pdf', [\App\Http\Controllers\LaporanSaldoKasController::class, 'exportPdf'])->name('laporan.saldo_kas.export.pdf');
+        Route::get('/saldo-kas/export/excel', [\App\Http\Controllers\LaporanSaldoKasController::class, 'exportExcel'])->name('laporan.saldo_kas.export.excel');
+    });
+
+    // Route Laporan SHU
+    Route::prefix('laporan')->group(function () {
+        Route::get('/shu', [\App\Http\Controllers\LaporanShuController::class, 'index'])->name('laporan.shu');
+        Route::get('/shu/export/pdf', [\App\Http\Controllers\LaporanShuController::class, 'exportPdf'])->name('laporan.shu.export.pdf');
+        Route::get('/shu/export/excel', [\App\Http\Controllers\LaporanShuController::class, 'exportExcel'])->name('laporan.shu.export.excel');
+    });
+
+    // Route Laporan Toserda
+    Route::prefix('laporan')->group(function () {
+        Route::get('/toserda', [\App\Http\Controllers\LaporanToserdaController::class, 'index'])->name('laporan.toserda');
+        Route::get('/toserda/export/pdf', [\App\Http\Controllers\LaporanToserdaController::class, 'exportPdf'])->name('laporan.toserda.export.pdf');
+        Route::get('/toserda/export/excel', [\App\Http\Controllers\LaporanToserdaController::class, 'exportExcel'])->name('laporan.toserda.export.excel');
+    });
+    
+}); // End of admin routes

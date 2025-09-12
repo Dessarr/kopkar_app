@@ -6,7 +6,6 @@ use App\Models\jns_angsuran;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\JnsAngsuranExport;
 use App\Imports\JnsAngsuranImport;
-use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class JnsAngusuranController extends Controller
 {
@@ -30,33 +29,13 @@ class JnsAngusuranController extends Controller
         }
 
         // Filter by range bulan
-        if ($request->filled('min_bulan') || $request->filled('max_bulan')) {
-            $min = $request->min_bulan ?? 1;
-            $max = $request->max_bulan ?? 120;
-            $query->byRangeBulan($min, $max);
+        if ($request->filled('min_bulan') && $request->filled('max_bulan')) {
+            $query->byRangeBulan($request->min_bulan, $request->max_bulan);
         }
 
-        // Sort by
-        $sortBy = $request->get('sort_by', 'ket');
-        $sortOrder = $request->get('sort_order', 'asc');
-        
-        if (in_array($sortBy, ['ket', 'aktif'])) {
-            $query->orderBy($sortBy, $sortOrder);
-        } else {
-            $query->orderBy('ket', 'asc');
-        }
+        $jnsAngsuran = $query->ordered()->paginate(10);
 
-        $jnsAngsuran = $query->paginate(15)->withQueryString();
-
-        // Get statistics for summary cards
-        $totalAngsuran = jns_angsuran::count();
-        $angsuranAktif = jns_angsuran::where('aktif', 'Y')->count();
-        $angsuranTidakAktif = jns_angsuran::where('aktif', 'T')->count();
-        $jangkaPendek = jns_angsuran::where('ket', '<=', 6)->count();
-        $jangkaMenengah = jns_angsuran::where('ket', '>', 6)->where('ket', '<=', 24)->count();
-        $jangkaPanjang = jns_angsuran::where('ket', '>', 24)->count();
-
-        return view('master-data.jenis_angsuran', compact('jnsAngsuran', 'totalAngsuran', 'angsuranAktif', 'angsuranTidakAktif', 'jangkaPendek', 'jangkaMenengah', 'jangkaPanjang'));
+        return view('master-data.jenis_angsuran', compact('jnsAngsuran'));
     }
 
     public function create()
@@ -136,36 +115,5 @@ class JnsAngusuranController extends Controller
     public function downloadTemplate()
     {
         return Excel::download(new JnsAngsuranExport(), 'template_jenis_angsuran.xlsx');
-    }
-
-    public function print(Request $request)
-    {
-        $query = jns_angsuran::query();
-
-        // Apply same filters as index
-        if ($request->filled('search')) {
-            $query->search($request->search);
-        }
-
-        if ($request->filled('status_aktif')) {
-            $query->byStatusAktif($request->status_aktif);
-        }
-
-        if ($request->filled('kategori')) {
-            $query->byKategori($request->kategori);
-        }
-
-        if ($request->filled('min_bulan') || $request->filled('max_bulan')) {
-            $min = $request->min_bulan ?? 1;
-            $max = $request->max_bulan ?? 120;
-            $query->byRangeBulan($min, $max);
-        }
-
-        $jnsAngsuran = $query->ordered()->get();
-
-        $pdf = PDF::loadView('master-data.jenis_angsuran.print', compact('jnsAngsuran'));
-        $pdf->setPaper('A4', 'landscape');
-        
-        return $pdf->download('jenis_angsuran_' . date('Y-m-d_H-i-s') . '.pdf');
     }
 }

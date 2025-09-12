@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\TblUserExport;
 use App\Imports\TblUserImport;
-use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class DtaPenggunaController extends Controller
 {
@@ -35,32 +34,13 @@ class DtaPenggunaController extends Controller
             $query->where('id_cabang', $request->cabang);
         }
 
-        // Sort by
-        $sortBy = $request->get('sort_by', 'u_name');
-        $sortOrder = $request->get('sort_order', 'asc');
-        
-        if (in_array($sortBy, ['u_name', 'level', 'aktif', 'created_at'])) {
-            $query->orderBy($sortBy, $sortOrder);
-        } else {
-            $query->orderBy('u_name', 'asc');
-        }
-
-        $dataPengguna = $query->paginate(15)->withQueryString();
+        $dataPengguna = $query->ordered()->paginate(10);
         
         // Get unique values for filters
         $levels = TblUser::distinct()->pluck('level')->filter()->sort()->values();
         $cabangs = Cabang::orderBy('nama')->get();
 
-        // Get statistics for summary cards
-        $totalPengguna = TblUser::count();
-        $penggunaAktif = TblUser::where('aktif', 'Y')->count();
-        $penggunaTidakAktif = TblUser::where('aktif', 'N')->count();
-        $adminCount = TblUser::where('level', 'admin')->count();
-        $staffCount = TblUser::whereIn('level', ['pinjaman', 'simpanan', 'kas', 'laporan'])->count();
-        $supervisorCount = TblUser::where('level', 'supervisor')->count();
-        $managerCount = TblUser::where('level', 'manager')->count();
-
-        return view('master-data.data_pengguna', compact('dataPengguna', 'levels', 'cabangs', 'totalPengguna', 'penggunaAktif', 'penggunaTidakAktif', 'adminCount', 'staffCount', 'supervisorCount', 'managerCount'));
+        return view('master-data.data_pengguna', compact('dataPengguna', 'levels', 'cabangs'));
     }
 
     public function create()
@@ -160,34 +140,5 @@ class DtaPenggunaController extends Controller
     public function downloadTemplate()
     {
         return Excel::download(new TblUserExport(), 'template_data_pengguna.xlsx');
-    }
-
-    public function print(Request $request)
-    {
-        $query = TblUser::with('cabang');
-
-        // Apply same filters as index
-        if ($request->filled('search')) {
-            $query->search($request->search);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('aktif', $request->status);
-        }
-
-        if ($request->filled('level')) {
-            $query->where('level', $request->level);
-        }
-
-        if ($request->filled('cabang')) {
-            $query->where('id_cabang', $request->cabang);
-        }
-
-        $dataPengguna = $query->ordered()->get();
-
-        $pdf = PDF::loadView('master-data.data_pengguna.print', compact('dataPengguna'));
-        $pdf->setPaper('A4', 'landscape');
-        
-        return $pdf->download('data_pengguna_' . date('Y-m-d_H-i-s') . '.pdf');
     }
 }

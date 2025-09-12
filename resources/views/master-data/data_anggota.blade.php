@@ -4,228 +4,43 @@
 @section('sub-title', 'Data Anggota Koperasi')
 
 @section('content')
+<style>
+.expandable-row {
+    transition: all 0.3s ease-in-out;
+}
+
+.expandable-row:hover {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    background-color: rgb(249 250 251);
+}
+
+.expandable-content {
+    transition: all 0.3s ease-in-out;
+    max-height: 1.5rem;
+    overflow: hidden;
+}
+
+.expandable-row:hover .expandable-content {
+    max-height: 100px;
+}
+</style>
+
 <div class="px-1 justify-center flex flex-col">
-    <!-- Header Section -->
     <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Data Anggota</h1>
-            <p class="text-sm text-gray-600 mt-1">Kelola data anggota koperasi dengan fitur lengkap</p>
-        </div>
-        <div class="flex space-x-3">
-            <a href="{{ route('master-data.data_anggota.create') }}" 
-               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-                <i class="fas fa-plus"></i>
-                <span>Tambah Data</span>
-            </a>
-            <a href="{{ route('master-data.data_anggota.export', request()->query()) }}" 
-               class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-                <i class="fas fa-download"></i>
-                <span>Export Excel</span>
-            </a>
-            <a href="{{ route('master-data.data_anggota.print', request()->query()) }}" 
-               target="_blank"
-               class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-                <i class="fas fa-print"></i>
-                <span>Cetak</span>
-            </a>
-        </div>
+        <h1 class="text-2xl font-bold">Data Anggota Koperasi</h1>
     </div>
 
-    <!-- Filter Section -->
-    <div class="bg-white rounded-lg shadow mb-6">
-        <div class="p-4 border-b">
-            <button onclick="toggleFilter()" class="flex items-center justify-between w-full text-left">
-                <h2 class="text-lg font-semibold text-gray-900">Filter & Pencarian</h2>
-                <i id="filterIcon" class="fas fa-chevron-down transform transition-transform"></i>
-            </button>
-        </div>
-        <div id="filterContent" class="hidden p-4 border-t">
-            <form method="GET" action="{{ route('master-data.data_anggota') }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Search -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Pencarian</label>
-                    <input type="text" name="search" value="{{ request('search') }}" 
-                           placeholder="Cari nama, ID, departemen..." 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-
-                <!-- Status -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                    <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Semua Status</option>
-                        <option value="aktif" {{ request('status') == 'aktif' ? 'selected' : '' }}>Aktif</option>
-                        <option value="tidak_aktif" {{ request('status') == 'tidak_aktif' ? 'selected' : '' }}>Tidak Aktif</option>
-                    </select>
-                </div>
-
-                <!-- Gender -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Kelamin</label>
-                    <select name="jenis_kelamin" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Semua Jenis Kelamin</option>
-                        <option value="L" {{ request('jenis_kelamin') == 'L' ? 'selected' : '' }}>Laki-laki</option>
-                        <option value="P" {{ request('jenis_kelamin') == 'P' ? 'selected' : '' }}>Perempuan</option>
-                    </select>
-                </div>
-
-                <!-- Department -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Departemen</label>
-                    <select name="departement" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Semua Departemen</option>
-                        @foreach($departements as $dept)
-                            <option value="{{ $dept }}" {{ request('departement') == $dept ? 'selected' : '' }}>{{ $dept }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <!-- City -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kota</label>
-                    <select name="kota" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Semua Kota</option>
-                        @foreach($kota as $city)
-                            <option value="{{ $city }}" {{ request('kota') == $city ? 'selected' : '' }}>{{ $city }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <!-- Age Range -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Umur Min</label>
-                    <input type="number" name="umur_min" value="{{ request('umur_min') }}" 
-                           placeholder="Min umur"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Umur Max</label>
-                    <input type="number" name="umur_max" value="{{ request('umur_max') }}" 
-                           placeholder="Max umur"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-
-                <!-- Registration Date Range -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tgl Daftar Dari</label>
-                    <input type="date" name="tgl_daftar_dari" value="{{ request('tgl_daftar_dari') }}" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tgl Daftar Sampai</label>
-                    <input type="date" name="tgl_daftar_sampai" value="{{ request('tgl_daftar_sampai') }}" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-
-                <!-- Sort Options -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Urutkan Berdasarkan</label>
-                    <select name="sort_by" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="nama" {{ request('sort_by') == 'nama' ? 'selected' : '' }}>Nama</option>
-                        <option value="no_ktp" {{ request('sort_by') == 'no_ktp' ? 'selected' : '' }}>ID Koperasi</option>
-                        <option value="tgl_daftar" {{ request('sort_by') == 'tgl_daftar' ? 'selected' : '' }}>Tanggal Daftar</option>
-                        <option value="departement" {{ request('sort_by') == 'departement' ? 'selected' : '' }}>Departemen</option>
-                        <option value="kota" {{ request('sort_by') == 'kota' ? 'selected' : '' }}>Kota</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Urutan</label>
-                    <select name="sort_order" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="asc" {{ request('sort_order') == 'asc' ? 'selected' : '' }}>A-Z</option>
-                        <option value="desc" {{ request('sort_order') == 'desc' ? 'selected' : '' }}>Z-A</option>
-                    </select>
-                </div>
-
-                <div class="md:col-span-2 lg:col-span-4 flex justify-end space-x-2">
-                    <button type="button" onclick="clearFilters()" 
-                            class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                        <i class="fas fa-times mr-2"></i>Reset
-                    </button>
-                    <button type="submit" 
-                            class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors">
-                        <i class="fas fa-filter mr-2"></i>Terapkan Filter
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-2 bg-blue-100 rounded-lg">
-                    <i class="fas fa-users text-blue-600"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Total Anggota</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $totalAnggota }}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-2 bg-green-100 rounded-lg">
-                    <i class="fas fa-check-circle text-green-600"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Aktif</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $anggotaAktif }}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-2 bg-red-100 rounded-lg">
-                    <i class="fas fa-times-circle text-red-600"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Tidak Aktif</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $anggotaTidakAktif }}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-2 bg-blue-100 rounded-lg">
-                    <i class="fas fa-male text-blue-600"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Laki-laki</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $lakiLaki }}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-2 bg-pink-100 rounded-lg">
-                    <i class="fas fa-female text-pink-600"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Perempuan</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $perempuan }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tab Navigation -->
+    <!-- Tab Navigasi -->
     <div class="mb-4 flex gap-2">
         <a href="{{ route('master-data.data_anggota') }}">
             <button id="tab-aktif" type="button"
-                class="tab-btn rounded-t-lg font-semibold px-6 py-2 border-b-2 transition-all duration-200 active">Anggota
+                class="tab-btn rounded-t-lg font-semibold px-6 py-2 border-b-2 transition-all duration-200 {{ (isset($tab) ? $tab == 'aktif' : true) ? 'active' : '' }}">Anggota
                 Aktif</button>
         </a>
         <a href="{{ route('master-data.data_anggota.nonaktif') }}">
             <button id="tab-nonaktif" type="button"
-                class="tab-btn rounded-t-lg font-semibold px-6 py-2 border-b-2 transition-all duration-200">Anggota
+                class="tab-btn rounded-t-lg font-semibold px-6 py-2 border-b-2 transition-all duration-200 {{ (isset($tab) && $tab == 'nonaktif') ? 'active' : '' }}">Anggota
                 Tidak Aktif</button>
         </a>
     </div>
@@ -241,53 +56,84 @@
 
     .tab-btn.active,
     .tab-btn:focus {
-        background: #3b82f6;
+        background: #10b981;
         color: #fff;
-        border-bottom: 2px solid #3b82f6;
-        border-top: 2px solid #3b82f6;
-        border-left: 2px solid #3b82f6;
-        border-right: 2px solid #3b82f6;
+        border-bottom: 2px solid #10b981;
+        border-top: 2px solid #10b981;
+        border-left: 2px solid #10b981;
+        border-right: 2px solid #10b981;
         outline: none;
         z-index: 10;
     }
 
     .tab-btn:hover:not(.active) {
-        background: #dbeafe;
-        color: #1d4ed8;
-        border-bottom: 2px solid #3b82f6;
+        background: #d1fae5;
+        color: #047857;
+        border-bottom: 2px solid #10b981;
     }
     </style>
+    <script>
+    // Tidak perlu JS showTab, karena sudah pakai route berbeda
+    </script>
 
-    <!-- Data Table -->
+    <!-- Tabel Data Anggota Aktif -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
         @if(session('success'))
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
             {{ session('success') }}
         </div>
         @endif
-
+        <!-- ... existing search/export ... -->
+        <div class="p-4 border-b">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('master-data.data_anggota.create') }}"
+                        class="inline-flex items-center gap-2 bg-green-100 hover:bg-green-200 text-green-800 text-sm font-medium px-4 py-2 rounded-lg transition">
+                        <i class="fa-solid fa-plus fa-xs"></i>
+                        Tambah Data Anggota
+                    </a>
+                </div>
+                <div class="flex flex-col md:flex-row md:items-center gap-2 md:ml-auto">
+                    <form action="{{ route('master-data.data_anggota') }}" method="GET" class="mb-2 md:mb-0">
+                        <div class="flex items-center bg-gray-100 p-2 rounded-lg border-2 border-gray-300">
+                            <i class="fa-solid fa-magnifying-glass mr-2 text-gray-400"></i>
+                            <input type="text" name="search" value="{{ request('search') }}"
+                                placeholder="Cari nama/ID anggota"
+                                class="text-sm text-gray-500 bg-transparent border-none focus:outline-none w-40 md:w-56">
+                        </div>
+                    </form>
+                    <a href="{{ route('master-data.data_anggota.export') }}"
+                        class="flex items-center gap-2 bg-green-100 p-2 rounded-lg border-2 border-green-400 hover:bg-green-200 transition">
+                        <img src="{{ asset('img/icons-bootstrap/export/cloud-download.svg') }}" class="h-5 w-5"
+                            alt="Export Excel">
+                        <span class="text-sm">Export Excel</span>
+                    </a>
+                </div>
+            </div>
+        </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Foto</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Koperasi</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Lengkap</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Kelamin</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Departemen</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kota</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-600 text-sm">
+                        <th class="px-4 py-3 border-b text-center w-12">#</th>
+                        <th class="px-4 py-3 border-b text-center w-20">Foto</th>
+                        <th class="px-4 py-3 border-b text-center">ID Koperasi</th>
+                        <th class="px-4 py-3 border-b text-center">Nama Lengkap</th>
+                        <th class="px-4 py-3 border-b text-center w-24">Jenis Kelamin</th>
+                        <th class="px-4 py-3 border-b text-center">Alamat</th>
+                        <th class="px-4 py-3 border-b text-center">Kota</th>
+                        <th class="px-4 py-3 border-b text-center">Department</th>
+                        <th class="px-4 py-3 border-b text-center">Tgl Daftar</th>
+                        <th class="px-4 py-3 border-b text-center w-32">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse($dataAnggota as $anggota)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <tbody class="divide-y">
+                    @foreach($dataAnggota as $anggota)
+                    <tr class="expandable-row">
+                        <td class="px-4 py-3 text-center text-sm">
                             {{ ($dataAnggota->currentPage() - 1) * $dataAnggota->perPage() + $loop->iteration }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3 text-center">
                             @if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic))
                             <img src="{{ asset('storage/anggota/' . $anggota->file_pic) }}"
                                 alt="Foto {{ $anggota->nama }}" class="w-12 h-12 rounded-full mx-auto object-cover">
@@ -300,8 +146,8 @@
                             </div>
                             @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $anggota->no_ktp }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3 text-center text-sm">{{ $anggota->no_ktp }}</td>
+                        <td class="px-4 py-3">
                             <div class="text-sm">
                                 <p class="font-medium text-gray-900">{{ $anggota->nama }}</p>
                                 @if($anggota->username)
@@ -309,17 +155,22 @@
                                 @endif
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $anggota->jenis_kelamin_text == 'Laki-laki' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800' }}">
-                                {{ $anggota->jenis_kelamin_text }}
-                            </span>
+                        <td class="px-4 py-3 text-center text-sm">
+                            {{ $anggota->jk == 'L' ? 'Laki-laki' : 'Perempuan' }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $anggota->departement ?? '-' }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $anggota->kota ?? '-' }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $anggota->status_aktif == 'Y' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                {{ $anggota->status_aktif_text }}
-                            </span>
+                        <td class="px-4 py-3 text-sm">
+                            <div class="expandable-content">
+                                {{ $anggota->alamat }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-center text-sm">{{ $anggota->kota }}</td>
+                        <td class="px-4 py-3 text-center text-sm">{{ $anggota->departement }}</td>
+                        <td class="px-4 py-3 text-center text-sm">
+                            @if($anggota->tgl_daftar && $anggota->tgl_daftar != '0000-00-00')
+                            {{ date('d/m/Y', strtotime($anggota->tgl_daftar)) }}
+                            @else
+                            <span class="text-gray-400 italic text-xs">Tidak ada Data</span>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex space-x-2">
@@ -338,46 +189,35 @@
                             </div>
                         </td>
                     </tr>
-                    @empty
-                    <tr>
-                        <td colspan="9" class="px-6 py-8 text-center text-gray-500">
-                            <div class="flex flex-col items-center">
-                                <i class="fas fa-users text-4xl text-gray-300 mb-2"></i>
-                                <p>Tidak ada data anggota</p>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>
-
-        <!-- Pagination -->
-        <div class="px-4 py-3 bg-gray-50 border-t">
-            {{ $dataAnggota->links() }}
+    </div>
+    <!-- Pagination Aktif di luar table -->
+    <div class="mt-5 flex items-center justify-between px-4">
+        <div class="flex justify-center flex-1">
+            <div class="bg-white px-4 py-2 flex items-center gap-2 rounded-lg border shadow-sm">
+                @for ($i = 1; $i <= $dataAnggota->lastPage(); $i++)
+                    @if ($i == 1 || $i == $dataAnggota->lastPage() || ($i >= $dataAnggota->currentPage() - 1 && $i <= $dataAnggota->currentPage() + 1))
+                        <a href="{{ $dataAnggota->url($i) }}"
+                            class="px-3 py-1 text-sm rounded-md {{ $dataAnggota->currentPage() == $i ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50' }}">
+                            {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
+                        </a>
+                    @elseif ($i == 2 || $i == $dataAnggota->lastPage() - 1)
+                        <span class="px-2 text-gray-400">...</span>
+                    @endif
+                @endfor
+            </div>
+        </div>
+        <div class="text-sm text-gray-500">
+            Showing {{ $dataAnggota->firstItem() }} to {{ $dataAnggota->lastItem() }} of {{ $dataAnggota->total() }} entries
         </div>
     </div>
 </div>
 
 <script>
-function toggleFilter() {
-    const filterContent = document.getElementById('filterContent');
-    const filterIcon = document.getElementById('filterIcon');
-    
-    if (filterContent.classList.contains('hidden')) {
-        filterContent.classList.remove('hidden');
-        filterIcon.classList.remove('fa-chevron-down');
-        filterIcon.classList.add('fa-chevron-up');
-    } else {
-        filterContent.classList.add('hidden');
-        filterIcon.classList.remove('fa-chevron-up');
-        filterIcon.classList.add('fa-chevron-down');
-    }
-}
-
-function clearFilters() {
-    // Redirect to the base URL without any query parameters
-    window.location.href = '{{ route("master-data.data_anggota") }}';
-}
+// Default tab
+// showTab('aktif'); // This line is removed as per the edit hint
 </script>
 @endsection

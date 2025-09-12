@@ -27,11 +27,10 @@
                 <i class="fas fa-upload"></i>
                 <span>Import Excel</span>
             </button>
-            <a href="{{ route('master-data.data_kas.print') }}" 
-               target="_blank"
+            <a href="{{ route('master-data.data_kas.template') }}" 
                class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-                <i class="fas fa-print"></i>
-                <span>Cetak</span>
+                <i class="fas fa-file-download"></i>
+                <span>Template</span>
             </a>
         </div>
     </div>
@@ -92,13 +91,13 @@
                 </div>
 
                 <div class="md:col-span-2 lg:col-span-4 flex justify-end space-x-2">
-                    <button type="button" onclick="clearFilters()" 
-                            class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                        <i class="fas fa-times mr-2"></i>Reset
-                    </button>
+                    <a href="{{ route('master-data.data_kas') }}" 
+                       class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                        Reset
+                    </a>
                     <button type="submit" 
                             class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors">
-                        <i class="fas fa-filter mr-2"></i>Terapkan Filter
+                        Terapkan Filter
                     </button>
                 </div>
             </form>
@@ -343,38 +342,6 @@ function toggleFilter() {
     } else {
         content.classList.add('hidden');
         icon.classList.remove('rotate-180');
-    }
-}
-
-// Auto-expand filter if there are active filters
-document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasFilters = urlParams.has('search') || urlParams.has('status_aktif') || 
-                      urlParams.has('kategori') || urlParams.has('fitur');
-    
-    if (hasFilters) {
-        toggleFilter();
-    }
-    
-    // Add loading state to filter form
-    const filterForm = document.querySelector('form[method="GET"]');
-    if (filterForm) {
-        filterForm.addEventListener('submit', function() {
-            const submitBtn = this.querySelector('button[type="submit"]');
-            if (submitBtn) {
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
-                submitBtn.disabled = true;
-            }
-        });
-    }
-});
-
-// Clear all filters
-function clearFilters() {
-    const form = document.querySelector('form[method="GET"]');
-    if (form) {
-        form.reset();
-        form.submit();
     }
 }
 </script>
