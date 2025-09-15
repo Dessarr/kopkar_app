@@ -42,6 +42,17 @@ class transaksi_kas extends Model
         return $this->belongsTo(NamaKasTbl::class, 'untuk_kas_id', 'id');
     }
 
+    // Alias untuk kompatibilitas dengan view
+    public function kasTujuan()
+    {
+        return $this->untukKas();
+    }
+
+    public function kasAsal()
+    {
+        return $this->dariKas();
+    }
+
     public function jenisAkun()
     {
         return $this->belongsTo(jns_akun::class, 'jns_trans', 'id');

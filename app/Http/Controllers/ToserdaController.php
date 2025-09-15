@@ -53,9 +53,13 @@ class ToserdaController extends Controller
             
             $transaksi = $query->paginate(15);
             
-            // Calculate totals
-            $totalPenjualan = $transaksi->sum('jumlah');
-            $totalRecords = $transaksi->total();
+            // Calculate totals from ALL filtered data (not just current page)
+            $statQuery = transaksi_kas::where('akun', 'Pemasukan')
+                ->whereIn('jns_trans', ['112', '113', '114', '115', '116']);
+            $statQuery = $this->applyPenjualanFilters($statQuery, $request);
+            
+            $totalPenjualan = $statQuery->sum('jumlah');
+            $totalRecords = $statQuery->count();
             
             return view('toserda.penjualan', compact('kas', 'transaksi', 'totalPenjualan', 'totalRecords'));
         } catch (\Exception $e) {
@@ -72,7 +76,7 @@ class ToserdaController extends Controller
             $kodeTransaksi = str_replace(['TKD', 'tkd'], '', $kodeTransaksi);
             $kodeTransaksi = ltrim($kodeTransaksi, '0');
             $kodeTransaksi = (int)$kodeTransaksi;
-            $query->where('id', 'LIKE', $kodeTransaksi);
+            $query->where('id', $kodeTransaksi);
             return $query;
         }
 
@@ -100,7 +104,14 @@ class ToserdaController extends Controller
             
             $transaksi = $query->paginate(15);
             
-            return view('toserda.pembelian', compact('kas', 'transaksi'));
+            // Calculate totals from ALL filtered data (not just current page)
+            $statQuery = transaksi_kas::whereIn('jns_trans', ['9', '117', '118', '119', '120', '121']);
+            $statQuery = $this->applyPembelianFilters($statQuery, $request);
+            
+            $totalPembelian = $statQuery->sum('jumlah');
+            $totalRecords = $statQuery->count();
+            
+            return view('toserda.pembelian', compact('kas', 'transaksi', 'totalPembelian', 'totalRecords'));
         } catch (\Exception $e) {
             Log::error('Error in pembelian: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
@@ -115,7 +126,7 @@ class ToserdaController extends Controller
             $kodeTransaksi = str_replace(['TKD', 'tkd'], '', $kodeTransaksi);
             $kodeTransaksi = ltrim($kodeTransaksi, '0');
             $kodeTransaksi = (int)$kodeTransaksi;
-            $query->where('id', 'LIKE', $kodeTransaksi);
+            $query->where('id', $kodeTransaksi);
             return $query;
         }
 
@@ -136,7 +147,7 @@ class ToserdaController extends Controller
             $kodeTransaksi = str_replace(['TKD', 'tkd'], '', $kodeTransaksi);
             $kodeTransaksi = ltrim($kodeTransaksi, '0');
             $kodeTransaksi = (int)$kodeTransaksi;
-            $query->where('id', 'LIKE', $kodeTransaksi);
+            $query->where('id', $kodeTransaksi);
             return $query;
         }
 
@@ -163,7 +174,14 @@ class ToserdaController extends Controller
             
             $transaksi = $query->paginate(15);
             
-            return view('toserda.biaya_usaha', compact('kas', 'transaksi'));
+            // Calculate totals from ALL filtered data (not just current page)
+            $statQuery = transaksi_kas::whereIn('jns_trans', ['122', '123', '124', '125']);
+            $statQuery = $this->applyBiayaUsahaFilters($statQuery, $request);
+            
+            $totalBiayaUsaha = $statQuery->sum('jumlah');
+            $totalRecords = $statQuery->count();
+            
+            return view('toserda.biaya_usaha', compact('kas', 'transaksi', 'totalBiayaUsaha', 'totalRecords'));
         } catch (\Exception $e) {
             Log::error('Error in biaya usaha: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());

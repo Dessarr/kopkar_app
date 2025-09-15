@@ -32,9 +32,13 @@ class AngkutanController extends Controller
         // Get paginated results
         $transaksi = $query->orderBy('tgl_catat', 'desc')->paginate(10);
 
-        // Get statistics
-        $totalPemasukan = $query->sum('jumlah');
-        $totalTransaksi = $query->count();
+        // Calculate statistics from ALL filtered data (not just current page)
+        $statQuery = transaksi_kas::where('jns_trans', '46')
+            ->where('dk', 'D');
+        $statQuery = $this->applyFilters($statQuery, $startDate, $endDate, $search, $kasFilter);
+        
+        $totalPemasukan = $statQuery->sum('jumlah');
+        $totalTransaksi = $statQuery->count();
 
         // Get data for dropdowns
         $kas = NamaKasTbl::where('aktif', 'Y')->get();
@@ -69,12 +73,16 @@ class AngkutanController extends Controller
         // Apply filters
         $query = $this->applyFilters($query, $startDate, $endDate, $search, $kasFilter);
 
-        // Get statistics before pagination
-        $totalPengeluaran = $query->sum('jumlah');
-        $totalTransaksi = $query->count();
-
         // Get paginated results
         $transaksi = $query->orderBy('tgl_catat', 'desc')->paginate(10);
+
+        // Calculate statistics from ALL filtered data (not just current page)
+        $statQuery = transaksi_kas::where('akun', 'Pengeluaran')
+            ->where('dk', 'D');
+        $statQuery = $this->applyFilters($statQuery, $startDate, $endDate, $search, $kasFilter);
+        
+        $totalPengeluaran = $statQuery->sum('jumlah');
+        $totalTransaksi = $statQuery->count();
 
         // Get data for dropdowns
         $kas = NamaKasTbl::where('aktif', 'Y')->get();
@@ -105,12 +113,12 @@ class AngkutanController extends Controller
 
         if ($search) {
             $query->where(function($q) use ($search) {
-                // Clean search input - remove PK prefix and leading zeros
-                $cleanSearch = preg_replace('/^PK/i', '', $search);
+                // Clean search input - remove PA prefix and leading zeros
+                $cleanSearch = preg_replace('/^PA/i', '', $search);
                 $cleanSearch = ltrim($cleanSearch, '0');
                 
                 $q->where('keterangan', 'like', "%{$search}%")
-                  ->orWhere('id', 'like', "%{$cleanSearch}%");
+                  ->orWhere('id', $cleanSearch);
             });
         }
 

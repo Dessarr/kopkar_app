@@ -16,7 +16,7 @@
                 <div class="ml-4">
                     <p class="text-sm font-medium text-gray-600">Total Penjualan</p>
                     <p class="text-2xl font-semibold text-gray-900">
-                        Rp{{ number_format($transaksi->sum('jumlah'), 0, ',', '.') }}
+                        Rp{{ number_format($totalPenjualan, 0, ',', '.') }}
                     </p>
                 </div>
             </div>
@@ -28,7 +28,7 @@
                 </div>
                 <div class="ml-4">
                     <p class="text-sm font-medium text-gray-600">Total Transaksi</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ $transaksi->total() }}</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $totalRecords }}</p>
                 </div>
             </div>
         </div>

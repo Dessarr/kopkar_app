@@ -27,14 +27,15 @@ class TransaksiKasController extends Controller
             ->pluck('id')
             ->toArray();
             
-        $query = View_Transaksi::where('tbl', 'D')
-            ->whereIn('transaksi', $akunPemasukanIds) // Semua jenis akun untuk pemasukan
+        // Gunakan query langsung ke tbl_trans_kas untuk konsistensi
+        $query = transaksi_kas::where('dk', 'D') // Debit untuk pemasukan
+            ->whereIn('jns_trans', $akunPemasukanIds) // Semua jenis akun untuk pemasukan
             ->with(['kasTujuan', 'jenisAkun']);
 
         // Filter berdasarkan request
         $query = $this->applyFilters($query, $request);
 
-        $dataKas = $query->orderBy('tgl', 'desc')->paginate(15);
+        $dataKas = $query->orderBy('tgl_catat', 'desc')->paginate(15);
 
         // Data untuk dropdowns
         $kasOptions = NamaKasTbl::where('aktif', 'Y')
@@ -43,11 +44,15 @@ class TransaksiKasController extends Controller
         $akunOptions = jns_akun::where('aktif', 'Y')
             ->where('pemasukan', 'Y')
             ->get();
-        $users = View_Transaksi::select('user')->distinct()->whereNotNull('user')->pluck('user');
+        $users = transaksi_kas::select('user_name')->distinct()->whereNotNull('user_name')->pluck('user_name');
 
-        // Statistik
-        $totalPemasukan = $query->sum('debet');
-        $totalRecords = $query->count();
+        // Statistik - hitung ulang dengan query yang sama
+        $statQuery = transaksi_kas::where('dk', 'D')
+            ->whereIn('jns_trans', $akunPemasukanIds);
+        $statQuery = $this->applyFilters($statQuery, $request);
+        
+        $totalPemasukan = $statQuery->sum('jumlah');
+        $totalRecords = $statQuery->count();
 
         return view('transaksi_kas.pemasukan', compact(
             'dataKas', 
@@ -70,7 +75,8 @@ class TransaksiKasController extends Controller
             ->pluck('id')
             ->toArray();
             
-        $query = transaksi_kas::where('akun', 'Pengeluaran')
+        // Gunakan query langsung ke tbl_trans_kas untuk konsistensi
+        $query = transaksi_kas::where('dk', 'K') // Kredit untuk pengeluaran
             ->whereIn('jns_trans', $akunPengeluaranIds)
             ->with(['dariKas', 'jenisAkun']);
 
@@ -88,9 +94,13 @@ class TransaksiKasController extends Controller
             ->get();
         $users = transaksi_kas::select('user_name')->distinct()->whereNotNull('user_name')->pluck('user_name');
 
-        // Statistik
-        $totalPengeluaran = $query->sum('jumlah');
-        $totalRecords = $query->count();
+        // Statistik - hitung ulang dengan query yang sama
+        $statQuery = transaksi_kas::where('dk', 'K')
+            ->whereIn('jns_trans', $akunPengeluaranIds);
+        $statQuery = $this->applyPengeluaranFilters($statQuery, $request);
+        
+        $totalPengeluaran = $statQuery->sum('jumlah');
+        $totalRecords = $statQuery->count();
 
         return view('transaksi_kas.pengeluaran', compact(
             'dataKas', 
@@ -107,7 +117,10 @@ class TransaksiKasController extends Controller
      */
     public function transfer(Request $request)
     {
+        // Gunakan query langsung ke tbl_trans_kas untuk konsistensi
         $query = transaksi_kas::where('akun', 'Transfer')
+            ->whereNotNull('dari_kas_id')
+            ->whereNotNull('untuk_kas_id')
             ->with(['dariKas', 'untukKas']);
 
         // Filter berdasarkan request untuk transfer
@@ -121,9 +134,14 @@ class TransaksiKasController extends Controller
             ->get();
         $users = transaksi_kas::select('user_name')->distinct()->whereNotNull('user_name')->pluck('user_name');
 
-        // Statistik
-        $totalTransfer = $query->sum('jumlah');
-        $totalRecords = $query->count();
+        // Statistik - hitung ulang dengan query yang sama
+        $statQuery = transaksi_kas::where('akun', 'Transfer')
+            ->whereNotNull('dari_kas_id')
+            ->whereNotNull('untuk_kas_id');
+        $statQuery = $this->applyTransferFilters($statQuery, $request);
+        
+        $totalTransfer = $statQuery->sum('jumlah');
+        $totalRecords = $statQuery->count();
 
         return view('transaksi_kas.transfer', compact(
             'dataKas', 
@@ -451,8 +469,8 @@ class TransaksiKasController extends Controller
             $kodeTransaksi = ltrim($kodeTransaksi, '0');
             $kodeTransaksi = (int)$kodeTransaksi;
             
-            // Cari berdasarkan ID transaksi
-            $query->where('id', 'LIKE', $kodeTransaksi);
+            // Cari berdasarkan ID transaksi menggunakan exact match
+            $query->where('id', $kodeTransaksi);
             
             return $query;
         }
@@ -481,13 +499,13 @@ class TransaksiKasController extends Controller
             $kodeTransaksi = ltrim($kodeTransaksi, '0');
             $kodeTransaksi = (int)$kodeTransaksi;
             
-            // Cari berdasarkan ID transaksi menggunakan LIKE untuk fleksibilitas
-            $query->where('id', 'LIKE', $kodeTransaksi);
+            // Cari berdasarkan ID transaksi menggunakan exact match
+            $query->where('id', $kodeTransaksi);
             
-            // Return langsung, abaikan filter lainnya kecuali user dan kas untuk keamanan
+            // Return langsung, abaikan filter lainnya kecuali user untuk keamanan
             if ($request->filled('user_filter')) {
                 $userArray = is_array($request->user_filter) ? $request->user_filter : [$request->user_filter];
-                $query->whereIn('user', $userArray);
+                $query->whereIn('user_name', $userArray);
             }
             
             return $query;
@@ -495,15 +513,15 @@ class TransaksiKasController extends Controller
 
         // PRIORITAS 2: Filter Tanggal (Hanya jika kode transaksi kosong)
         if ($request->filled('tgl_dari') && $request->filled('tgl_sampai')) {
-            $query->whereDate('tgl', '>=', $request->tgl_dari)
-                  ->whereDate('tgl', '<=', $request->tgl_sampai);
+            $query->whereDate('tgl_catat', '>=', $request->tgl_dari)
+                  ->whereDate('tgl_catat', '<=', $request->tgl_sampai);
         } else {
             // Fallback ke date_from/date_to untuk kompatibilitas
         if ($request->filled('date_from')) {
-            $query->whereDate('tgl', '>=', $request->date_from);
+            $query->whereDate('tgl_catat', '>=', $request->date_from);
         }
         if ($request->filled('date_to')) {
-            $query->whereDate('tgl', '<=', $request->date_to);
+            $query->whereDate('tgl_catat', '<=', $request->date_to);
             }
         }
 
@@ -583,8 +601,8 @@ class TransaksiKasController extends Controller
             $kodeTransaksi = ltrim($kodeTransaksi, '0');
             $kodeTransaksi = (int)$kodeTransaksi;
             
-            // Cari berdasarkan ID transaksi menggunakan LIKE untuk fleksibilitas
-            $query->where('id', 'LIKE', $kodeTransaksi);
+            // Cari berdasarkan ID transaksi menggunakan exact match
+            $query->where('id', $kodeTransaksi);
             
             // Return langsung, abaikan filter lainnya kecuali user untuk keamanan
             if ($request->filled('user_filter')) {

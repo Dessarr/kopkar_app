@@ -143,10 +143,10 @@
                     @forelse($dataKas as $kas)
                     <tr class="text-sm align-middle hover:bg-gray-50 cursor-pointer row-selectable"
                         data-id="{{ $kas->id }}" data-kode="TKD{{ str_pad($kas->id, 5, '0', STR_PAD_LEFT) }}"
-                        data-tanggal="{{ $kas->tgl }}" data-keterangan="{{ $kas->ket }}"
+                        data-tanggal="{{ $kas->tgl_catat }}" data-keterangan="{{ $kas->keterangan }}"
                         data-kas-id="{{ $kas->untuk_kas_id }}" data-kas-nama="{{ $kas->kasTujuan->nama ?? '-' }}"
-                        data-akun-id="{{ $kas->jns_trans ?? '' }}" data-jumlah="{{ $kas->debet }}"
-                        data-user="{{ $kas->user }}">
+                        data-akun-id="{{ $kas->jns_trans ?? '' }}" data-jumlah="{{ $kas->jumlah }}"
+                        data-user="{{ $kas->user_name }}">
                         <td class="py-3 border px-4">
                             {{ ($dataKas->currentPage() - 1) * $dataKas->perPage() + $loop->iteration }}
                         </td>
@@ -155,14 +155,14 @@
                                 {{ 'TKD' . str_pad($kas->id, 5, '0', STR_PAD_LEFT) }}
                             </span>
                         </td>
-                        <td class="py-3 border px-4">{{ \Carbon\Carbon::parse($kas->tgl)->format('d/m/Y H:i') }}</td>
-                        <td class="py-3 border px-4 text-left">{{ $kas->ket }}</td>
+                        <td class="py-3 border px-4">{{ \Carbon\Carbon::parse($kas->tgl_catat)->format('d/m/Y H:i') }}</td>
+                        <td class="py-3 border px-4 text-left">{{ $kas->keterangan }}</td>
                         <td class="py-3 border px-4">{{ $kas->kasTujuan->nama ?? '-' }}</td>
-                        <td class="py-3 border px-4">{{ $kas->jenisAkun->jns_trans ?? $kas->jns_trans ?? '-' }}</td>
+                        <td class="py-3 border px-4">{{ $kas->jenisAkun->jns_trans ?? '-' }}</td>
                         <td class="py-3 border px-4 font-semibold text-green-600">
-                            Rp{{ number_format($kas->debet, 0, ',', '.') }}
+                            Rp{{ number_format($kas->jumlah, 0, ',', '.') }}
                         </td>
-                        <td class="py-3 border px-4">{{ $kas->user }}</td>
+                        <td class="py-3 border px-4">{{ $kas->user_name }}</td>
                     </tr>
                     @empty
                     <tr>
