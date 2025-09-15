@@ -113,8 +113,8 @@
                         <select id="status" name="status" 
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
                             <option value="">Semua Status</option>
-                            <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Aktif</option>
-                            <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Tidak Aktif</option>
+                            <option value="Y" {{ request('status') == 'Y' ? 'selected' : '' }}>Aktif</option>
+                            <option value="N" {{ request('status') == 'N' ? 'selected' : '' }}>Tidak Aktif</option>
                         </select>
                     </div>
                     <div class="flex gap-2">
@@ -134,6 +134,12 @@
         @if(session('success'))
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
             {{ session('success') }}
+        </div>
+        @endif
+
+        @if(session('error'))
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+            {{ session('error') }}
         </div>
         @endif
 

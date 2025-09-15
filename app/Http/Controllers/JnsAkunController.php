@@ -13,60 +13,78 @@ class JnsAkunController extends Controller
 {
     public function index(Request $request)
     {
-        $query = jns_akun::query();
+        try {
+            // Build query with filters
+            $query = jns_akun::query();
 
+            // Apply search filter
+            if ($request->filled('search')) {
+                $query->search($request->search);
+            }
 
-        // Handle search
-        if ($request->has('search') && !empty(trim($request->search))) {
-            $search = trim($request->search);
-            $query->where(function($q) use ($search) {
-                $q->where('kd_aktiva', 'like', '%' . $search . '%')
-                  ->orWhere('jns_trans', 'like', '%' . $search . '%')
-                  ->orWhere('akun', 'like', '%' . $search . '%');
-            });
-        }
+            // Apply status filter
+            if ($request->filled('status')) {
+                if ($request->status === 'Y' || $request->status === 'N') {
+                    $query->where('aktif', $request->status);
+                } elseif ($request->status === '1') {
+                    $query->where('aktif', 'Y');
+                } elseif ($request->status === '0') {
+                    $query->where('aktif', 'N');
+                }
+            }
 
-        // Handle filter by status
-        if ($request->has('status') && $request->status !== '') {
-            $statusValue = $request->status == '1' ? 'Y' : 'N';
-            $query->where('aktif', $statusValue);
-        }
+            // Apply account type filter
+            if ($request->filled('akun_type')) {
+                $query->byAkunType($request->akun_type);
+            }
 
-        // Handle filter by account type
-        if ($request->has('akun_type') && $request->akun_type !== '' && $request->akun_type !== null) {
-            $query->where('akun', $request->akun_type);
-        }
+            // Get paginated data
+            $dataAkun = $query->ordered()->paginate(10);
+            
+            // Get all data for summary cards (apply same filters)
+            $allDataAkun = jns_akun::query();
+            
+            if ($request->filled('search')) {
+                $allDataAkun->search($request->search);
+            }
+            
+            if ($request->filled('status')) {
+                if ($request->status === 'Y' || $request->status === 'N') {
+                    $allDataAkun->where('aktif', $request->status);
+                } elseif ($request->status === '1') {
+                    $allDataAkun->where('aktif', 'Y');
+                } elseif ($request->status === '0') {
+                    $allDataAkun->where('aktif', 'N');
+                }
+            }
+            
+            if ($request->filled('akun_type')) {
+                $allDataAkun->byAkunType($request->akun_type);
+            }
+            
+            $allDataAkun = $allDataAkun->get();
+            
+            // Get unique account types for filter dropdown
+            $accountTypes = jns_akun::select('akun')
+                ->whereNotNull('akun')
+                ->distinct()
+                ->orderBy('akun')
+                ->pluck('akun');
 
-        $dataAkun = $query->orderBy('kd_aktiva')->paginate(10);
-        
-        
-        // Get all data for summary cards (without pagination)
-        $allDataAkun = jns_akun::query();
-        // Apply same filters for summary
-        if ($request->has('search') && !empty(trim($request->search))) {
-            $search = trim($request->search);
-            $allDataAkun->where(function($q) use ($search) {
-                $q->where('kd_aktiva', 'like', '%' . $search . '%')
-                  ->orWhere('jns_trans', 'like', '%' . $search . '%')
-                  ->orWhere('akun', 'like', '%' . $search . '%');
-            });
+            return view('master-data.jns_akun', compact('dataAkun', 'allDataAkun', 'accountTypes'));
+            
+        } catch (\Exception $e) {
+            // Log error for debugging
+            \Log::error('Error in JnsAkunController@index: ' . $e->getMessage());
+            
+            // Return empty results with error message
+            $dataAkun = collect()->paginate(10);
+            $allDataAkun = collect();
+            $accountTypes = collect();
+            
+            return view('master-data.jns_akun', compact('dataAkun', 'allDataAkun', 'accountTypes'))
+                ->with('error', 'Terjadi kesalahan saat memuat data. Silakan coba lagi.');
         }
-        if ($request->has('status') && $request->status !== '') {
-            $statusValue = $request->status == '1' ? 'Y' : 'N';
-            $allDataAkun->where('aktif', $statusValue);
-        }
-        if ($request->has('akun_type') && $request->akun_type !== '' && $request->akun_type !== null) {
-            $allDataAkun->where('akun', $request->akun_type);
-        }
-        $allDataAkun = $allDataAkun->get();
-        
-        // Get unique account types for filter (exclude NULL values)
-        $accountTypes = jns_akun::select('akun')
-            ->whereNotNull('akun')
-            ->distinct()
-            ->pluck('akun');
-
-        return view('master-data.jns_akun', compact('dataAkun', 'allDataAkun', 'accountTypes'));
     }
 
 
@@ -137,9 +155,18 @@ class JnsAkunController extends Controller
     public function export(Request $request)
     {
         $fileName = 'jenis_akun_' . date('Y-m-d') . '.xlsx';
+        
+        // Normalize status value for export
+        $status = $request->status;
+        if ($status === '1') {
+            $status = 'Y';
+        } elseif ($status === '0') {
+            $status = 'N';
+        }
+        
         return Excel::download(new JnsAkunExport(
             $request->search,
-            $request->status,
+            $status,
             $request->akun_type
         ), $fileName);
     }
