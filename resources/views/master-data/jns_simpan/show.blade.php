@@ -13,7 +13,18 @@
                 <i class="fas fa-edit"></i>
                 Edit
             </a>
-            <a href="{{ route('master-data.jns_simpan') }}" 
+            <form action="{{ route('master-data.jns_simpan.destroy', $simpan->id) }}" method="POST" 
+                  onsubmit="return confirm('Apakah Anda yakin ingin menghapus data jenis simpanan \'{{ $simpan->jns_simpan }}\'? Tindakan ini tidak dapat dibatalkan!');" 
+                  class="inline">
+                @csrf
+                @method('DELETE')
+                <button type="submit" 
+                        class="inline-flex items-center gap-2 bg-red-100 hover:bg-red-200 text-red-800 text-sm font-medium px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-trash"></i>
+                    Hapus
+                </button>
+            </form>
+            <a href="{{ route('master-data.jns_simpan.index') }}" 
                class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium px-4 py-2 rounded-lg transition">
                 <i class="fas fa-arrow-left"></i>
                 Kembali
@@ -79,7 +90,7 @@
 
             <!-- Action Buttons -->
             <div class="flex justify-end space-x-4 pt-6 border-t mt-6">
-                <a href="{{ route('master-data.jns_simpan') }}" 
+                <a href="{{ route('master-data.jns_simpan.index') }}" 
                    class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
                     <i class="fas fa-arrow-left mr-2"></i>
                     Kembali ke Daftar
@@ -89,6 +100,22 @@
                     <i class="fas fa-edit mr-2"></i>
                     Edit Data
                 </a>
+                <a href="{{ route('master-data.jns_simpan.print') }}" 
+                   class="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-print mr-2"></i>
+                    Cetak
+                </a>
+                <form action="{{ route('master-data.jns_simpan.destroy', $simpan->id) }}" method="POST" 
+                      onsubmit="return confirm('Apakah Anda yakin ingin menghapus data jenis simpanan \'{{ $simpan->jns_simpan }}\'? Tindakan ini tidak dapat dibatalkan!');" 
+                      class="inline">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" 
+                            class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                        <i class="fas fa-trash mr-2"></i>
+                        Hapus Data
+                    </button>
+                </form>
             </div>
         </div>
     </div>

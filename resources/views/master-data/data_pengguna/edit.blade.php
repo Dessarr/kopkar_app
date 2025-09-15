@@ -7,7 +7,7 @@
 <div class="px-1 justify-center flex flex-col">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">Edit Data Pengguna</h1>
-        <a href="{{ route('master-data.data_pengguna') }}" 
+        <a href="{{ route('master-data.data_pengguna.index') }}" 
            class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium px-4 py-2 rounded-lg transition">
             <i class="fas fa-arrow-left"></i>
             Kembali
@@ -112,7 +112,7 @@
 
             <!-- Submit Button -->
             <div class="mt-8 flex justify-end space-x-4">
-                <a href="{{ route('master-data.data_pengguna') }}" 
+                <a href="{{ route('master-data.data_pengguna.index') }}" 
                    class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors duration-200">
                     Batal
                 </a>

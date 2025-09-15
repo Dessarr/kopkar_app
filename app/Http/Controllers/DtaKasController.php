@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\NamaKasTbl;
-use App\Exports\NamaKasTblExport;
-use App\Imports\NamaKasTblImport;
+use App\Models\DataKas;
+use App\Exports\DataKasExport;
+use App\Imports\DataKasImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Validator;
 
@@ -13,7 +13,7 @@ class DtaKasController extends Controller
 {
     public function index(Request $request)
     {
-        $query = NamaKasTbl::query();
+        $query = DataKas::query();
 
         // Search
         if ($request->filled('search')) {
@@ -69,21 +69,21 @@ class DtaKasController extends Controller
                 ->withInput();
         }
 
-        NamaKasTbl::create($request->all());
+        DataKas::create($request->all());
 
-        return redirect()->route('master-data.data_kas')
+        return redirect()->route('master-data.data_kas.index')
             ->with('success', 'Data Kas berhasil ditambahkan!');
     }
 
     public function show($id)
     {
-        $dataKas = NamaKasTbl::findOrFail($id);
+        $dataKas = DataKas::findOrFail($id);
         return view('master-data.data_kas.show', compact('dataKas'));
     }
 
     public function edit($id)
     {
-        $dataKas = NamaKasTbl::findOrFail($id);
+        $dataKas = DataKas::findOrFail($id);
         return view('master-data.data_kas.edit', compact('dataKas'));
     }
 
@@ -107,25 +107,25 @@ class DtaKasController extends Controller
                 ->withInput();
         }
 
-        $dataKas = NamaKasTbl::findOrFail($id);
+        $dataKas = DataKas::findOrFail($id);
         $dataKas->update($request->all());
 
-        return redirect()->route('master-data.data_kas')
+        return redirect()->route('master-data.data_kas.index')
             ->with('success', 'Data Kas berhasil diperbarui!');
     }
 
     public function destroy($id)
     {
-        $dataKas = NamaKasTbl::findOrFail($id);
+        $dataKas = DataKas::findOrFail($id);
         $dataKas->delete();
 
-        return redirect()->route('master-data.data_kas')
+        return redirect()->route('master-data.data_kas.index')
             ->with('success', 'Data Kas berhasil dihapus!');
     }
 
     public function export(Request $request)
     {
-        $query = NamaKasTbl::query();
+        $query = DataKas::query();
 
         // Apply same filters as index
         if ($request->filled('search')) {
@@ -147,7 +147,7 @@ class DtaKasController extends Controller
 
         $data = $query->ordered()->get();
 
-        return Excel::download(new NamaKasTblExport($data), 'data_kas_' . date('Y-m-d_H-i-s') . '.xlsx');
+        return Excel::download(new DataKasExport($data), 'data_kas_' . date('Y-m-d_H-i-s') . '.xlsx');
     }
 
     public function import(Request $request)
@@ -157,11 +157,11 @@ class DtaKasController extends Controller
         ]);
 
         try {
-            Excel::import(new NamaKasTblImport, $request->file('file'));
-            return redirect()->route('master-data.data_kas')
+            Excel::import(new DataKasImport, $request->file('file'));
+            return redirect()->route('master-data.data_kas.index')
                 ->with('success', 'Data Kas berhasil diimport!');
         } catch (\Exception $e) {
-            return redirect()->route('master-data.data_kas')
+            return redirect()->route('master-data.data_kas.index')
                 ->with('error', 'Error importing data: ' . $e->getMessage());
         }
     }
@@ -182,12 +182,12 @@ class DtaKasController extends Controller
             ]
         ]);
 
-        return Excel::download(new NamaKasTblExport($data), 'template_data_kas.xlsx');
+        return Excel::download(new DataKasExport($data), 'template_data_kas.xlsx');
     }
 
     public function print()
     {
-        $dataKas = NamaKasTbl::ordered()->get();
+        $dataKas = DataKas::ordered()->get();
         return view('master-data.data_kas.print', compact('dataKas'));
     }
 }

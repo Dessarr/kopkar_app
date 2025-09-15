@@ -31,7 +31,7 @@ class tbl_barang extends Model
     // Accessor untuk format harga
     public function getHargaFormattedAttribute()
     {
-        return 'Rp ' . number_format($this->harga, 0, ',', '.');
+        return 'Rp ' . number_format((float)$this->harga, 0, ',', '.');
     }
 
     // Accessor untuk status stok

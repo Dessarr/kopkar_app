@@ -13,7 +13,7 @@
                 <i class="fas fa-edit"></i>
                 Edit
             </a>
-            <a href="{{ route('master-data.jenis_angsuran') }}" 
+            <a href="{{ route('master-data.jenis_angsuran.index') }}" 
                class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium px-4 py-2 rounded-lg transition">
                 <i class="fas fa-arrow-left"></i>
                 Kembali
@@ -146,7 +146,7 @@
         <!-- Action Buttons -->
         <div class="px-6 py-4 bg-gray-50 border-t flex justify-between items-center">
             <div class="flex gap-2">
-                <a href="{{ route('master-data.jenis_angsuran') }}" 
+                <a href="{{ route('master-data.jenis_angsuran.index') }}" 
                    class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
                     <i class="fas fa-arrow-left mr-2"></i>Kembali
                 </a>

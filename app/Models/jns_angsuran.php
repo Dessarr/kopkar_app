@@ -18,7 +18,6 @@ class jns_angsuran extends Model
 
     protected $casts = [
         'ket' => 'integer',
-        'aktif' => 'boolean',
     ];
 
     public $timestamps = false;
@@ -26,13 +25,13 @@ class jns_angsuran extends Model
     // Accessor untuk status aktif
     public function getStatusAktifTextAttribute()
     {
-        return $this->aktif ? 'Aktif' : 'Nonaktif';
+        return $this->aktif === 'Y' ? 'Aktif' : 'Tidak Aktif';
     }
 
     // Accessor untuk badge status aktif
     public function getStatusAktifBadgeAttribute()
     {
-        return $this->aktif ? 'success' : 'danger';
+        return $this->aktif === 'Y' ? 'aktif' : 'tidak-aktif';
     }
 
     // Accessor untuk format keterangan
@@ -56,15 +55,12 @@ class jns_angsuran extends Model
     // Accessor untuk badge kategori angsuran
     public function getKategoriAngsuranBadgeAttribute()
     {
-        switch ($this->kategori_angsuran) {
-            case 'Jangka Pendek':
-                return 'success';
-            case 'Jangka Menengah':
-                return 'warning';
-            case 'Jangka Panjang':
-                return 'info';
-            default:
-                return 'secondary';
+        if ($this->ket <= 6) {
+            return 'pendek';
+        } elseif ($this->ket <= 24) {
+            return 'menengah';
+        } else {
+            return 'panjang';
         }
     }
 

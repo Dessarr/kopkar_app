@@ -36,11 +36,20 @@ class DtaPenggunaController extends Controller
 
         $dataPengguna = $query->ordered()->paginate(10);
         
+        // Get all data for summary cards (without pagination)
+        $allDataPengguna = TblUser::query();
+        // Apply same filters for summary
+        if ($request->filled('search')) { $allDataPengguna->search($request->search); }
+        if ($request->filled('status')) { $allDataPengguna->where('aktif', $request->status); }
+        if ($request->filled('level')) { $allDataPengguna->where('level', $request->level); }
+        if ($request->filled('cabang')) { $allDataPengguna->where('id_cabang', $request->cabang); }
+        $allDataPengguna = $allDataPengguna->get();
+        
         // Get unique values for filters
         $levels = TblUser::distinct()->pluck('level')->filter()->sort()->values();
         $cabangs = Cabang::orderBy('nama')->get();
 
-        return view('master-data.data_pengguna', compact('dataPengguna', 'levels', 'cabangs'));
+        return view('master-data.data_pengguna', compact('dataPengguna', 'allDataPengguna', 'levels', 'cabangs'));
     }
 
     public function create()
@@ -64,7 +73,7 @@ class DtaPenggunaController extends Controller
 
         TblUser::create($data);
 
-        return redirect()->route('master-data.data_pengguna')
+        return redirect()->route('master-data.data_pengguna.index')
             ->with('success', 'Data pengguna berhasil ditambahkan.');
     }
 
@@ -104,7 +113,7 @@ class DtaPenggunaController extends Controller
 
         $pengguna->update($data);
 
-        return redirect()->route('master-data.data_pengguna')
+        return redirect()->route('master-data.data_pengguna.index')
             ->with('success', 'Data pengguna berhasil diupdate.');
     }
 
@@ -113,7 +122,7 @@ class DtaPenggunaController extends Controller
         $pengguna = TblUser::findOrFail($id);
         $pengguna->delete();
 
-        return redirect()->route('master-data.data_pengguna')
+        return redirect()->route('master-data.data_pengguna.index')
             ->with('success', 'Data pengguna berhasil dihapus.');
     }
 
@@ -133,12 +142,18 @@ class DtaPenggunaController extends Controller
 
         Excel::import(new TblUserImport, $request->file('file'));
 
-        return redirect()->route('master-data.data_pengguna')
+        return redirect()->route('master-data.data_pengguna.index')
             ->with('success', 'Data pengguna berhasil diimport.');
     }
 
     public function downloadTemplate()
     {
         return Excel::download(new TblUserExport(), 'template_data_pengguna.xlsx');
+    }
+
+    public function print()
+    {
+        $dataPengguna = TblUser::with('cabang')->orderBy('u_name')->get();
+        return view('master-data.data_pengguna.print', compact('dataPengguna'));
     }
 }

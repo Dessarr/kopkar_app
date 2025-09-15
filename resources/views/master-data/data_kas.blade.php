@@ -27,10 +27,10 @@
                 <i class="fas fa-upload"></i>
                 <span>Import Excel</span>
             </button>
-            <a href="{{ route('master-data.data_kas.template') }}" 
+            <a href="http://127.0.0.1:8000/master-data/data_kas/print" 
                class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-                <i class="fas fa-file-download"></i>
-                <span>Template</span>
+                <i class="fas fa-print"></i>
+                <span>Cetak</span>
             </a>
         </div>
     </div>
@@ -40,11 +40,11 @@
         <div class="p-4 border-b">
             <button onclick="toggleFilter()" class="flex items-center justify-between w-full text-left">
                 <h2 class="text-lg font-semibold text-gray-900">Filter & Pencarian</h2>
-                <i id="filterIcon" class="fas fa-chevron-down transform transition-transform"></i>
+                <i id="filterIcon" class="fas fa-chevron-down transform transition-transform {{ request()->hasAny(['search', 'status_aktif', 'kategori', 'fitur']) ? 'rotate-180' : '' }}"></i>
             </button>
         </div>
-        <div id="filterContent" class="hidden p-4 border-t">
-            <form method="GET" action="{{ route('master-data.data_kas') }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div id="filterContent" class="{{ request()->hasAny(['search', 'status_aktif', 'kategori', 'fitur']) ? '' : 'hidden' }} p-4 border-t">
+            <form method="GET" action="{{ route('master-data.data_kas.index') }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Search -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Pencarian</label>
@@ -91,13 +91,16 @@
                 </div>
 
                 <div class="md:col-span-2 lg:col-span-4 flex justify-end space-x-2">
-                    <a href="{{ route('master-data.data_kas') }}" 
+                    <a href="{{ route('master-data.data_kas.index') }}" 
                        class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
                         Reset
                     </a>
                     <button type="submit" 
-                            class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors">
-                        Terapkan Filter
+                            class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors flex items-center space-x-2"
+                            id="filterButton">
+                        <i class="fas fa-search"></i>
+                        <span>Terapkan Filter</span>
+                        <i class="fas fa-spinner fa-spin hidden" id="filterSpinner"></i>
                     </button>
                 </div>
             </form>
@@ -344,5 +347,20 @@ function toggleFilter() {
         icon.classList.remove('rotate-180');
     }
 }
+
+// Loading state untuk filter
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.querySelector('form[method="GET"]');
+    const filterButton = document.getElementById('filterButton');
+    const filterSpinner = document.getElementById('filterSpinner');
+    
+    if (filterForm && filterButton) {
+        filterForm.addEventListener('submit', function() {
+            filterButton.disabled = true;
+            filterSpinner.classList.remove('hidden');
+            filterButton.querySelector('span').textContent = 'Memproses...';
+        });
+    }
+});
 </script>
 @endsection

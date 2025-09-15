@@ -62,7 +62,38 @@ class DtaMobilController extends Controller
         $warna = tbl_mobil::distinct()->pluck('warna')->filter()->sort()->values();
         $tahun = tbl_mobil::distinct()->pluck('tahun')->filter()->sort()->values();
 
-        return view('master-data.data_mobil', compact('dataMobil', 'jenis', 'merek', 'pabrikan', 'warna', 'tahun'));
+        // Get all data for summary cards (without pagination)
+        $allDataMobil = tbl_mobil::query();
+        
+        // Apply same filters for summary
+        if ($request->filled('search')) {
+            $allDataMobil->search($request->search);
+        }
+        if ($request->filled('jenis')) {
+            $allDataMobil->byJenis($request->jenis);
+        }
+        if ($request->filled('merek')) {
+            $allDataMobil->byMerek($request->merek);
+        }
+        if ($request->filled('pabrikan')) {
+            $allDataMobil->byPabrikan($request->pabrikan);
+        }
+        if ($request->filled('warna')) {
+            $allDataMobil->byWarna($request->warna);
+        }
+        if ($request->filled('tahun')) {
+            $allDataMobil->byTahun($request->tahun);
+        }
+        if ($request->filled('status_aktif')) {
+            $allDataMobil->byStatusAktif($request->status_aktif);
+        }
+        if ($request->filled('status_stnk')) {
+            $allDataMobil->byStatusStnk($request->status_stnk);
+        }
+        
+        $allDataMobil = $allDataMobil->get();
+
+        return view('master-data.data_mobil', compact('dataMobil', 'allDataMobil', 'jenis', 'merek', 'pabrikan', 'warna', 'tahun'));
     }
 
     public function create()
@@ -75,23 +106,40 @@ class DtaMobilController extends Controller
         $request->validate([
             'nama' => 'required|string|max:255',
             'jenis' => 'nullable|string|max:100',
-            'merek' => 'nullable|string|max:225',
+            'merek' => 'nullable|string|max:100',
             'pabrikan' => 'nullable|string|max:100',
             'warna' => 'nullable|string|max:50',
             'tahun' => 'nullable|integer|min:1900|max:' . date('Y'),
-            'no_polisi' => 'nullable|string|max:15',
-            'no_rangka' => 'nullable|string|max:50',
-            'no_mesin' => 'nullable|string|max:50',
-            'no_bpkb' => 'nullable|string|max:50',
+            'no_polisi' => 'nullable|string|max:15|unique:tbl_mobil,no_polisi',
+            'no_rangka' => 'nullable|string|max:50|unique:tbl_mobil,no_rangka',
+            'no_mesin' => 'nullable|string|max:50|unique:tbl_mobil,no_mesin',
+            'no_bpkb' => 'nullable|string|max:50|unique:tbl_mobil,no_bpkb',
             'tgl_berlaku_stnk' => 'nullable|date',
             'file_pic' => 'nullable|string|max:100',
             'aktif' => 'required|in:Y,N',
+        ], [
+            'nama.required' => 'Nama mobil wajib diisi.',
+            'nama.max' => 'Nama mobil maksimal 255 karakter.',
+            'tahun.min' => 'Tahun tidak boleh kurang dari 1900.',
+            'tahun.max' => 'Tahun tidak boleh lebih dari tahun sekarang.',
+            'no_polisi.unique' => 'Nomor polisi sudah digunakan.',
+            'no_rangka.unique' => 'Nomor rangka sudah digunakan.',
+            'no_mesin.unique' => 'Nomor mesin sudah digunakan.',
+            'no_bpkb.unique' => 'Nomor BPKB sudah digunakan.',
+            'aktif.required' => 'Status aktif wajib dipilih.',
+            'aktif.in' => 'Status aktif harus Aktif atau Nonaktif.',
         ]);
 
-        tbl_mobil::create($request->all());
+        try {
+            tbl_mobil::create($request->all());
 
-        return redirect()->route('master-data.data_mobil')
-            ->with('success', 'Data mobil berhasil ditambahkan.');
+            return redirect()->route('master-data.data_mobil.index')
+                ->with('success', 'Data mobil berhasil ditambahkan.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan saat menyimpan data: ' . $e->getMessage());
+        }
     }
 
     public function show($id)
@@ -113,32 +161,54 @@ class DtaMobilController extends Controller
         $request->validate([
             'nama' => 'required|string|max:255',
             'jenis' => 'nullable|string|max:100',
-            'merek' => 'nullable|string|max:225',
+            'merek' => 'nullable|string|max:100',
             'pabrikan' => 'nullable|string|max:100',
             'warna' => 'nullable|string|max:50',
             'tahun' => 'nullable|integer|min:1900|max:' . date('Y'),
-            'no_polisi' => 'nullable|string|max:15',
-            'no_rangka' => 'nullable|string|max:50',
-            'no_mesin' => 'nullable|string|max:50',
-            'no_bpkb' => 'nullable|string|max:50',
+            'no_polisi' => 'nullable|string|max:15|unique:tbl_mobil,no_polisi,' . $id,
+            'no_rangka' => 'nullable|string|max:50|unique:tbl_mobil,no_rangka,' . $id,
+            'no_mesin' => 'nullable|string|max:50|unique:tbl_mobil,no_mesin,' . $id,
+            'no_bpkb' => 'nullable|string|max:50|unique:tbl_mobil,no_bpkb,' . $id,
             'tgl_berlaku_stnk' => 'nullable|date',
             'file_pic' => 'nullable|string|max:100',
             'aktif' => 'required|in:Y,N',
+        ], [
+            'nama.required' => 'Nama mobil wajib diisi.',
+            'nama.max' => 'Nama mobil maksimal 255 karakter.',
+            'tahun.min' => 'Tahun tidak boleh kurang dari 1900.',
+            'tahun.max' => 'Tahun tidak boleh lebih dari tahun sekarang.',
+            'no_polisi.unique' => 'Nomor polisi sudah digunakan.',
+            'no_rangka.unique' => 'Nomor rangka sudah digunakan.',
+            'no_mesin.unique' => 'Nomor mesin sudah digunakan.',
+            'no_bpkb.unique' => 'Nomor BPKB sudah digunakan.',
+            'aktif.required' => 'Status aktif wajib dipilih.',
+            'aktif.in' => 'Status aktif harus Aktif atau Nonaktif.',
         ]);
 
-        $mobil->update($request->all());
+        try {
+            $mobil->update($request->all());
 
-        return redirect()->route('master-data.data_mobil')
-            ->with('success', 'Data mobil berhasil diupdate.');
+            return redirect()->route('master-data.data_mobil.index')
+                ->with('success', 'Data mobil berhasil diupdate.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan saat mengupdate data: ' . $e->getMessage());
+        }
     }
 
     public function destroy($id)
     {
-        $mobil = tbl_mobil::findOrFail($id);
-        $mobil->delete();
+        try {
+            $mobil = tbl_mobil::findOrFail($id);
+            $mobil->delete();
 
-        return redirect()->route('master-data.data_mobil')
-            ->with('success', 'Data mobil berhasil dihapus.');
+            return redirect()->route('master-data.data_mobil.index')
+                ->with('success', 'Data mobil berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage());
+        }
     }
 
     public function export(Request $request)
@@ -157,12 +227,19 @@ class DtaMobilController extends Controller
 
         Excel::import(new TblMobilImport, $request->file('file'));
 
-        return redirect()->route('master-data.data_mobil')
+        return redirect()->route('master-data.data_mobil.index')
             ->with('success', 'Data mobil berhasil diimport.');
     }
 
     public function downloadTemplate()
     {
         return Excel::download(new TblMobilExport(), 'template_data_mobil.xlsx');
+    }
+
+    public function print()
+    {
+        $dataMobil = tbl_mobil::with(['kas', 'cabang'])->orderBy('nama')->get();
+        
+        return view('master-data.data_mobil.print', compact('dataMobil'));
     }
 }

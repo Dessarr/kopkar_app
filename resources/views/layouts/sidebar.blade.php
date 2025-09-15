@@ -245,35 +245,35 @@
                 </svg>
             </button>
             <div x-show="isMenuOpen('master-data')" class="pl-8 space-y-1 mt-1" x-transition>
-                <a href="{{ route('master-data.jns_akun') }}"
+                <a href="{{ route('master-data.jns_akun.index') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">
                     Jenis Akun
                 </a>
-                <a href="{{ route('master-data.jns_simpan') }}"
+                <a href="{{ route('master-data.jns_simpan.index') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">
                     Jenis Simpanan
                 </a>
-                <a href="{{ route('master-data.data_pengguna') }}"
+                <a href="{{ route('master-data.data_pengguna.index') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">
                     Data Pengguna
                 </a>
-                <a href="{{ route('master-data.data_barang') }}"
+                <a href="{{ route('master-data.data_barang.index') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">
                     Data Barang
                 </a>
-                <a href="{{ route('master-data.data_mobil') }}"
+                <a href="{{ route('master-data.data_mobil.index') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">
                     Data Mobil
                 </a>
-                <a href="{{ route('master-data.jenis_angsuran') }}"
+                <a href="{{ route('master-data.jenis_angsuran.index') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">
                     Jenis Angsuran
                 </a>
-                <a href="{{ route('master-data.data_anggota') }}"
+                <a href="{{ route('master-data.data_anggota.index') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">
                     Data Anggota
                 </a>
-                <a href="{{ route('master-data.data_kas') }}"
+                <a href="{{ route('master-data.data_kas.index') }}"
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">
                     Data Kas
                 </a>

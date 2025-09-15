@@ -12,9 +12,35 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class JnsAkunExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths
 {
+    protected $search;
+    protected $status;
+    protected $akunType;
+
+    public function __construct($search = null, $status = null, $akunType = null)
+    {
+        $this->search = $search;
+        $this->status = $status;
+        $this->akunType = $akunType;
+    }
+
     public function collection()
     {
-        return jns_akun::orderBy('kd_aktiva')->get();
+        $query = jns_akun::query();
+
+        if ($this->search && !empty(trim($this->search))) {
+            $query->search(trim($this->search));
+        }
+
+        if ($this->status !== null) {
+            $statusValue = $this->status == '1' ? 'Y' : 'N';
+            $query->where('aktif', $statusValue);
+        }
+
+        if ($this->akunType && $this->akunType !== '') {
+            $query->where('akun', $this->akunType);
+        }
+
+        return $query->orderBy('kd_aktiva')->get();
     }
 
     public function headings(): array
@@ -37,9 +63,9 @@ class JnsAkunExport implements FromCollection, WithHeadings, WithMapping, WithSt
             $akun->jns_trans,
             $akun->akun,
             $akun->laba_rugi ?? '',
-            $akun->pemasukan ? 'Ya' : 'Tidak',
-            $akun->pengeluaran ? 'Ya' : 'Tidak',
-            $akun->aktif ? 'Aktif' : 'Tidak Aktif'
+            $akun->pemasukan === 'Y' ? 'Ya' : 'Tidak',
+            $akun->pengeluaran === 'Y' ? 'Ya' : 'Tidak',
+            $akun->aktif === 'Y' ? 'Aktif' : 'Tidak Aktif'
         ];
     }
 
@@ -47,12 +73,14 @@ class JnsAkunExport implements FromCollection, WithHeadings, WithMapping, WithSt
     {
         return [
             1 => [
-                'font' => ['bold' => true],
+                'font' => [
+                    'bold' => true,
+                    'color' => ['rgb' => 'FFFFFF']
+                ],
                 'fill' => [
                     'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
                     'startColor' => ['rgb' => '14AE5C']
-                ],
-                'font' => ['color' => ['rgb' => 'FFFFFF']]
+                ]
             ]
         ];
     }

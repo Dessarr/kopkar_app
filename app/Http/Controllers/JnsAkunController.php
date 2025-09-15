@@ -15,9 +15,10 @@ class JnsAkunController extends Controller
     {
         $query = jns_akun::query();
 
+
         // Handle search
-        if ($request->has('search')) {
-            $search = $request->search;
+        if ($request->has('search') && !empty(trim($request->search))) {
+            $search = trim($request->search);
             $query->where(function($q) use ($search) {
                 $q->where('kd_aktiva', 'like', '%' . $search . '%')
                   ->orWhere('jns_trans', 'like', '%' . $search . '%')
@@ -27,21 +28,47 @@ class JnsAkunController extends Controller
 
         // Handle filter by status
         if ($request->has('status') && $request->status !== '') {
-            $query->where('aktif', $request->status);
+            $statusValue = $request->status == '1' ? 'Y' : 'N';
+            $query->where('aktif', $statusValue);
         }
 
         // Handle filter by account type
-        if ($request->has('akun_type') && $request->akun_type !== '') {
+        if ($request->has('akun_type') && $request->akun_type !== '' && $request->akun_type !== null) {
             $query->where('akun', $request->akun_type);
         }
 
         $dataAkun = $query->orderBy('kd_aktiva')->paginate(10);
         
-        // Get unique account types for filter
-        $accountTypes = jns_akun::select('akun')->distinct()->pluck('akun');
+        
+        // Get all data for summary cards (without pagination)
+        $allDataAkun = jns_akun::query();
+        // Apply same filters for summary
+        if ($request->has('search') && !empty(trim($request->search))) {
+            $search = trim($request->search);
+            $allDataAkun->where(function($q) use ($search) {
+                $q->where('kd_aktiva', 'like', '%' . $search . '%')
+                  ->orWhere('jns_trans', 'like', '%' . $search . '%')
+                  ->orWhere('akun', 'like', '%' . $search . '%');
+            });
+        }
+        if ($request->has('status') && $request->status !== '') {
+            $statusValue = $request->status == '1' ? 'Y' : 'N';
+            $allDataAkun->where('aktif', $statusValue);
+        }
+        if ($request->has('akun_type') && $request->akun_type !== '' && $request->akun_type !== null) {
+            $allDataAkun->where('akun', $request->akun_type);
+        }
+        $allDataAkun = $allDataAkun->get();
+        
+        // Get unique account types for filter (exclude NULL values)
+        $accountTypes = jns_akun::select('akun')
+            ->whereNotNull('akun')
+            ->distinct()
+            ->pluck('akun');
 
-        return view('master-data.jns_akun', compact('dataAkun', 'accountTypes'));
+        return view('master-data.jns_akun', compact('dataAkun', 'allDataAkun', 'accountTypes'));
     }
+
 
     public function create()
     {
@@ -62,7 +89,7 @@ class JnsAkunController extends Controller
 
         jns_akun::create($validated);
 
-        return redirect()->route('master-data.jns_akun')
+        return redirect()->route('master-data.jns_akun.index')
             ->with('success', 'Data jenis akun berhasil ditambahkan');
     }
 
@@ -94,7 +121,7 @@ class JnsAkunController extends Controller
 
         $akun->update($validated);
 
-        return redirect()->route('master-data.jns_akun')
+        return redirect()->route('master-data.jns_akun.index')
             ->with('success', 'Data jenis akun berhasil diperbarui');
     }
 
@@ -103,14 +130,18 @@ class JnsAkunController extends Controller
         $akun = jns_akun::findOrFail($id);
         $akun->delete();
 
-        return redirect()->route('master-data.jns_akun')
+        return redirect()->route('master-data.jns_akun.index')
             ->with('success', 'Data jenis akun berhasil dihapus');
     }
 
-    public function export()
+    public function export(Request $request)
     {
         $fileName = 'jenis_akun_' . date('Y-m-d') . '.xlsx';
-        return Excel::download(new JnsAkunExport, $fileName);
+        return Excel::download(new JnsAkunExport(
+            $request->search,
+            $request->status,
+            $request->akun_type
+        ), $fileName);
     }
 
     public function import(Request $request)
@@ -131,5 +162,11 @@ class JnsAkunController extends Controller
     {
         $fileName = 'template_jenis_akun.xlsx';
         return Excel::download(new JnsAkunExport, $fileName);
+    }
+
+    public function print()
+    {
+        $dataAkun = jns_akun::orderBy('kd_aktiva')->get();
+        return view('master-data.jns_akun.print', compact('dataAkun'));
     }
 }

@@ -37,15 +37,34 @@ class JnsSimpanController extends Controller
 
         $dataSimpan = $query->orderBy('urut')->paginate(10);
         
+        // Get all data for summary cards (without pagination)
+        $allDataSimpan = jns_simpan::query();
+        // Apply same filters for summary
+        if ($request->has('search')) {
+            $search = $request->search;
+            $allDataSimpan->where(function($q) use ($search) {
+                $q->where('id', 'like', '%' . $search . '%')
+                  ->orWhere('jns_simpan', 'like', '%' . $search . '%')
+                  ->orWhere('jumlah', 'like', '%' . $search . '%');
+            });
+        }
+        if ($request->has('status') && $request->status !== '') {
+            $allDataSimpan->where('tampil', $request->status);
+        }
+        if ($request->has('type') && $request->type !== '') {
+            $allDataSimpan->where('jns_simpan', 'like', '%' . $request->type . '%');
+        }
+        $allDataSimpan = $allDataSimpan->get();
+        
         // Get unique types for filter
         $types = jns_simpan::select('jns_simpan')->distinct()->pluck('jns_simpan');
 
-        return view('master-data.jns_simpanan', compact('dataSimpan', 'types'));
+        return view('master-data.jns_simpan', compact('dataSimpan', 'allDataSimpan', 'types'));
     }
 
     public function create()
     {
-        return view('master-data.jns_simpanan.create');
+        return view('master-data.jns_simpan.create');
     }
 
     public function store(Request $request)
@@ -59,20 +78,20 @@ class JnsSimpanController extends Controller
 
         jns_simpan::create($validated);
 
-        return redirect()->route('master-data.jns_simpan')
+        return redirect()->route('master-data.jns_simpan.index')
             ->with('success', 'Data jenis simpanan berhasil ditambahkan');
     }
 
     public function show($id)
     {
         $simpan = jns_simpan::findOrFail($id);
-        return view('master-data.jns_simpanan.show', compact('simpan'));
+        return view('master-data.jns_simpan.show', compact('simpan'));
     }
 
     public function edit($id)
     {
         $simpan = jns_simpan::findOrFail($id);
-        return view('master-data.jns_simpanan.edit', compact('simpan'));
+        return view('master-data.jns_simpan.edit', compact('simpan'));
     }
 
     public function update(Request $request, $id)
@@ -88,7 +107,7 @@ class JnsSimpanController extends Controller
 
         $simpan->update($validated);
 
-        return redirect()->route('master-data.jns_simpan')
+        return redirect()->route('master-data.jns_simpan.index')
             ->with('success', 'Data jenis simpanan berhasil diperbarui');
     }
 
@@ -97,7 +116,7 @@ class JnsSimpanController extends Controller
         $simpan = jns_simpan::findOrFail($id);
         $simpan->delete();
 
-        return redirect()->route('master-data.jns_simpan')
+        return redirect()->route('master-data.jns_simpan.index')
             ->with('success', 'Data jenis simpanan berhasil dihapus');
     }
 
@@ -125,5 +144,11 @@ class JnsSimpanController extends Controller
     {
         $fileName = 'template_jenis_simpanan.xlsx';
         return Excel::download(new JnsSimpanExport, $fileName);
+    }
+
+    public function print()
+    {
+        $dataSimpan = jns_simpan::orderBy('urut')->get();
+        return view('master-data.jns_simpan.print', compact('dataSimpan'));
     }
 }

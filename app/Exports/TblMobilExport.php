@@ -7,9 +7,12 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TblMobilExport implements FromCollection, WithHeadings, WithMapping, WithStyles
+class TblMobilExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithEvents
 {
     protected $search;
     protected $jenis;
@@ -116,7 +119,53 @@ class TblMobilExport implements FromCollection, WithHeadings, WithMapping, WithS
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true]],
+            1 => [
+                'font' => [
+                    'bold' => true,
+                    'color' => ['rgb' => 'FFFFFF']
+                ],
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => '14AE5C']
+                ]
+            ],
+        ];
+    }
+
+    public function columnWidths(): array
+    {
+        return [
+            'A' => 8,   // ID
+            'B' => 25,  // Nama Mobil
+            'C' => 15,  // Jenis
+            'D' => 15,  // Merek
+            'E' => 15,  // Pabrikan
+            'F' => 12,  // Warna
+            'G' => 8,   // Tahun
+            'H' => 15,  // No Polisi
+            'I' => 20,  // No Rangka
+            'J' => 20,  // No Mesin
+            'K' => 20,  // No BPKB
+            'L' => 18,  // Tgl Berlaku STNK
+            'M' => 15,  // File PIC
+            'N' => 12,  // Status Aktif
+            'O' => 15,  // Status STNK
+        ];
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function(AfterSheet $event) {
+                $event->sheet->getStyle('A1:O1')->getAlignment()->setHorizontal('center');
+                $event->sheet->getStyle('A1:O1')->getAlignment()->setVertical('center');
+                
+                // Add border to all cells
+                $event->sheet->getStyle('A1:O' . ($event->sheet->getHighestRow()))
+                    ->getBorders()
+                    ->getAllBorders()
+                    ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+            },
         ];
     }
 }

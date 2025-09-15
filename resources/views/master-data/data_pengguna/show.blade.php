@@ -13,7 +13,7 @@
                 <i class="fas fa-edit"></i>
                 Edit
             </a>
-            <a href="{{ route('master-data.data_pengguna') }}" 
+            <a href="{{ route('master-data.data_pengguna.index') }}" 
                class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium px-4 py-2 rounded-lg transition">
                 <i class="fas fa-arrow-left"></i>
                 Kembali
@@ -87,6 +87,11 @@
                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#14AE5C] hover:bg-[#11994F] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#14AE5C]">
                             <i class="fas fa-edit mr-2"></i>
                             Edit Data
+                        </a>
+                        <a href="{{ route('master-data.data_pengguna.print') }}" 
+                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                            <i class="fas fa-print mr-2"></i>
+                            Cetak
                         </a>
                         <form action="{{ route('master-data.data_pengguna.destroy', $pengguna->id) }}" method="POST" 
                               onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?');" class="inline">

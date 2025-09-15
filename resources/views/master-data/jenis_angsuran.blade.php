@@ -27,8 +27,80 @@
 </style>
 
 <div class="px-1 justify-center flex flex-col">
+    <!-- Header Section -->
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Jenis Angsuran</h1>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Jenis Angsuran</h1>
+            <p class="text-sm text-gray-600 mt-1">Kelola data jenis angsuran koperasi</p>
+        </div>
+        <div class="flex space-x-3">
+            <a href="{{ route('master-data.jenis_angsuran.create') }}" 
+               class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                <i class="fas fa-plus"></i>
+                <span>Tambah Data</span>
+            </a>
+            <a href="{{ route('master-data.jenis_angsuran.export', request()->query()) }}" 
+               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                <i class="fas fa-download"></i>
+                <span>Export Excel</span>
+            </a>
+            <a href="{{ route('master-data.jenis_angsuran.print') }}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                <i class="fas fa-print"></i>
+                <span>Cetak</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium">Total Jenis Angsuran</p>
+                    <p class="text-2xl font-bold">{{ $totalAngsuran ?? 0 }}</p>
+                </div>
+                <div class="bg-green-400 bg-opacity-30 rounded-full p-3">
+                    <i class="fas fa-calendar-alt text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium">Aktif</p>
+                    <p class="text-2xl font-bold">{{ $totalAktif ?? 0 }}</p>
+                </div>
+                <div class="bg-blue-400 bg-opacity-30 rounded-full p-3">
+                    <i class="fas fa-check-circle text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-orange-100 text-sm font-medium">Tidak Aktif</p>
+                    <p class="text-2xl font-bold">{{ $totalTidakAktif ?? 0 }}</p>
+                </div>
+                <div class="bg-orange-400 bg-opacity-30 rounded-full p-3">
+                    <i class="fas fa-times-circle text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm font-medium">Jangka Pendek</p>
+                    <p class="text-2xl font-bold">{{ $totalPendek ?? 0 }}</p>
+                </div>
+                <div class="bg-purple-400 bg-opacity-30 rounded-full p-3">
+                    <i class="fas fa-clock text-xl"></i>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Collapsible Header -->
@@ -38,14 +110,14 @@
                 <i class="fas fa-filter text-[#14AE5C] mr-3"></i>
                 <span class="font-semibold text-gray-700">Filter & Pencarian</span>
             </div>
-            <i id="collapsible-icon" class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+            <i id="collapsible-icon" class="fas fa-chevron-down text-gray-500 transition-transform {{ request()->hasAny(['search', 'status_aktif', 'kategori', 'min_bulan', 'max_bulan']) ? 'rotate-180' : '' }}"></i>
         </button>
         
         <!-- Collapsible Content -->
-        <div id="collapsible-content" class="space-y-4 p-4 border-t" style="display: none;">
+        <div id="collapsible-content" class="space-y-4 p-4 border-t {{ request()->hasAny(['search', 'status_aktif', 'kategori', 'min_bulan', 'max_bulan']) ? '' : 'hidden' }}">
             <!-- Filter Section -->
             <div class="bg-gray-50 rounded-lg p-4">
-                <form method="GET" action="{{ route('master-data.jenis_angsuran') }}" class="flex flex-wrap gap-4 items-end">
+                <form method="GET" action="{{ route('master-data.jenis_angsuran.index') }}" class="flex flex-wrap gap-4 items-end">
                     <div class="flex-1 min-w-[200px]">
                         <label for="search" class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="fas fa-search mr-2"></i>Pencarian
@@ -97,7 +169,7 @@
                         <button type="submit" class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#11994F] transition-colors duration-200">
                             <i class="fas fa-search mr-2"></i>Filter
                         </button>
-                        <a href="{{ route('master-data.jenis_angsuran') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
+                        <a href="{{ route('master-data.jenis_angsuran.index') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
                             <i class="fas fa-refresh mr-2"></i>Reset
                         </a>
                     </div>
@@ -114,26 +186,14 @@
         </div>
         @endif
 
-        <div class="p-4 border-b">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div class="flex items-center gap-2">
-                    <a href="{{ route('master-data.jenis_angsuran.create') }}"
-                        class="inline-flex items-center gap-2 bg-green-100 hover:bg-green-200 text-green-800 text-sm font-medium px-4 py-2 rounded-lg transition">
-                        <i class="fa-solid fa-plus fa-xs"></i>
-                        Tambah Jenis Angsuran
-                    </a>
-                </div>
-                <div class="flex flex-col md:flex-row md:items-center gap-2 md:ml-auto">
-                    <a href="{{ route('master-data.jenis_angsuran.export') }}"
-                        class="flex items-center gap-2 bg-green-100 p-2 rounded-lg border-2 border-green-400 hover:bg-green-200 transition">
-                        <img src="{{ asset('img/icons-bootstrap/export/cloud-download.svg') }}" class="h-5 w-5" alt="Export Excel">
-                        <span class="text-sm">Export Excel</span>
-                    </a>
-                    <a href="{{ route('master-data.jenis_angsuran.template') }}"
-                        class="flex items-center gap-2 bg-blue-100 p-2 rounded-lg border-2 border-blue-400 hover:bg-blue-200 transition">
-                        <i class="fas fa-download text-blue-600"></i>
-                        <span class="text-sm">Template</span>
-                    </a>
+        <!-- Table Header with Actions -->
+        <div class="px-6 py-4 border-b bg-gray-50">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-900">Daftar Jenis Angsuran</h3>
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-500">
+                        Total: {{ $jnsAngsuran->total() }} data
+                    </span>
                 </div>
             </div>
         </div>

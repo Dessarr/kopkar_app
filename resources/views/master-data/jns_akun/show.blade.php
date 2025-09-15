@@ -6,15 +6,31 @@
 @section('content')
 <div class="px-1 justify-center flex flex-col">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Detail Jenis Akun</h1>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Detail Jenis Akun</h1>
+            <p class="text-gray-600 mt-1">Informasi lengkap jenis akun {{ $akun->kd_aktiva }}</p>
+        </div>
         <div class="flex space-x-2">
             <a href="{{ route('master-data.jns_akun.edit', $akun->id) }}" 
-               class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
-                <i class="fas fa-edit mr-2"></i>Edit
+               class="inline-flex items-center gap-2 bg-green-100 hover:bg-green-200 text-green-800 text-sm font-medium px-4 py-2 rounded-lg transition">
+                <i class="fas fa-edit"></i>
+                Edit
             </a>
-            <a href="{{ route('master-data.jns_akun') }}" 
-               class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
-                <i class="fas fa-arrow-left mr-2"></i>Kembali
+            <form action="{{ route('master-data.jns_akun.destroy', $akun->id) }}" method="POST" 
+                  onsubmit="return confirm('Apakah Anda yakin ingin menghapus data jenis akun \'{{ $akun->kd_aktiva }}\'? Tindakan ini tidak dapat dibatalkan!');" 
+                  class="inline">
+                @csrf
+                @method('DELETE')
+                <button type="submit" 
+                        class="inline-flex items-center gap-2 bg-red-100 hover:bg-red-200 text-red-800 text-sm font-medium px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-trash"></i>
+                    Hapus
+                </button>
+            </form>
+            <a href="{{ route('master-data.jns_akun.index') }}" 
+               class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium px-4 py-2 rounded-lg transition">
+                <i class="fas fa-arrow-left"></i>
+                Kembali
             </a>
         </div>
     </div>
@@ -133,6 +149,25 @@
                         <div class="text-sm opacity-90">Jenis Transaksi</div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end space-x-4 pt-6 border-t mt-6">
+                <a href="{{ route('master-data.jns_akun.index') }}" 
+                   class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Kembali ke Daftar
+                </a>
+                <a href="{{ route('master-data.jns_akun.edit', $akun->id) }}" 
+                   class="px-6 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#11994F] transition-colors">
+                    <i class="fas fa-edit mr-2"></i>
+                    Edit Data
+                </a>
+                <a href="{{ route('master-data.jns_akun.print') }}" 
+                   class="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-print mr-2"></i>
+                    Cetak
+                </a>
             </div>
         </div>
     </div>

@@ -173,4 +173,14 @@ class tbl_mobil extends Model
     {
         return $query->orderBy('nama');
     }
+
+    public function kas()
+    {
+        return $this->belongsTo(NamaKasTbl::class, 'kas_id', 'id');
+    }
+
+    public function cabang()
+    {
+        return $this->belongsTo(Cabang::class, 'cabang_id', 'id');
+    }
 }

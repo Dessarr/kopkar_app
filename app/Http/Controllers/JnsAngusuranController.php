@@ -35,7 +35,15 @@ class JnsAngusuranController extends Controller
 
         $jnsAngsuran = $query->ordered()->paginate(10);
 
-        return view('master-data.jenis_angsuran', compact('jnsAngsuran'));
+        // Calculate statistics
+        $totalAngsuran = jns_angsuran::count();
+        $totalAktif = jns_angsuran::where('aktif', 'Y')->count();
+        $totalTidakAktif = jns_angsuran::where('aktif', 'T')->count();
+        $totalPendek = jns_angsuran::where('ket', '<=', 6)->count();
+        $totalMenengah = jns_angsuran::whereBetween('ket', [7, 24])->count();
+        $totalPanjang = jns_angsuran::where('ket', '>', 24)->count();
+
+        return view('master-data.jenis_angsuran', compact('jnsAngsuran', 'totalAngsuran', 'totalAktif', 'totalTidakAktif', 'totalPendek', 'totalMenengah', 'totalPanjang'));
     }
 
     public function create()
@@ -52,7 +60,7 @@ class JnsAngusuranController extends Controller
 
         jns_angsuran::create($request->all());
 
-        return redirect()->route('master-data.jenis_angsuran')
+        return redirect()->route('master-data.jenis_angsuran.index')
             ->with('success', 'Jenis angsuran berhasil ditambahkan.');
     }
 
@@ -79,7 +87,7 @@ class JnsAngusuranController extends Controller
 
         $angsuran->update($request->all());
 
-        return redirect()->route('master-data.jenis_angsuran')
+        return redirect()->route('master-data.jenis_angsuran.index')
             ->with('success', 'Jenis angsuran berhasil diupdate.');
     }
 
@@ -88,7 +96,7 @@ class JnsAngusuranController extends Controller
         $angsuran = jns_angsuran::findOrFail($id);
         $angsuran->delete();
 
-        return redirect()->route('master-data.jenis_angsuran')
+        return redirect()->route('master-data.jenis_angsuran.index')
             ->with('success', 'Jenis angsuran berhasil dihapus.');
     }
 
@@ -108,12 +116,18 @@ class JnsAngusuranController extends Controller
 
         Excel::import(new JnsAngsuranImport, $request->file('file'));
 
-        return redirect()->route('master-data.jenis_angsuran')
+        return redirect()->route('master-data.jenis_angsuran.index')
             ->with('success', 'Jenis angsuran berhasil diimport.');
     }
 
     public function downloadTemplate()
     {
         return Excel::download(new JnsAngsuranExport(), 'template_jenis_angsuran.xlsx');
+    }
+
+    public function print()
+    {
+        $jnsAngsuran = jns_angsuran::orderBy('ket')->get();
+        return view('master-data.jenis_angsuran.print', compact('jnsAngsuran'));
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\data_anggota;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\AnggotaExport;
 
@@ -14,129 +15,145 @@ class DtaAnggotaController extends Controller
         $query = data_anggota::query();
 
         // Handle search
-        if ($request->has('search')) {
+        if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('nama', 'like', '%' . $search . '%')
                   ->orWhere('no_ktp', 'like', '%' . $search . '%')
-                  ->orWhere('departement', 'like', '%' . $search . '%');
+                  ->orWhere('departement', 'like', '%' . $search . '%')
+                  ->orWhere('kota', 'like', '%' . $search . '%');
             });
         }
 
-        // Tampilkan anggota aktif
-        $dataAnggota = $query->where('aktif', 'Y')->orderBy('nama')->paginate(10);
+        // Hanya tampilkan anggota aktif
+        $query->where('aktif', 'Y');
 
-        // Tampilkan anggota tidak aktif jika diminta
-        $dataAnggotaNonAktif = data_anggota::where('aktif', 'N')->orderBy('nama')->paginate(10, ['*'], 'nonaktif');
+        // Handle jenis kelamin filter
+        if ($request->has('jenis_kelamin') && $request->jenis_kelamin) {
+            $query->where('jk', $request->jenis_kelamin);
+        }
 
-        return view('master-data.data_anggota', compact('dataAnggota', 'dataAnggotaNonAktif'));
+        // Handle departement filter
+        if ($request->has('departement') && $request->departement) {
+            $query->where('departement', $request->departement);
+        }
+
+        // Handle kota filter
+        if ($request->has('kota') && $request->kota) {
+            $query->where('kota', $request->kota);
+        }
+
+        // Get data with pagination
+        $dataAnggota = $query->orderBy('nama')->paginate(10)->withQueryString();
+
+        // Get unique values for filter dropdowns
+        $departements = data_anggota::distinct()->pluck('departement')->filter()->sort()->values();
+        $kotas = data_anggota::distinct()->pluck('kota')->filter()->sort()->values();
+
+
+        // Calculate statistics for summary cards
+        $totalAnggota = data_anggota::count();
+        $totalAktif = data_anggota::where('aktif', 'Y')->count();
+        $totalLakiLaki = data_anggota::where('jk', 'L')->count();
+        $totalPerempuan = data_anggota::where('jk', 'P')->count();
+
+        // Debug: Log filter parameters
+        \Log::info('Filter Parameters:', [
+            'search' => $request->search,
+            'status_aktif' => $request->status_aktif,
+            'jenis_kelamin' => $request->jenis_kelamin,
+            'departement' => $request->departement,
+            'kota' => $request->kota,
+            'total_results' => $dataAnggota->total(),
+            'total_anggota' => $totalAnggota,
+            'total_aktif' => $totalAktif,
+            'total_laki' => $totalLakiLaki,
+            'total_perempuan' => $totalPerempuan
+        ]);
+
+        return view('master-data.data_anggota', compact(
+            'dataAnggota', 
+            'departements', 
+            'kotas',
+            'totalAnggota',
+            'totalAktif', 
+            'totalLakiLaki',
+            'totalPerempuan'
+        ));
     }
 
     public function show($id)
     {
         $anggota = data_anggota::findOrFail($id);
-        return view('master-data.show_data_anggota', compact('anggota'));
+        return view('master-data.data_anggota.show', compact('anggota'));
     }
 
     public function create()
     {
-        // Hitung ID Koperasi otomatis berikutnya
-        $currentYear = date('Y');
-        $currentMonth = date('m');
-        $yearMonth = $currentYear . $currentMonth;
-        $lastAnggota = data_anggota::where('no_ktp', 'like', $yearMonth . '%')
-            ->orderBy('no_ktp', 'desc')
-            ->first();
-        if ($lastAnggota) {
-            $lastNumber = (int) substr($lastAnggota->no_ktp, -4);
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        $no_ktp_auto = $yearMonth . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
-        return view('layouts.form.add_data_anggota', compact('no_ktp_auto'));
+        // Generate ID Anggota otomatis
+        $id_anggota_auto = $this->generateIdAnggota();
+        
+        return view('master-data.data_anggota.create', compact('id_anggota_auto'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            'jk' => 'required|in:L,P',
-            'tmp_lahir' => 'required|string|max:255',
-            'tgl_lahir' => 'required|date',
-            'status' => 'required|string|max:255',
-            'agama' => 'required|string|max:255',
-            'departement' => 'required|string|max:255',
-            'pekerjaan' => 'required|string|max:255',
-            'alamat' => 'required|string',
-            'kota' => 'required|string|max:255',
-            'notelp' => 'required|string|max:20',
-            'file_pic' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'bank' => 'required|string|max:255',
-            'nama_pemilik_rekening' => 'required|string|max:255',
-            'no_rekening' => 'required|string|max:255',
-            'simpanan_wajib' => 'required|string',
-            'simpanan_sukarela' => 'required|string',
-            'simpanan_khusus_2' => 'required|string'
+            'identitas' => 'required|string|max:255',
+            'jk' => 'nullable|in:L,P',
+            'tmp_lahir' => 'nullable|string|max:225',
+            'tgl_lahir' => 'nullable|date',
+            'status' => 'nullable|string|max:30',
+            'agama' => 'nullable|string|max:30',
+            'departement' => 'nullable|string|max:255',
+            'pekerjaan' => 'nullable|string|max:30',
+            'alamat' => 'nullable|string',
+            'kota' => 'nullable|string|max:255',
+            'notelp' => 'nullable|string|max:12',
+            'file_pic' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'bank' => 'nullable|string|max:50',
+            'nama_pemilik_rekening' => 'nullable|string|max:150',
+            'no_rekening' => 'nullable|string|max:50',
+            'simpanan_wajib' => 'required|numeric|min:0',
+            'simpanan_sukarela' => 'required|numeric|min:0',
+            'simpanan_khusus_2' => 'required|numeric|min:0',
+            'aktif' => 'nullable|in:Y,N',
+            'status_bayar' => 'nullable|in:Belum Lunas,Lunas'
         ]);
 
-        // Clean and convert simpanan values
-        $validated['simpanan_wajib'] = (int) str_replace([',', '.'], '', $request->simpanan_wajib);
-        $validated['simpanan_sukarela'] = (int) str_replace([',', '.'], '', $request->simpanan_sukarela);
-        $validated['simpanan_khusus_2'] = (int) str_replace([',', '.'], '', $request->simpanan_khusus_2);
+        // Generate ID Anggota otomatis
+        $validated['no_ktp'] = $this->generateIdAnggota();
 
-        // Generate ID Koperasi otomatis
-        $currentYear = date('Y');
-        $currentMonth = date('m');
-        $yearMonth = $currentYear . $currentMonth;
-        
-        // Cari nomor urut terakhir untuk bulan ini
-        $lastAnggota = data_anggota::where('no_ktp', 'like', $yearMonth . '%')
-            ->orderBy('no_ktp', 'desc')
-            ->first();
-        
-        if ($lastAnggota) {
-            $lastNumber = (int) substr($lastAnggota->no_ktp, -4);
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        
-        $validated['no_ktp'] = $yearMonth . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
-
-        // Set nilai yang tidak diinput
-        $validated['identitas'] = $validated['nama'];
-        $validated['tgl_daftar'] = date('Y-m-d');
-        $validated['jabatan_id'] = 2;
-        $validated['aktif'] = 1;
-        $validated['pass_word'] = bcrypt($validated['no_ktp']);
-        $validated['id_tagihan'] = null;
-        $validated['jns_trans'] = null;
-        $validated['id_cabang'] = null;
-
-        if($request->hasFile('file_pic')) {
+        // Handle file upload
+        if ($request->hasFile('file_pic')) {
             $file = $request->file('file_pic');
-            $extension = $file->getClientOriginalExtension();
-            $filename = $validated['no_ktp'] . ' - photo.' . $extension;
-            
-            // Pastikan direktori ada
-            Storage::disk('public')->makeDirectory('anggota');
-            
-            // Simpan file
-            Storage::disk('public')->putFileAs('anggota', $file, $filename);
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->storeAs('public/anggota', $filename);
             $validated['file_pic'] = $filename;
         }
 
+        // Set default values
+        $validated['aktif'] = $request->aktif ?? 'Y';
+        $validated['tgl_daftar'] = $request->tgl_daftar ?? now()->format('Y-m-d');
+        $validated['jabatan_id'] = $request->jabatan_id ?? 1;
+        $validated['id_tagihan'] = $request->id_tagihan ?? '';
+        $validated['jns_trans'] = $request->jns_trans ?? '';
+        $validated['status_bayar'] = $request->status_bayar ?? 'Belum Lunas';
+        $validated['id_cabang'] = $request->id_cabang ?? '';
+        $validated['username'] = $request->username ?? '';
+        $validated['pass_word'] = $request->pass_word ?? '';
+
         data_anggota::create($validated);
 
-        return redirect()->route('master-data.data_anggota')
+        return redirect()->route('master-data.data_anggota.index')
             ->with('success', 'Data anggota berhasil ditambahkan');
     }
 
     public function edit($id)
     {
         $anggota = data_anggota::findOrFail($id);
-        return view('layouts.form.edit_data_anggota', compact('anggota'));
+        return view('master-data.data_anggota.edit', compact('anggota'));
     }
 
     public function update(Request $request, $id)
@@ -145,58 +162,44 @@ class DtaAnggotaController extends Controller
         
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            'jk' => 'required|in:L,P',
-            'tmp_lahir' => 'required|string|max:255',
-            'tgl_lahir' => 'required|date',
-            'status' => 'required|string|max:255',
-            'agama' => 'required|string|max:255',
-            'departement' => 'required|string|max:255',
-            'pekerjaan' => 'required|string|max:255',
-            'alamat' => 'required|string',
-            'kota' => 'required|string|max:255',
-            'notelp' => 'required|string|max:20',
-            'file_pic' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'bank' => 'required|string|max:255',
-            'nama_pemilik_rekening' => 'required|string|max:255',
-            'no_rekening' => 'required|string|max:255',
-            'simpanan_wajib' => 'required|string',
-            'simpanan_sukarela' => 'required|string',
-            'simpanan_khusus_2' => 'required|string',
-            'aktif' => 'required|in:1,0',
+            'identitas' => 'required|string|max:255',
+            'jk' => 'nullable|in:L,P',
+            'tmp_lahir' => 'nullable|string|max:225',
+            'tgl_lahir' => 'nullable|date',
+            'status' => 'nullable|string|max:30',
+            'agama' => 'nullable|string|max:30',
+            'departement' => 'nullable|string|max:255',
+            'pekerjaan' => 'nullable|string|max:30',
+            'alamat' => 'nullable|string',
+            'kota' => 'nullable|string|max:255',
+            'notelp' => 'nullable|string|max:12',
+            'file_pic' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'bank' => 'nullable|string|max:50',
+            'nama_pemilik_rekening' => 'nullable|string|max:150',
+            'no_rekening' => 'nullable|string|max:50',
+            'simpanan_wajib' => 'required|numeric|min:0',
+            'simpanan_sukarela' => 'required|numeric|min:0',
+            'simpanan_khusus_2' => 'required|numeric|min:0',
+            'aktif' => 'required|in:Y,N',
+            'status_bayar' => 'nullable|in:Belum Lunas,Lunas'
         ]);
 
-        // Konversi nilai aktif menjadi 'Y' atau 'N'
-        $validated['aktif'] = $request->aktif == '1' ? 'Y' : 'N';
-
-        // Clean and convert simpanan values - remove thousand separators and convert to integer
-        $validated['simpanan_wajib'] = (int) str_replace([',', '.'], '', $request->simpanan_wajib);
-        $validated['simpanan_sukarela'] = (int) str_replace([',', '.'], '', $request->simpanan_sukarela);
-        $validated['simpanan_khusus_2'] = (int) str_replace([',', '.'], '', $request->simpanan_khusus_2);
-
-        // Set nilai yang tidak diinput
-        $validated['identitas'] = $validated['nama'];
-
-        if($request->hasFile('file_pic')) {
+        // Handle file upload
+        if ($request->hasFile('file_pic')) {
             // Hapus file lama jika ada
             if($anggota->file_pic && Storage::disk('public')->exists('anggota/' . $anggota->file_pic)) {
                 Storage::disk('public')->delete('anggota/' . $anggota->file_pic);
             }
             
             $file = $request->file('file_pic');
-            $extension = $file->getClientOriginalExtension();
-            $filename = $anggota->no_ktp . ' - photo.' . $extension;
-            
-            // Pastikan direktori ada
-            Storage::disk('public')->makeDirectory('anggota');
-            
-            // Simpan file
-            Storage::disk('public')->putFileAs('anggota', $file, $filename);
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->storeAs('public/anggota', $filename);
             $validated['file_pic'] = $filename;
         }
 
         $anggota->update($validated);
 
-        return redirect()->route('master-data.data_anggota')
+        return redirect()->route('master-data.data_anggota.index')
             ->with('success', 'Data anggota berhasil diperbarui');
     }
 
@@ -211,7 +214,7 @@ class DtaAnggotaController extends Controller
         
         $anggota->delete();
 
-        return redirect()->route('master-data.data_anggota')
+        return redirect()->route('master-data.data_anggota.index')
             ->with('success', 'Data anggota berhasil dihapus');
     }
 
@@ -222,19 +225,36 @@ class DtaAnggotaController extends Controller
         return Excel::download(new AnggotaExport, $fileName);
     }
 
-    public function nonaktif(Request $request)
+
+    public function print()
     {
-        $query = data_anggota::query();
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('nama', 'like', '%' . $search . '%')
-                  ->orWhere('no_ktp', 'like', '%' . $search . '%')
-                  ->orWhere('departement', 'like', '%' . $search . '%');
-            });
+        $dataAnggota = data_anggota::where('aktif', 'Y')->orderBy('nama')->get();
+        return view('master-data.data_anggota.print', compact('dataAnggota'));
+    }
+
+    /**
+     * Generate ID Anggota otomatis dengan format: YYYYMMNNNN
+     * Contoh: 2025090004 (2025 September anggota ke 4)
+     */
+    private function generateIdAnggota()
+    {
+        $tahun = date('Y');
+        $bulan = date('m');
+        
+        // Ambil nomor urut terakhir untuk bulan ini
+        $lastAnggota = data_anggota::where('no_ktp', 'like', $tahun . $bulan . '%')
+            ->orderBy('no_ktp', 'desc')
+            ->first();
+        
+        if ($lastAnggota) {
+            // Extract nomor urut dari ID terakhir
+            $lastNumber = (int) substr($lastAnggota->no_ktp, -4);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            $nextNumber = 1;
         }
-        $dataAnggotaNonAktif = $query->where('aktif', 'N')->orderBy('nama')->paginate(10, ['*'], 'nonaktif');
-        $tab = 'nonaktif';
-        return view('master-data.data_anggota_nonaktif', compact('dataAnggotaNonAktif', 'tab'));
+        
+        // Format: YYYYMMNNNN
+        return $tahun . $bulan . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 }

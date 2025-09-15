@@ -50,7 +50,32 @@ class DtaBarangController extends Controller
         $merks = tbl_barang::distinct()->pluck('merk')->filter()->sort()->values();
         $cabangs = tbl_barang::distinct()->pluck('id_cabang')->filter()->sort()->values();
 
-        return view('master-data.data_barang', compact('dataBarang', 'types', 'merks', 'cabangs'));
+        // Get all data for summary cards (without pagination)
+        $allDataBarang = tbl_barang::query();
+        
+        // Apply same filters for summary
+        if ($request->filled('search')) {
+            $allDataBarang->search($request->search);
+        }
+        if ($request->filled('type')) {
+            $allDataBarang->byType($request->type);
+        }
+        if ($request->filled('merk')) {
+            $allDataBarang->byMerk($request->merk);
+        }
+        if ($request->filled('cabang')) {
+            $allDataBarang->byCabang($request->cabang);
+        }
+        if ($request->filled('status_stok')) {
+            $allDataBarang->byStatusStok($request->status_stok);
+        }
+        if ($request->filled('harga_min') && $request->filled('harga_max')) {
+            $allDataBarang->byHargaRange($request->harga_min, $request->harga_max);
+        }
+        
+        $allDataBarang = $allDataBarang->get();
+
+        return view('master-data.data_barang', compact('dataBarang', 'allDataBarang', 'types', 'merks', 'cabangs'));
     }
 
     public function create()
@@ -72,7 +97,7 @@ class DtaBarangController extends Controller
 
         tbl_barang::create($request->all());
 
-        return redirect()->route('master-data.data_barang')
+        return redirect()->route('master-data.data_barang.index')
             ->with('success', 'Data barang berhasil ditambahkan.');
     }
 
@@ -104,7 +129,7 @@ class DtaBarangController extends Controller
 
         $barang->update($request->all());
 
-        return redirect()->route('master-data.data_barang')
+        return redirect()->route('master-data.data_barang.index')
             ->with('success', 'Data barang berhasil diupdate.');
     }
 
@@ -113,7 +138,7 @@ class DtaBarangController extends Controller
         $barang = tbl_barang::findOrFail($id);
         $barang->delete();
 
-        return redirect()->route('master-data.data_barang')
+        return redirect()->route('master-data.data_barang.index')
             ->with('success', 'Data barang berhasil dihapus.');
     }
 
@@ -133,12 +158,19 @@ class DtaBarangController extends Controller
 
         Excel::import(new TblBarangImport, $request->file('file'));
 
-        return redirect()->route('master-data.data_barang')
+        return redirect()->route('master-data.data_barang.index')
             ->with('success', 'Data barang berhasil diimport.');
     }
 
     public function downloadTemplate()
     {
         return Excel::download(new TblBarangExport(), 'template_data_barang.xlsx');
+    }
+
+    public function print()
+    {
+        $dataBarang = tbl_barang::orderBy('nm_barang')->get();
+        
+        return view('master-data.data_barang.print', compact('dataBarang'));
     }
 }

@@ -4,31 +4,13 @@
 @section('sub-title', 'Master Data Mobil')
 
 @section('content')
-<style>
-.expandable-row {
-    transition: all 0.3s ease-in-out;
-}
-
-.expandable-row:hover {
-    padding-top: 1rem;
-    padding-bottom: 1rem;
-    background-color: rgb(249 250 251);
-}
-
-.expandable-content {
-    transition: all 0.3s ease-in-out;
-    max-height: 1.5rem;
-    overflow: hidden;
-}
-
-.expandable-row:hover .expandable-content {
-    max-height: 100px;
-}
-</style>
 
 <div class="px-1 justify-center flex flex-col">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Data Mobil</h1>
+        <div>
+            <h1 class="text-2xl font-bold">Data Mobil</h1>
+            <p class="text-gray-600 mt-1">Kelola data kendaraan dan informasi mobil</p>
+        </div>
     </div>
 
     <!-- Collapsible Header -->
@@ -45,7 +27,7 @@
         <div id="collapsible-content" class="space-y-4 p-4 border-t" style="display: none;">
             <!-- Filter Section -->
             <div class="bg-gray-50 rounded-lg p-4">
-                <form method="GET" action="{{ route('master-data.data_mobil') }}" class="flex flex-wrap gap-4 items-end">
+                <form method="GET" action="{{ route('master-data.data_mobil.index') }}" class="flex flex-wrap gap-4 items-end">
                     <div class="flex-1 min-w-[200px]">
                         <label for="search" class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="fas fa-search mr-2"></i>Pencarian
@@ -141,7 +123,7 @@
                         <button type="submit" class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#11994F] transition-colors duration-200">
                             <i class="fas fa-search mr-2"></i>Filter
                         </button>
-                        <a href="{{ route('master-data.data_mobil') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
+                        <a href="{{ route('master-data.data_mobil.index') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
                             <i class="fas fa-refresh mr-2"></i>Reset
                         </a>
                     </div>
@@ -150,11 +132,70 @@
         </div>
     </div>
 
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                    <i class="fas fa-car text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Total Data Mobil</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ $allDataMobil->count() }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+                    <i class="fas fa-check-circle text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Aktif</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ $allDataMobil->where('aktif', 'Y')->count() }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+                    <i class="fas fa-star text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Berlaku STNK</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ $allDataMobil->where('status_stnk', 'masih_berlaku')->count() }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
+                    <i class="fas fa-cog text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Rata-rata Tahun</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ $allDataMobil->whereNotNull('tahun')->avg('tahun') ? number_format($allDataMobil->whereNotNull('tahun')->avg('tahun'), 1) : '0' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tabel Data -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
         @if(session('success'))
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
+            <i class="fas fa-check-circle mr-2"></i>
             {{ session('success') }}
+        </div>
+        @endif
+
+        @if(session('error'))
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            {{ session('error') }}
         </div>
         @endif
 
@@ -162,21 +203,26 @@
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div class="flex items-center gap-2">
                     <a href="{{ route('master-data.data_mobil.create') }}"
-                        class="inline-flex items-center gap-2 bg-green-100 hover:bg-green-200 text-green-800 text-sm font-medium px-4 py-2 rounded-lg transition">
+                        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
                         <i class="fa-solid fa-plus fa-xs"></i>
-                        Tambah Mobil
+                        Tambah Data
                     </a>
                 </div>
                 <div class="flex flex-col md:flex-row md:items-center gap-2 md:ml-auto">
                     <a href="{{ route('master-data.data_mobil.export') }}"
-                        class="flex items-center gap-2 bg-green-100 p-2 rounded-lg border-2 border-green-400 hover:bg-green-200 transition">
-                        <img src="{{ asset('img/icons-bootstrap/export/cloud-download.svg') }}" class="h-5 w-5" alt="Export Excel">
-                        <span class="text-sm">Export Excel</span>
+                        class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+                        <i class="fas fa-file-excel"></i>
+                        Export Excel
                     </a>
                     <a href="{{ route('master-data.data_mobil.template') }}"
-                        class="flex items-center gap-2 bg-blue-100 p-2 rounded-lg border-2 border-blue-400 hover:bg-blue-200 transition">
-                        <i class="fas fa-download text-blue-600"></i>
-                        <span class="text-sm">Template</span>
+                        class="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+                        <i class="fas fa-download"></i>
+                        Import Excel
+                    </a>
+                    <a href="{{ route('master-data.data_mobil.print') }}"
+                        class="inline-flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+                        <i class="fas fa-print"></i>
+                        Cetak
                     </a>
                 </div>
             </div>
@@ -195,20 +241,17 @@
                         <th class="px-4 py-3 border-b text-center">No Polisi</th>
                         <th class="px-4 py-3 border-b text-center">Status Aktif</th>
                         <th class="px-4 py-3 border-b text-center">Status STNK</th>
-                        <th class="px-4 py-3 border-b text-center w-32">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
                     @forelse($dataMobil as $mobil)
-                    <tr class="expandable-row">
+                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location.href='{{ route('master-data.data_mobil.show', $mobil->id) }}'">
                         <td class="px-4 py-3 text-center text-sm">
                             {{ ($dataMobil->currentPage() - 1) * $dataMobil->perPage() + $loop->iteration }}
                         </td>
                         <td class="px-4 py-3 text-center text-sm font-mono">{{ $mobil->id }}</td>
-                        <td class="px-4 py-3 text-sm">
-                            <div class="expandable-content">
-                                {{ $mobil->nama }}
-                            </div>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                            {{ $mobil->nama }}
                         </td>
                         <td class="px-4 py-3 text-center text-sm">
                             <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
@@ -236,30 +279,10 @@
                                 {{ $mobil->status_stnk }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div class="flex space-x-2">
-                                <a href="{{ route('master-data.data_mobil.show', $mobil->id) }}"
-                                    class="text-blue-600 hover:text-blue-900" title="Detail">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{{ route('master-data.data_mobil.edit', $mobil->id) }}"
-                                    class="text-green-600 hover:text-green-900" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form action="{{ route('master-data.data_mobil.destroy', $mobil->id) }}" method="POST"
-                                    onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?');" class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900" title="Hapus">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="px-4 py-8 text-center text-gray-500">
+                        <td colspan="9" class="px-4 py-8 text-center text-gray-500">
                             <i class="fas fa-car text-4xl mb-2"></i>
                             <p>Tidak ada data mobil</p>
                         </td>

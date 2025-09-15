@@ -7,7 +7,7 @@
 <div class="px-1 justify-center flex flex-col">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">Tambah Jenis Angsuran</h1>
-        <a href="{{ route('master-data.jenis_angsuran') }}" 
+        <a href="{{ route('master-data.jenis_angsuran.index') }}" 
            class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium px-4 py-2 rounded-lg transition">
             <i class="fas fa-arrow-left"></i>
             Kembali
@@ -62,7 +62,7 @@
 
             <!-- Action Buttons -->
             <div class="flex justify-end gap-3 mt-8 pt-6 border-t">
-                <a href="{{ route('master-data.jenis_angsuran') }}" 
+                <a href="{{ route('master-data.jenis_angsuran.index') }}" 
                    class="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
                     <i class="fas fa-times mr-2"></i>Batal
                 </a>

@@ -6,9 +6,14 @@
 @section('content')
 <div class="px-1 justify-center flex flex-col">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Tambah Jenis Akun</h1>
-        <a href="{{ route('master-data.jns_akun') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
-            <i class="fas fa-arrow-left mr-2"></i>Kembali
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Tambah Jenis Akun</h1>
+            <p class="text-gray-600 mt-1">Tambahkan data jenis akun baru ke sistem</p>
+        </div>
+        <a href="{{ route('master-data.jns_akun.index') }}" 
+           class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium px-4 py-2 rounded-lg transition">
+            <i class="fas fa-arrow-left"></i>
+            Kembali
         </a>
     </div>
 
@@ -145,7 +150,7 @@
 
                 <!-- Tombol Submit -->
                 <div class="mt-8 flex justify-end space-x-3">
-                    <a href="{{ route('master-data.jns_akun') }}" 
+                    <a href="{{ route('master-data.jns_akun.index') }}" 
                        class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
                         Batal
                     </a>

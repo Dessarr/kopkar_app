@@ -63,6 +63,13 @@ class NamaKasTbl extends Model
      */
     protected $dates = ['deleted_at'];
 
+    /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public $timestamps = false;
+
     // Accessors
     public function getStatusAktifTextAttribute()
     {
