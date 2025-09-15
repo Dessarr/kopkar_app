@@ -3,308 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Pembayaran Pinjaman</title>
+    <title>Laporan Pembayaran Pinjaman - {{ $member->nama }}</title>
     <style>
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: Arial, sans-serif;
             font-size: 12px;
-            color: #1f2937;
             line-height: 1.4;
-            margin: 0;
-            padding: 20px;
+            color: #333;
         }
-        
         .header {
             text-align: center;
             margin-bottom: 30px;
-            border-bottom: 2px solid #10b981;
+            border-bottom: 2px solid #333;
             padding-bottom: 20px;
         }
-        
         .header h1 {
-            font-size: 24px;
-            font-weight: bold;
-            color: #10b981;
-            margin: 0 0 10px 0;
-        }
-        
-        .header p {
-            font-size: 14px;
-            color: #6b7280;
             margin: 0;
+            font-size: 24px;
+            color: #2d3748;
         }
-        
-        .member-info {
-            background-color: #f9fafb;
-            padding: 15px;
-            border-radius: 8px;
+        .header p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .info-section {
             margin-bottom: 20px;
         }
-        
-        .member-info h3 {
-            font-size: 16px;
-            font-weight: bold;
-            color: #1f2937;
+        .info-section h3 {
             margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #2d3748;
         }
-        
-        .member-details {
+        .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 20px;
         }
-        
-        .member-details div {
-            font-size: 12px;
+        .info-item {
+            margin-bottom: 8px;
         }
-        
-        .member-details strong {
-            color: #374151;
-        }
-        
-        .period-info {
-            background-color: #ecfdf5;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #10b981;
-        }
-        
-        .period-info h3 {
-            font-size: 16px;
+        .info-label {
             font-weight: bold;
-            color: #10b981;
-            margin: 0 0 10px 0;
+            color: #4a5568;
         }
-        
-        .statistics {
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .table th,
+        .table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .table th {
+            background-color: #f7fafc;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .status-tepat {
+            background-color: #c6f6d5;
+            color: #22543d;
+        }
+        .status-terlambat {
+            background-color: #fed7d7;
+            color: #742a2a;
+        }
+        .summary {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f7fafc;
+            border-radius: 5px;
+        }
+        .summary h3 {
+            margin: 0 0 15px 0;
+            color: #2d3748;
+        }
+        .summary-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 15px;
-            margin-bottom: 30px;
         }
-        
-        .stat-card {
-            background-color: #f9fafb;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid #e5e7eb;
-        }
-        
-        .stat-card h4 {
-            font-size: 12px;
-            color: #6b7280;
-            margin: 0 0 5px 0;
-            font-weight: normal;
-        }
-        
-        .stat-card .value {
-            font-size: 16px;
-            font-weight: bold;
-            color: #1f2937;
-        }
-        
-        .table-container {
-            margin-bottom: 30px;
-        }
-        
-        .table-container h3 {
-            font-size: 16px;
-            font-weight: bold;
-            color: #1f2937;
-            margin: 0 0 15px 0;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 10px;
-        }
-        
-        th {
-            background-color: #10b981;
-            color: white;
-            padding: 8px 6px;
-            text-align: left;
-            font-weight: bold;
-            border: 1px solid #059669;
-        }
-        
-        td {
-            padding: 6px;
-            border: 1px solid #d1d5db;
-            vertical-align: top;
-        }
-        
-        tr:nth-child(even) {
-            background-color: #f9fafb;
-        }
-        
-        .text-right {
-            text-align: right;
-        }
-        
-        .text-center {
+        .summary-item {
             text-align: center;
         }
-        
-        .status-tepat {
-            background-color: #dcfce7;
-            color: #166534;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 9px;
+        .summary-value {
+            font-size: 18px;
             font-weight: bold;
+            color: #2d3748;
         }
-        
-        .status-terlambat {
-            background-color: #fef2f2;
-            color: #dc2626;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 9px;
-            font-weight: bold;
+        .summary-label {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
         }
-        
-        .jenis-biasa {
-            background-color: #dbeafe;
-            color: #1e40af;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 9px;
-            font-weight: bold;
-        }
-        
-        .jenis-barang {
-            background-color: #e9d5ff;
-            color: #7c3aed;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 9px;
-            font-weight: bold;
-        }
-        
         .footer {
-            margin-top: 30px;
+            margin-top: 40px;
             text-align: center;
             font-size: 10px;
-            color: #6b7280;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 15px;
-        }
-        
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #6b7280;
-            font-style: italic;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
         }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>Laporan Pembayaran Pinjaman</h1>
-        <p>Koperasi Karyawan - Sistem Informasi Koperasi</p>
+        <p>{{ $member->nama }} ({{ $member->no_ktp }})</p>
+        <p>Periode: {{ \Carbon\Carbon::parse($tgl_dari)->format('d M Y') }} - {{ \Carbon\Carbon::parse($tgl_samp)->format('d M Y') }}</p>
+        <p>Tanggal Cetak: {{ date('d M Y H:i') }}</p>
     </div>
 
-    <div class="member-info">
+    <div class="info-section">
         <h3>Informasi Anggota</h3>
-        <div class="member-details">
-            <div><strong>Nama:</strong> {{ $member->nama }}</div>
-            <div><strong>No. KTP:</strong> {{ $member->no_ktp }}</div>
-            <div><strong>No. Anggota:</strong> {{ $member->no_anggota ?? '-' }}</div>
-            <div><strong>Alamat:</strong> {{ $member->alamat ?? '-' }}</div>
-        </div>
-    </div>
-
-    <div class="period-info">
-        <h3>Periode Laporan</h3>
-        <div><strong>Dari:</strong> {{ \Carbon\Carbon::parse($tgl_dari)->format('d F Y') }}</div>
-        <div><strong>Sampai:</strong> {{ \Carbon\Carbon::parse($tgl_samp)->format('d F Y') }}</div>
-    </div>
-
-    <div class="statistics">
-        <div class="stat-card">
-            <h4>Total Pembayaran</h4>
-            <div class="value">{{ $statistics['total_pembayaran'] }}</div>
-        </div>
-        <div class="stat-card">
-            <h4>Total Pokok Dibayar</h4>
-            <div class="value">Rp {{ number_format($statistics['total_pokok_dibayar'], 0, ',', '.') }}</div>
-        </div>
-        <div class="stat-card">
-            <h4>Total Bunga Dibayar</h4>
-            <div class="value">Rp {{ number_format($statistics['total_bunga_dibayar'], 0, ',', '.') }}</div>
-        </div>
-        <div class="stat-card">
-            <h4>Total Denda</h4>
-            <div class="value">Rp {{ number_format($statistics['total_denda_dibayar'], 0, ',', '.') }}</div>
-        </div>
-    </div>
-
-    <div class="table-container">
-        <h3>Detail Pembayaran Pinjaman</h3>
-        
-        @if($paymentData->count() > 0)
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 12%;">Tanggal</th>
-                        <th style="width: 15%;">Jenis</th>
-                        <th style="width: 8%;">Angsuran Ke</th>
-                        <th style="width: 10%;">Pokok</th>
-                        <th style="width: 10%;">Jasa</th>
-                        <th style="width: 10%;">Denda</th>
-                        <th style="width: 12%;">Total Bayar</th>
-                        <th style="width: 10%;">Status</th>
-                        <th style="width: 13%;">Keterangan</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($paymentData as $payment)
-                    <tr>
-                        <td>{{ \Carbon\Carbon::parse($payment->tgl_bayar)->format('d/m/Y') }}</td>
-                        <td>
-                            @if($payment->jns_pinjaman == '1')
-                                <span class="jenis-biasa">Pinjaman Biasa</span>
-                            @else
-                                <span class="jenis-barang">Pinjaman Barang</span>
-                            @endif
-                        </td>
-                        <td class="text-center">{{ $payment->angsuran_ke }}</td>
-                        <td class="text-right">Rp {{ number_format($payment->jumlah_bayar, 0, ',', '.') }}</td>
-                        <td class="text-right">Rp {{ number_format($payment->bunga, 0, ',', '.') }}</td>
-                        <td class="text-right">
-                            @if($payment->denda_rp > 0)
-                                Rp {{ number_format($payment->denda_rp, 0, ',', '.') }}
-                            @else
-                                -
-                            @endif
-                        </td>
-                        <td class="text-right">Rp {{ number_format($payment->total_bayar, 0, ',', '.') }}</td>
-                        <td class="text-center">
-                            @if($payment->status_pembayaran == 'Tepat Waktu')
-                                <span class="status-tepat">Tepat Waktu</span>
-                            @else
-                                <span class="status-terlambat">Terlambat</span>
-                            @endif
-                        </td>
-                        <td>{{ $payment->ket_bayar ?? '-' }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @else
-            <div class="no-data">
-                Tidak ada data pembayaran untuk periode yang dipilih.
+        <div class="info-grid">
+            <div>
+                <div class="info-item">
+                    <span class="info-label">Nama:</span> {{ $member->nama }}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">No. KTP:</span> {{ $member->no_ktp }}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Alamat:</span> {{ $member->alamat }}
+                </div>
             </div>
-        @endif
+            <div>
+                <div class="info-item">
+                    <span class="info-label">Departemen:</span> {{ $member->departemen }}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Jabatan:</span> {{ $member->jabatan }}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Status:</span> {{ $member->aktif == 'Y' ? 'Aktif' : 'Tidak Aktif' }}
+                </div>
+            </div>
+        </div>
     </div>
+
+    @if($paymentData->count() > 0)
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Jenis</th>
+                    <th>Angsuran Ke</th>
+                    <th>Pokok</th>
+                    <th>Jasa</th>
+                    <th>Denda</th>
+                    <th>Jumlah Bayar</th>
+                    <th>Status</th>
+                    <th>Keterangan</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($paymentData as $payment)
+                <tr>
+                    <td>{{ \Carbon\Carbon::parse($payment->tgl_bayar)->format('d M Y') }}</td>
+                    <td>{{ $payment->jenis_pinjaman_text }}</td>
+                    <td>{{ $payment->angsuran_ke }}</td>
+                    <td>Rp {{ number_format($payment->jumlah_bayar, 0, ',', '.') }}</td>
+                    <td>Rp {{ number_format($payment->bunga, 0, ',', '.') }}</td>
+                    <td>
+                        @if($payment->denda_rp > 0)
+                            Rp {{ number_format($payment->denda_rp, 0, ',', '.') }}
+                        @else
+                            -
+                        @endif
+                    </td>
+                    <td>Rp {{ number_format($payment->total_bayar, 0, ',', '.') }}</td>
+                    <td>
+                        <span class="status-badge {{ $payment->status_pembayaran == 'Tepat Waktu' ? 'status-tepat' : 'status-terlambat' }}">
+                            {{ $payment->status_pembayaran }}
+                        </span>
+                    </td>
+                    <td>{{ $payment->ket_bayar ?? '-' }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+
+        <div class="summary">
+            <h3>Ringkasan Pembayaran</h3>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-value">{{ $statistics['total_pembayaran'] }}</div>
+                    <div class="summary-label">Total Pembayaran</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">Rp {{ number_format($statistics['total_pokok_dibayar'], 0, ',', '.') }}</div>
+                    <div class="summary-label">Total Pokok Dibayar</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">Rp {{ number_format($statistics['total_bunga_dibayar'], 0, ',', '.') }}</div>
+                    <div class="summary-label">Total Bunga Dibayar</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">Rp {{ number_format($statistics['total_denda_dibayar'], 0, ',', '.') }}</div>
+                    <div class="summary-label">Total Denda</div>
+                </div>
+            </div>
+        </div>
+    @else
+        <div style="text-align: center; padding: 40px; color: #666;">
+            <h3>Tidak ada data pembayaran</h3>
+            <p>Belum ada riwayat pembayaran pinjaman untuk periode yang dipilih.</p>
+        </div>
+    @endif
 
     <div class="footer">
-        <p>Laporan ini dibuat secara otomatis pada {{ now()->format('d F Y H:i:s') }}</p>
-        <p>Koperasi Karyawan - Sistem Informasi Koperasi</p>
+        <p>Dicetak pada {{ date('d M Y H:i:s') }} | Sistem Informasi Koperasi</p>
     </div>
 </body>
 </html>

@@ -45,9 +45,10 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Simpanan</label>
                         <select name="jenis" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="all" {{ $jenis_filter == 'all' ? 'selected' : '' }}>Semua Jenis</option>
-                            <option value="1" {{ $jenis_filter == '1' ? 'selected' : '' }}>Simpanan Wajib</option>
-                            <option value="2" {{ $jenis_filter == '2' ? 'selected' : '' }}>Simpanan Sukarela</option>
-                            <option value="3" {{ $jenis_filter == '3' ? 'selected' : '' }}>Simpanan Khusus</option>
+                            <option value="40" {{ $jenis_filter == '40' ? 'selected' : '' }}>Simpanan Pokok</option>
+                            <option value="41" {{ $jenis_filter == '41' ? 'selected' : '' }}>Simpanan Wajib</option>
+                            <option value="32" {{ $jenis_filter == '32' ? 'selected' : '' }}>Simpanan Sukarela</option>
+                            <option value="52" {{ $jenis_filter == '52' ? 'selected' : '' }}>Simpanan Khusus</option>
                         </select>
                     </div>
                     <div class="flex items-end">
@@ -221,6 +222,7 @@
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                     @if($saving->status_simpanan == 'Wajib') bg-blue-100 text-blue-800
                                     @elseif($saving->status_simpanan == 'Sukarela') bg-green-100 text-green-800
+                                    @elseif($saving->status_simpanan == 'Pokok') bg-yellow-100 text-yellow-800
                                     @else bg-purple-100 text-purple-800 @endif">
                                     <i class="fas fa-check-circle mr-1"></i>
                                     {{ $saving->status_simpanan }}
@@ -280,7 +282,7 @@
                             </div>
                             <div>
                                 <p class="text-sm font-medium text-gray-900">{{ $recent->jenis_simpanan_text }}</p>
-                                <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($recent->tgl_transaksi)->format('d M Y H:i') }}</p>
+                                <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($recent->tgl_transaksi)->format('d M Y H:i:s') }}</p>
                             </div>
                         </div>
                         <div class="text-right">

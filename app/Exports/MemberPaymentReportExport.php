@@ -11,30 +11,29 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class MemberPaymentReportExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths
 {
-    protected $payments;
+    protected $paymentData;
 
-    public function __construct($payments)
+    public function __construct($paymentData)
     {
-        $this->payments = $payments;
+        $this->paymentData = $paymentData;
     }
 
     public function collection()
     {
-        return $this->payments;
+        return $this->paymentData;
     }
 
     public function headings(): array
     {
         return [
-            'Tanggal Pembayaran',
+            'Tanggal',
             'Jenis Pinjaman',
             'Angsuran Ke',
-            'Tanggal Tempo',
             'Pokok (Rp)',
-            'Jasa/Bunga (Rp)',
+            'Jasa (Rp)',
             'Denda (Rp)',
-            'Total Bayar (Rp)',
-            'Status Pembayaran',
+            'Jumlah Bayar (Rp)',
+            'Status',
             'Keterangan'
         ];
     }
@@ -42,14 +41,13 @@ class MemberPaymentReportExport implements FromCollection, WithHeadings, WithMap
     public function map($payment): array
     {
         return [
-            \Carbon\Carbon::parse($payment->tgl_bayar)->format('d/m/Y'),
-            $payment->jns_pinjaman == '1' ? 'Pinjaman Biasa' : 'Pinjaman Barang',
+            \Carbon\Carbon::parse($payment->tgl_bayar)->format('d M Y'),
+            $payment->jenis_pinjaman_text,
             $payment->angsuran_ke,
-            \Carbon\Carbon::parse($payment->tgl_tempo)->format('d/m/Y'),
-            number_format($payment->jumlah_bayar, 0, ',', '.'),
-            number_format($payment->bunga, 0, ',', '.'),
-            number_format($payment->denda_rp, 0, ',', '.'),
-            number_format($payment->total_bayar, 0, ',', '.'),
+            $payment->jumlah_bayar,
+            $payment->bunga,
+            $payment->denda_rp > 0 ? $payment->denda_rp : 0,
+            $payment->total_bayar,
             $payment->status_pembayaran,
             $payment->ket_bayar ?? '-'
         ];
@@ -59,34 +57,22 @@ class MemberPaymentReportExport implements FromCollection, WithHeadings, WithMap
     {
         return [
             // Style the first row as bold text
-            1 => [
-                'font' => [
-                    'bold' => true,
-                    'size' => 12
-                ],
-                'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => [
-                        'rgb' => 'E5E7EB',
-                    ],
-                ],
-            ],
+            1 => ['font' => ['bold' => true]],
         ];
     }
 
     public function columnWidths(): array
     {
         return [
-            'A' => 18, // Tanggal Pembayaran
+            'A' => 15, // Tanggal
             'B' => 20, // Jenis Pinjaman
             'C' => 12, // Angsuran Ke
-            'D' => 18, // Tanggal Tempo
-            'E' => 15, // Pokok
-            'F' => 15, // Jasa/Bunga
-            'G' => 15, // Denda
-            'H' => 18, // Total Bayar
-            'I' => 18, // Status Pembayaran
-            'J' => 25, // Keterangan
+            'D' => 15, // Pokok
+            'E' => 15, // Jasa
+            'F' => 15, // Denda
+            'G' => 18, // Jumlah Bayar
+            'H' => 15, // Status
+            'I' => 25, // Keterangan
         ];
     }
 }

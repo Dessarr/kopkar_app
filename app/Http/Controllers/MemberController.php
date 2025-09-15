@@ -16,6 +16,8 @@ use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Hash as HashFacade;
 use Illuminate\Support\Facades\DB;
+use App\Exports\MemberPaymentReportExport;
+use App\Exports\MemberSavingsReportExport;
 
 
 class MemberController extends Controller
@@ -969,23 +971,23 @@ class MemberController extends Controller
 
     private function getMemberSavingsData($noKtp, $tgl_dari, $tgl_samp, $jenis_filter)
     {
-        $query = \App\Models\TblTransSp::select([
-                'tbl_trans_sp.*',
+        $query = \App\Models\TblTransSps::select([
+                'tbl_trans_sps.*',
                 'jns_simpan.jns_simpan as jenis_simpanan_nama',
                 'jns_simpan.jumlah as jenis_simpanan_jumlah'
             ])
-            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sp.jenis_id')
-            ->where('tbl_trans_sp.no_ktp', $noKtp)
-            ->where('tbl_trans_sp.akun', 'Setoran')
-            ->where('tbl_trans_sp.dk', 'D')
-            ->whereBetween('tbl_trans_sp.tgl_transaksi', [$tgl_dari, $tgl_samp]);
+            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sps.jenis_id')
+            ->where('tbl_trans_sps.no_ktp', $noKtp)
+            ->where('tbl_trans_sps.akun', 'Setoran')
+            ->where('tbl_trans_sps.dk', 'D')
+            ->whereBetween('tbl_trans_sps.tgl_transaksi', [$tgl_dari, $tgl_samp]);
 
         // Apply jenis filter
         if ($jenis_filter !== 'all') {
-            $query->where('tbl_trans_sp.jenis_id', $jenis_filter);
+            $query->where('tbl_trans_sps.jenis_id', $jenis_filter);
         }
 
-        $savings = $query->orderBy('tbl_trans_sp.tgl_transaksi', 'desc')
+        $savings = $query->orderBy('tbl_trans_sps.tgl_transaksi', 'desc')
             ->paginate(15);
 
         // Add calculated fields
@@ -1000,12 +1002,12 @@ class MemberController extends Controller
 
     private function calculateSavingsStatistics($noKtp, $tgl_dari, $tgl_samp)
     {
-        $stats = \App\Models\TblTransSp::select([
+        $stats = \App\Models\TblTransSps::select([
                 \DB::raw('COUNT(*) as total_transaksi'),
-                \DB::raw('SUM(tbl_trans_sp.jumlah) as total_setoran'),
-                \DB::raw('AVG(tbl_trans_sp.jumlah) as rata_rata_setoran'),
-                \DB::raw('MAX(tbl_trans_sp.jumlah) as setoran_terbesar'),
-                \DB::raw('MIN(tbl_trans_sp.jumlah) as setoran_terkecil')
+                \DB::raw('SUM(tbl_trans_sps.jumlah) as total_setoran'),
+                \DB::raw('AVG(tbl_trans_sps.jumlah) as rata_rata_setoran'),
+                \DB::raw('MAX(tbl_trans_sps.jumlah) as setoran_terbesar'),
+                \DB::raw('MIN(tbl_trans_sps.jumlah) as setoran_terkecil')
             ])
             ->where('no_ktp', $noKtp)
             ->where('akun', 'Setoran')
@@ -1014,18 +1016,18 @@ class MemberController extends Controller
             ->first();
 
         // Get breakdown by jenis simpanan
-        $breakdown = \App\Models\TblTransSp::select([
-                'tbl_trans_sp.jenis_id',
+        $breakdown = \App\Models\TblTransSps::select([
+                'tbl_trans_sps.jenis_id',
                 'jns_simpan.jns_simpan',
                 \DB::raw('COUNT(*) as jumlah_transaksi'),
-                \DB::raw('SUM(tbl_trans_sp.jumlah) as total_jumlah')
+                \DB::raw('SUM(tbl_trans_sps.jumlah) as total_jumlah')
             ])
-            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sp.jenis_id')
-            ->where('tbl_trans_sp.no_ktp', $noKtp)
-            ->where('tbl_trans_sp.akun', 'Setoran')
-            ->where('tbl_trans_sp.dk', 'D')
-            ->whereBetween('tbl_trans_sp.tgl_transaksi', [$tgl_dari, $tgl_samp])
-            ->groupBy('tbl_trans_sp.jenis_id', 'jns_simpan.jns_simpan')
+            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sps.jenis_id')
+            ->where('tbl_trans_sps.no_ktp', $noKtp)
+            ->where('tbl_trans_sps.akun', 'Setoran')
+            ->where('tbl_trans_sps.dk', 'D')
+            ->whereBetween('tbl_trans_sps.tgl_transaksi', [$tgl_dari, $tgl_samp])
+            ->groupBy('tbl_trans_sps.jenis_id', 'jns_simpan.jns_simpan')
             ->get();
 
         return [
@@ -1040,19 +1042,29 @@ class MemberController extends Controller
 
     private function getRecentSavingsActivities($noKtp)
     {
-        return \App\Models\TblTransSp::select([
-                'tbl_trans_sp.*',
+        return \App\Models\TblTransSps::select([
+                'tbl_trans_sps.*',
                 'jns_simpan.jns_simpan as jenis_simpanan_nama'
             ])
-            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sp.jenis_id')
-            ->where('tbl_trans_sp.no_ktp', $noKtp)
-            ->where('tbl_trans_sp.akun', 'Setoran')
-            ->where('tbl_trans_sp.dk', 'D')
-            ->orderBy('tbl_trans_sp.tgl_transaksi', 'desc')
+            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sps.jenis_id')
+            ->where('tbl_trans_sps.no_ktp', $noKtp)
+            ->where('tbl_trans_sps.akun', 'Setoran')
+            ->where('tbl_trans_sps.dk', 'D')
+            ->orderBy('tbl_trans_sps.tgl_transaksi', 'desc')
             ->limit(5)
             ->get()
             ->map(function ($saving) {
                 $saving->jenis_simpanan_text = $this->getSavingsTypeText($saving->jenis_id, $saving->jenis_simpanan_nama);
+                
+                // Pastikan tgl_transaksi memiliki format waktu yang benar
+                if ($saving->tgl_transaksi) {
+                    $carbonDate = \Carbon\Carbon::parse($saving->tgl_transaksi);
+                    // Jika hanya ada tanggal tanpa waktu, tambahkan waktu default
+                    if ($carbonDate->format('H:i:s') === '00:00:00') {
+                        $saving->tgl_transaksi = $carbonDate->format('Y-m-d') . ' ' . now()->format('H:i:s');
+                    }
+                }
+                
                 return $saving;
             });
     }
@@ -1064,11 +1076,13 @@ class MemberController extends Controller
         }
         
         switch ($jenisId) {
-            case 1:
+            case 40:
+                return 'Simpanan Pokok';
+            case 41:
                 return 'Simpanan Wajib';
-            case 2:
+            case 32:
                 return 'Simpanan Sukarela';
-            case 3:
+            case 52:
                 return 'Simpanan Khusus';
             default:
                 return $jenisNama ?: 'Toserda';
@@ -1078,9 +1092,11 @@ class MemberController extends Controller
     private function determineSavingsStatus($saving)
     {
         // Status berdasarkan jenis simpanan dan jumlah
-        if ($saving->jenis_id == 1) { // Simpanan Wajib
+        if ($saving->jenis_id == 40) { // Simpanan Pokok
+            return 'Pokok';
+        } elseif ($saving->jenis_id == 41) { // Simpanan Wajib
             return 'Wajib';
-        } elseif ($saving->jenis_id == 2) { // Simpanan Sukarela
+        } elseif ($saving->jenis_id == 32) { // Simpanan Sukarela
             return 'Sukarela';
         } else {
             return 'Toserda';
@@ -1113,7 +1129,7 @@ class MemberController extends Controller
         
         $savingsData = $this->getMemberSavingsData($member->no_ktp, $tgl_dari, $tgl_samp, $jenis_filter);
         
-        return Excel::download(new \App\Exports\MemberSavingsReportExport($savingsData, $member, $tgl_dari, $tgl_samp), 
+        return Excel::download(new MemberSavingsReportExport($savingsData->getCollection()), 
             'laporan_simpanan_' . $member->no_ktp . '_' . date('Y-m-d') . '.xlsx');
     }
 
@@ -1319,10 +1335,15 @@ class MemberController extends Controller
                 'tbl_pinjaman_h.jenis_pinjaman',
                 'tbl_pinjaman_h.tgl_pinjam',
                 'tbl_pinjaman_h.jumlah as total_pinjaman',
-                'tbl_pinjaman_h.lama_angsuran'
+                'tbl_pinjaman_h.lama_angsuran',
+                'tempo_pinjaman.tempo as tgl_tempo'
             ])
             ->join('tbl_pinjaman_h', 'tbl_pinjaman_h.id', '=', 'tbl_pinjaman_d.pinjam_id')
             ->join('tbl_anggota', 'tbl_anggota.id', '=', 'tbl_pinjaman_h.anggota_id')
+            ->leftJoin('tempo_pinjaman', function($join) {
+                $join->on('tempo_pinjaman.pinjam_id', '=', 'tbl_pinjaman_d.pinjam_id')
+                     ->on('tempo_pinjaman.no_urut', '=', 'tbl_pinjaman_d.angsuran_ke');
+            })
             ->where('tbl_anggota.no_ktp', $noKtp)
             ->whereNotNull('tbl_pinjaman_d.tgl_bayar')
             ->whereBetween('tbl_pinjaman_d.tgl_bayar', [$tgl_dari, $tgl_samp]);
@@ -1391,10 +1412,15 @@ class MemberController extends Controller
         return \App\Models\TblPinjamanD::select([
                 'tbl_pinjaman_d.*',
                 'tbl_pinjaman_h.jenis_pinjaman',
-                'tbl_pinjaman_h.tgl_pinjam'
+                'tbl_pinjaman_h.tgl_pinjam',
+                'tempo_pinjaman.tempo as tgl_tempo'
             ])
             ->join('tbl_pinjaman_h', 'tbl_pinjaman_h.id', '=', 'tbl_pinjaman_d.pinjam_id')
             ->join('tbl_anggota', 'tbl_anggota.id', '=', 'tbl_pinjaman_h.anggota_id')
+            ->leftJoin('tempo_pinjaman', function($join) {
+                $join->on('tempo_pinjaman.pinjam_id', '=', 'tbl_pinjaman_d.pinjam_id')
+                     ->on('tempo_pinjaman.no_urut', '=', 'tbl_pinjaman_d.angsuran_ke');
+            })
             ->where('tbl_anggota.no_ktp', $noKtp)
             ->whereNotNull('tbl_pinjaman_d.tgl_bayar')
             ->orderBy('tbl_pinjaman_d.tgl_bayar', 'desc')
@@ -1403,15 +1429,28 @@ class MemberController extends Controller
             ->map(function ($payment) {
                 $payment->total_bayar = $payment->jumlah_bayar + $payment->bunga + $payment->denda_rp;
                 $payment->jenis_pinjaman_text = $payment->jenis_pinjaman == '1' ? 'Pinjaman Biasa' : 'Pinjaman Barang';
+                $payment->status_pembayaran = $this->determinePaymentStatus($payment);
                 return $payment;
             });
     }
 
     private function determinePaymentStatus($payment)
     {
+        // Jika ada denda, pasti terlambat
         if ($payment->denda_rp > 0) {
             return 'Terlambat';
-        } elseif ($payment->tgl_bayar <= $payment->tgl_tempo) {
+        }
+        
+        // Jika tidak ada tgl_tempo, anggap tepat waktu
+        if (empty($payment->tgl_tempo)) {
+            return 'Tepat Waktu';
+        }
+        
+        // Bandingkan tanggal bayar dengan tanggal tempo
+        $tglBayar = \Carbon\Carbon::parse($payment->tgl_bayar);
+        $tglTempo = \Carbon\Carbon::parse($payment->tgl_tempo);
+        
+        if ($tglBayar->lte($tglTempo)) {
             return 'Tepat Waktu';
         } else {
             return 'Terlambat';
@@ -1450,7 +1489,7 @@ class MemberController extends Controller
         // Get payment data
         $paymentData = $this->getMemberPaymentData($member->no_ktp, $tgl_dari, $tgl_samp, $jenis_filter);
         
-        return Excel::download(new \App\Exports\MemberPaymentReportExport($paymentData->getCollection()), 
+        return Excel::download(new MemberPaymentReportExport($paymentData->getCollection()), 
             'laporan_pembayaran_pinjaman_' . $member->no_ktp . '_' . date('Y-m-d') . '.xlsx');
     }
 
