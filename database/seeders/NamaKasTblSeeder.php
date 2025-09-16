@@ -32,7 +32,6 @@ class NamaKasTblSeeder extends Seeder
                 'tmpl_pinjaman' => 'Y',
                 'tmpl_bayar' => 'Y',
                 'tmpl_pemasukan' => 'Y',
-                'tmpl_penarikan' => 'T',
                 'tmpl_pengeluaran' => 'T',
                 'tmpl_transfer' => 'T',
             ],
