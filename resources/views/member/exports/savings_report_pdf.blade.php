@@ -192,38 +192,38 @@
 
     @if($savingsData->count() > 0)
         <table class="table">
-            <thead>
-                <tr>
+        <thead>
+            <tr>
                     <th>Tanggal</th>
                     <th>Jenis Simpanan</th>
                     <th>Jumlah</th>
                     <th>Status</th>
                     <th>Keterangan</th>
-                </tr>
-            </thead>
-            <tbody>
+            </tr>
+        </thead>
+        <tbody>
                 @foreach($savingsData as $saving)
-                <tr>
+            <tr>
                     <td>{{ \Carbon\Carbon::parse($saving->tgl_transaksi)->format('d M Y') }}</td>
-                    <td>{{ $saving->jenis_simpanan_text }}</td>
+                <td>{{ $saving->jenis_simpanan_text }}</td>
                     <td>Rp {{ number_format($saving->jumlah, 0, ',', '.') }}</td>
-                    <td>
-                        <span class="status-badge 
+                <td>
+                    <span class="status-badge 
                             @if($saving->jenis_id == 41) status-wajib
                             @elseif($saving->jenis_id == 32) status-sukarela
                             @else status-khusus @endif">
                             {{ $saving->jenis_simpanan_text }}
-                        </span>
-                    </td>
-                    <td>{{ $saving->keterangan ?: 'Setoran simpanan' }}</td>
-                </tr>
+                    </span>
+                </td>
+                <td>{{ $saving->keterangan ?: 'Setoran simpanan' }}</td>
+            </tr>
                 @endforeach
-            </tbody>
-        </table>
+        </tbody>
+    </table>
 
-        <div class="summary">
+    <div class="summary">
             <h3>Ringkasan Simpanan</h3>
-            <div class="summary-grid">
+        <div class="summary-grid">
                 <div class="summary-item">
                     <div class="summary-value">{{ number_format($statistics['total_transaksi']) }}</div>
                     <div class="summary-label">Total Transaksi</div>
@@ -231,7 +231,7 @@
                 <div class="summary-item">
                     <div class="summary-value">Rp {{ number_format($statistics['total_setoran'], 0, ',', '.') }}</div>
                     <div class="summary-label">Total Setoran</div>
-                </div>
+            </div>
                 <div class="summary-item">
                     <div class="summary-value">Rp {{ number_format($statistics['rata_rata_setoran'], 0, ',', '.') }}</div>
                     <div class="summary-label">Rata-rata Setoran</div>
@@ -239,11 +239,11 @@
                 <div class="summary-item">
                     <div class="summary-value">Rp {{ number_format($statistics['setoran_terbesar'], 0, ',', '.') }}</div>
                     <div class="summary-label">Setoran Terbesar</div>
-                </div>
             </div>
         </div>
+    </div>
 
-        @if($statistics['breakdown']->count() > 0)
+    @if($statistics['breakdown']->count() > 0)
         <div class="breakdown">
             <h3>Breakdown per Jenis Simpanan</h3>
             <div class="breakdown-grid">
@@ -261,7 +261,7 @@
         <div style="text-align: center; padding: 40px; color: #666;">
             <h3>Tidak ada data simpanan</h3>
             <p>Belum ada riwayat setoran simpanan untuk periode yang dipilih.</p>
-        </div>
+    </div>
     @endif
 
     <div class="footer">

@@ -223,7 +223,8 @@
                                     @if($saving->status_simpanan == 'Wajib') bg-blue-100 text-blue-800
                                     @elseif($saving->status_simpanan == 'Sukarela') bg-green-100 text-green-800
                                     @elseif($saving->status_simpanan == 'Pokok') bg-yellow-100 text-yellow-800
-                                    @else bg-purple-100 text-purple-800 @endif">
+                                    @elseif($saving->status_simpanan == 'Khusus') bg-purple-100 text-purple-800
+                                    @else bg-gray-100 text-gray-800 @endif">
                                     <i class="fas fa-check-circle mr-1"></i>
                                     {{ $saving->status_simpanan }}
                                 </span>

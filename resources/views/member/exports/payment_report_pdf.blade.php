@@ -137,26 +137,26 @@
                 </div>
                 <div class="info-item">
                     <span class="info-label">Alamat:</span> {{ $member->alamat }}
-                </div>
-            </div>
+        </div>
+    </div>
             <div>
                 <div class="info-item">
                     <span class="info-label">Departemen:</span> {{ $member->departemen }}
-                </div>
+    </div>
                 <div class="info-item">
                     <span class="info-label">Jabatan:</span> {{ $member->jabatan }}
-                </div>
+        </div>
                 <div class="info-item">
                     <span class="info-label">Status:</span> {{ $member->aktif == 'Y' ? 'Aktif' : 'Tidak Aktif' }}
-                </div>
-            </div>
+        </div>
+        </div>
         </div>
     </div>
-
-    @if($paymentData->count() > 0)
+        
+        @if($paymentData->count() > 0)
         <table class="table">
-            <thead>
-                <tr>
+                <thead>
+                    <tr>
                     <th>Tanggal</th>
                     <th>Jenis</th>
                     <th>Angsuran Ke</th>
@@ -166,34 +166,34 @@
                     <th>Jumlah Bayar</th>
                     <th>Status</th>
                     <th>Keterangan</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($paymentData as $payment)
-                <tr>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($paymentData as $payment)
+                    <tr>
                     <td>{{ \Carbon\Carbon::parse($payment->tgl_bayar)->format('d M Y') }}</td>
                     <td>{{ $payment->jenis_pinjaman_text }}</td>
                     <td>{{ $payment->angsuran_ke }}</td>
                     <td>Rp {{ number_format($payment->jumlah_bayar, 0, ',', '.') }}</td>
                     <td>Rp {{ number_format($payment->bunga, 0, ',', '.') }}</td>
                     <td>
-                        @if($payment->denda_rp > 0)
-                            Rp {{ number_format($payment->denda_rp, 0, ',', '.') }}
-                        @else
-                            -
-                        @endif
-                    </td>
+                            @if($payment->denda_rp > 0)
+                                Rp {{ number_format($payment->denda_rp, 0, ',', '.') }}
+                            @else
+                                -
+                            @endif
+                        </td>
                     <td>Rp {{ number_format($payment->total_bayar, 0, ',', '.') }}</td>
                     <td>
                         <span class="status-badge {{ $payment->status_pembayaran == 'Tepat Waktu' ? 'status-tepat' : 'status-terlambat' }}">
                             {{ $payment->status_pembayaran }}
                         </span>
-                    </td>
-                    <td>{{ $payment->ket_bayar ?? '-' }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+                        </td>
+                        <td>{{ $payment->ket_bayar ?? '-' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
 
         <div class="summary">
             <h3>Ringkasan Pembayaran</h3>
@@ -216,12 +216,12 @@
                 </div>
             </div>
         </div>
-    @else
+        @else
         <div style="text-align: center; padding: 40px; color: #666;">
             <h3>Tidak ada data pembayaran</h3>
             <p>Belum ada riwayat pembayaran pinjaman untuk periode yang dipilih.</p>
-        </div>
-    @endif
+            </div>
+        @endif
 
     <div class="footer">
         <p>Dicetak pada {{ date('d M Y H:i:s') }} | Sistem Informasi Koperasi</p>

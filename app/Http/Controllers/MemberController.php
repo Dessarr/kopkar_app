@@ -1558,6 +1558,8 @@ class MemberController extends Controller
             return 'Wajib';
         } elseif ($saving->jenis_id == 32) { // Simpanan Sukarela
             return 'Sukarela';
+        } elseif ($saving->jenis_id == 52) { // Simpanan Khusus
+            return 'Khusus';
         } else {
             return 'Toserda';
         }
