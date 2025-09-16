@@ -165,7 +165,7 @@
 
             <div class="mt-6">
                 @if($dataBillingProcess->hasPages())
-                    {{ $dataBillingProcess->withQueryString()->links('vendor.pagination.tailwind') }}
+                    {{ $dataBillingProcess->withQueryString()->links('vendor.pagination.simple') }}
                 @endif
             </div>
         </div>

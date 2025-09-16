@@ -139,33 +139,10 @@
     <!-- Pagination -->
     @if($dataPinjamanLunas->hasPages())
     <div class="mt-6">
-        <div class="mt-6">{{ $dataPinjamanLunas->links('vendor.pagination.tailwind') }}</div>
+        {{ $dataPinjamanLunas->links('vendor.pagination.simple') }}
     </div>
     @endif
 
-    <!-- Summary -->
-    @if($dataPinjamanLunas->count() > 0)
-    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="text-center">
-                <div class="text-2xl font-bold text-[#14AE5C]">{{ $dataPinjamanLunas->total() }}</div>
-                <div class="text-sm text-gray-600">Total Pinjaman Lunas</div>
-            </div>
-            <div class="text-center">
-                <div class="text-2xl font-bold text-blue-600">
-                    Rp {{ number_format($dataPinjamanLunas->sum('jumlah'), 0, ',', '.') }}
-                </div>
-                <div class="text-sm text-gray-600">Total Nominal Lunas</div>
-            </div>
-            <div class="text-center">
-                <div class="text-2xl font-bold text-purple-600">
-                    {{ $dataPinjamanLunas->avg('lama_angsuran') ? round($dataPinjamanLunas->avg('lama_angsuran'), 1) : 0 }}
-                </div>
-                <div class="text-sm text-gray-600">Rata-rata Lama Angsuran</div>
-            </div>
-        </div>
-    </div>
-    @endif
 </div>
 
 <script>

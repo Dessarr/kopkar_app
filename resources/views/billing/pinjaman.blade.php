@@ -121,7 +121,7 @@
 
             <div class="mt-6">
                 @if(method_exists($dataBilling, 'hasPages') && $dataBilling->hasPages())
-                    {{ $dataBilling->withQueryString()->links('vendor.pagination.tailwind') }}
+                    {{ $dataBilling->withQueryString()->links('vendor.pagination.simple') }}
                 @endif
             </div>
         </div>

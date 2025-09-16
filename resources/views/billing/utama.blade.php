@@ -198,7 +198,7 @@
 
         <div class="mt-6">
             @if(is_object($data) && method_exists($data, 'hasPages') && $data->hasPages())
-            {{ $data->withQueryString()->links('vendor.pagination.tailwind') }}
+            {{ $data->withQueryString()->links('vendor.pagination.simple') }}
             @endif
         </div>
     </div>
