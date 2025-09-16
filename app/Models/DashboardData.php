@@ -28,19 +28,19 @@ class DashboardData extends Model
             ->sum('tagihan');
         Log::info('Tagihan Belum Lunas: ' . $tagihanBelumLunas);
 
-        // Tagihan bulan lalu - dari view v_hitung_pinjaman
-        $tagihanBulanLalu = DB::table('v_hitung_pinjaman')
-            ->where('lunas', 'Belum')
-            ->whereMonth('tgl_pinjam', $lastMonth)
+        // Tagihan bulan lalu - dari tbl_pinjaman_h (hanya yang belum lunas)
+        $tagihanBulanLalu = TblPinjamanH::whereMonth('tgl_pinjam', $lastMonth)
             ->whereYear('tgl_pinjam', $lastYear)
-            ->sum('tagihan');
-        Log::info('Tagihan Bulan Lalu: ' . $tagihanBulanLalu);
+            ->where('lunas', 'Belum') // Hanya pinjaman yang belum lunas
+            ->sum('jumlah');
+        Log::info('Tagihan Bulan Lalu (Belum Lunas): ' . $tagihanBulanLalu);
 
-        // Pinjaman bulan ini - dari tbl_pinjaman_h
+        // Pinjaman bulan ini - dari tbl_pinjaman_h (hanya yang belum lunas)
         $pinjamanBulanIni = TblPinjamanH::whereMonth('tgl_pinjam', $currentMonth)
             ->whereYear('tgl_pinjam', $currentYear)
+            ->where('lunas', 'Belum') // Hanya pinjaman yang belum lunas
             ->sum('jumlah');
-        Log::info('Pinjaman Bulan Ini: ' . $pinjamanBulanIni);
+        Log::info('Pinjaman Bulan Ini (Belum Lunas): ' . $pinjamanBulanIni);
 
         // Pembayaran bulan ini - dari tbl_pinjaman_d
         $pembayaranBulanIni = TblPinjamanD::whereMonth('tgl_bayar', $currentMonth)

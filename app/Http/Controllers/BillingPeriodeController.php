@@ -20,28 +20,38 @@ class BillingPeriodeController extends Controller
             // Debug: Log what we're querying
             Log::info("Querying period summary for: {$periode} (bulan: {$bulan}, tahun: {$tahun})");
             
-            // Query Total Anggota - SELALU ambil dari tbl_anggota (konsisten)
-            $totalAnggota = DB::table('tbl_anggota')
-                ->where('aktif', 'Y')  // Hanya anggota aktif
+            // Query Total Anggota - Ambil dari tbl_trans_sp untuk periode tertentu (menghindari duplikasi)
+            $totalAnggota = DB::table('tbl_trans_sp')
+                ->where('dk', 'D')
+                ->whereIn('jenis_id', [32, 40, 41]) // Simpanan Wajib, Pokok, Sukarela
+                ->whereMonth('tgl_transaksi', $bulan)
+                ->whereYear('tgl_transaksi', $tahun)
+                ->distinct('no_ktp')
                 ->count('no_ktp');
 
-            // Query Simpanan Pokok - SELALU ambil dari tbl_anggota (konsisten)
-            // Note: tbl_anggota tidak memiliki kolom simpanan_pokok, gunakan simpanan_wajib sebagai gantinya
-            $simpananPokok = DB::table('tbl_anggota')
-                ->where('aktif', 'Y')  // Hanya anggota aktif
-                ->sum('simpanan_wajib');
-
-            // Query Simpanan Sukarela (dari billing) - SAMA dengan BillingUtamaController
-            $simpananSukarela = DB::table('tbl_trans_sp_bayar_temp')
+            // Query Simpanan Pokok - Ambil dari tbl_trans_sp (data resmi)
+            $simpananPokok = DB::table('tbl_trans_sp')
+                ->where('jenis_id', 40) // Simpanan Pokok
+                ->where('dk', 'D')
                 ->whereMonth('tgl_transaksi', $bulan)
                 ->whereYear('tgl_transaksi', $tahun)
-                ->sum('tagihan_simpanan_sukarela') ?? 0;
+                ->sum('jumlah') ?? 0;
 
-            // Query Simpanan Wajib (dari billing) - SAMA dengan BillingUtamaController
-            $simpananWajib = DB::table('tbl_trans_sp_bayar_temp')
+            // Query Simpanan Sukarela - Ambil dari tbl_trans_sp (data resmi)
+            $simpananSukarela = DB::table('tbl_trans_sp')
+                ->where('jenis_id', 32) // Simpanan Sukarela
+                ->where('dk', 'D')
                 ->whereMonth('tgl_transaksi', $bulan)
                 ->whereYear('tgl_transaksi', $tahun)
-                ->sum('tagihan_simpanan_wajib') ?? 0;
+                ->sum('jumlah') ?? 0;
+
+            // Query Simpanan Wajib - Ambil dari tbl_trans_sp (data resmi)
+            $simpananWajib = DB::table('tbl_trans_sp')
+                ->where('jenis_id', 41) // Simpanan Wajib
+                ->where('dk', 'D')
+                ->whereMonth('tgl_transaksi', $bulan)
+                ->whereYear('tgl_transaksi', $tahun)
+                ->sum('jumlah') ?? 0;
 
             // Debug: Log the results
             Log::info("Period summary results:", [

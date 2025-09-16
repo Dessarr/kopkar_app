@@ -110,7 +110,7 @@
                                             data-value="1">Biasa</button>
                                         <button type="button"
                                             class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
-                                            data-value="2">Barang</button>
+                                            data-value="3">Barang</button>
                                     </div>
                                 </div>
                             </div>
@@ -199,7 +199,16 @@
                     @forelse($dataPengajuan as $pengajuan)
                     <tr>
                         <td class="py-3 px-4 text-sm text-gray-700 border">{{ \Carbon\Carbon::parse($pengajuan->tgl_input)->format('d/m/Y H:i') }}</td>
-                        <td class="py-3 px-4 text-sm text-gray-700 border">{{ $pengajuan->jenis == '1' ? 'Biasa' : $pengajuan->jenis }}</td>
+                        <td class="py-3 px-4 text-sm text-gray-700 border">
+                            @php
+                            $jenisMap = [
+                                '1' => 'Biasa',
+                                '3' => 'Barang'
+                            ];
+                            $jenisText = $jenisMap[$pengajuan->jenis] ?? $pengajuan->jenis;
+                            @endphp
+                            {{ $jenisText }}
+                        </td>
                         <td class="py-3 px-4 text-sm text-gray-700 border">Rp {{ number_format($pengajuan->nominal,0,',','.') }}</td>
                         <td class="py-3 px-4 text-sm text-gray-700 border">{{ $pengajuan->lama_ags }} bln</td>
                         <td class="py-3 px-4 text-sm text-gray-700 border">{{ $pengajuan->keterangan }}</td>

@@ -211,7 +211,16 @@
             <div class="info-grid">
                 <div class="info-item">
                     <span class="info-label">Jenis Pinjaman:</span>
-                    <span class="info-value">{{ $pengajuan->jenis == '1' ? 'Biasa' : 'Barang' }}</span>
+                    <span class="info-value">
+                        @php
+                        $jenisMap = [
+                            '1' => 'Biasa',
+                            '3' => 'Barang'
+                        ];
+                        $jenisText = $jenisMap[$pengajuan->jenis] ?? $pengajuan->jenis;
+                        @endphp
+                        {{ $jenisText }}
+                    </span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Jumlah Pinjaman:</span>

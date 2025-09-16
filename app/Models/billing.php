@@ -21,14 +21,14 @@ class billing extends Model
      * @var array
      */
     protected $casts = [
-        'tgl_bayar' => 'datetime',
-        'jumlah' => 'float',
         'simpanan_wajib' => 'float',
+        'simpanan_khusus_1' => 'float',
         'simpanan_sukarela' => 'float',
         'simpanan_khusus_2' => 'float',
+        'tab_perumahan' => 'float',
         'simpanan_pokok' => 'float',
-        'total_billing' => 'float',
         'total_tagihan' => 'float',
+        'id_anggota' => 'integer',
     ];
 
     /**
@@ -36,7 +36,7 @@ class billing extends Model
      */
     public function anggota()
     {
-        return $this->belongsTo(data_anggota::class, 'no_ktp', 'no_ktp');
+        return $this->belongsTo(data_anggota::class, 'id_anggota', 'id');
     }
 
     /**
@@ -50,14 +50,15 @@ class billing extends Model
     
     /**
      * Generate a unique billing code.
-     * Format: BILL-YYYYMM-KTP-TYPE
+     * Format: BILL + MMYY + ID_ANGGOTA (4 digit)
+     * Example: BILL09250001 (September 2025, Anggota ID 1)
      */
-    public static function generateBillingCode($bulan, $tahun, $noKtp, $jnsTransaksi)
+    public static function generateBillingCode($bulan, $tahun, $idAnggota)
     {
         $prefix = 'BILL';
-        $period = $tahun . str_pad($bulan, 2, '0', STR_PAD_LEFT);
-        $type = strtoupper(substr($jnsTransaksi, 0, 4));
+        $period = str_pad($bulan, 2, '0', STR_PAD_LEFT) . substr($tahun, -2);
+        $anggotaId = str_pad($idAnggota, 4, '0', STR_PAD_LEFT);
         
-        return "{$prefix}-{$period}-{$noKtp}-{$type}";
+        return "{$prefix}{$period}{$anggotaId}";
     }
 }

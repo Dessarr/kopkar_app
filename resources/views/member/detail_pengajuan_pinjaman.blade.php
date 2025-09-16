@@ -17,7 +17,16 @@
             </div>
             <div>
                 <div class="text-gray-500">Jenis</div>
-                <div class="font-medium">{{ $pengajuan->jenis == '1' ? 'Biasa' : $pengajuan->jenis }}</div>
+                <div class="font-medium">
+                    @php
+                    $jenisMap = [
+                        '1' => 'Biasa',
+                        '3' => 'Barang'
+                    ];
+                    $jenisText = $jenisMap[$pengajuan->jenis] ?? $pengajuan->jenis;
+                    @endphp
+                    {{ $jenisText }}
+                </div>
             </div>
             <div>
                 <div class="text-gray-500">Jumlah</div>

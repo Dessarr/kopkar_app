@@ -113,6 +113,23 @@
             </form>
         </div>
 
+        <!-- Action Buttons -->
+        <div class="flex justify-between items-center mb-4 p-4">
+            <h2 class="text-lg font-semibold text-gray-800">Data Billing Utama</h2>
+            <div class="flex space-x-3">
+                <button onclick="editData()"
+                    class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-edit"></i>
+                    <span>Edit Nominal</span>
+                </button>
+                <button onclick="deleteData()"
+                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-trash"></i>
+                    <span>Hapus</span>
+                </button>
+            </div>
+        </div>
+
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead>
@@ -134,7 +151,17 @@
                 </thead>
                 <tbody class="divide-y">
                     @forelse($data as $index => $row)
-                    <tr class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}">
+                    <tr class="text-sm align-middle hover:bg-gray-50 cursor-pointer row-selectable {{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}"
+                        data-id="{{ $row->id ?? '' }}" data-no-ktp="{{ $row->no_ktp }}" data-nama="{{ $row->nama }}"
+                        data-tgl-transaksi="{{ $row->tgl_transaksi }}"
+                        data-tagihan-toserda="{{ $row->tagihan_toserda ?? 0 }}"
+                        data-tagihan-simpanan-wajib="{{ $row->tagihan_simpanan_wajib ?? 0 }}"
+                        data-tagihan-simpanan-sukarela="{{ $row->tagihan_simpanan_sukarela ?? 0 }}"
+                        data-tagihan-simpanan-khusus-2="{{ $row->tagihan_simpanan_khusus_2 ?? 0 }}"
+                        data-tagihan-simpanan-pokok="{{ $row->tagihan_simpanan_pokok ?? 0 }}"
+                        data-tagihan-pinjaman="{{ $row->tagihan_pinjaman ?? 0 }}"
+                        data-total-tagihan="{{ $row->total_tagihan ?? 0 }}"
+                        data-keterangan="{{ $row->keterangan ?? '' }}">
                         <td class="px-4 py-3 text-center text-sm">{{ $index + 1 }}</td>
                         <td class="px-4 py-3 text-center text-sm">{{ $row->no_ktp }}</td>
                         <td class="px-4 py-3 text-sm">{{ $row->nama }}</td>
@@ -170,7 +197,7 @@
         </div>
 
         <div class="mt-6">
-            @if(method_exists($data, 'hasPages') && $data->hasPages())
+            @if(is_object($data) && method_exists($data, 'hasPages') && $data->hasPages())
             {{ $data->withQueryString()->links('vendor.pagination.tailwind') }}
             @endif
         </div>
@@ -219,7 +246,294 @@
     </div>
 </div>
 
+<!-- Edit Modal -->
+<div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h3 class="text-lg font-semibold">Edit Nominal Tagihan</h3>
+                <button onclick="closeModal('editModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="editForm" class="p-4">
+                <!-- Info Anggota (Read-only) -->
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Informasi Anggota</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="font-medium">Nama:</span>
+                            <span id="edit_info_nama" class="ml-2"></span>
+                        </div>
+                        <div>
+                            <span class="font-medium">No KTP:</span>
+                            <span id="edit_info_no_ktp" class="ml-2"></span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Tanggal Transaksi:</span>
+                            <span id="edit_info_tgl_transaksi" class="ml-2"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Edit Nominal -->
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Toserda</label>
+                            <input type="number" name="tagihan_toserda" id="edit_tagihan_toserda" min="0" step="1"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Simpanan Wajib</label>
+                            <input type="number" name="tagihan_simpanan_wajib" id="edit_tagihan_simpanan_wajib" min="0"
+                                step="1"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Simpanan Sukarela</label>
+                            <input type="number" name="tagihan_simpanan_sukarela" id="edit_tagihan_simpanan_sukarela"
+                                min="0" step="1"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Simpanan Khusus 2</label>
+                            <input type="number" name="tagihan_simpanan_khusus_2" id="edit_tagihan_simpanan_khusus_2"
+                                min="0" step="1"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Simpanan Pokok</label>
+                            <input type="number" name="tagihan_simpanan_pokok" id="edit_tagihan_simpanan_pokok" min="0"
+                                step="1"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Pinjaman</label>
+                            <input type="number" name="tagihan_pinjaman" id="edit_tagihan_pinjaman" min="0" step="1"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+                        </div>
+                    </div>
+
+                    <!-- Total Tagihan (Read-only) -->
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-700">Total Tagihan:</span>
+                            <span id="edit_total_tagihan" class="text-lg font-semibold text-blue-600">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('editModal')"
+                        class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
+                        Update Nominal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+// Global variable untuk menyimpan data row yang dipilih
+let selectedRowData = null;
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click event listener for row selection
+    $(document).on('click', '.row-selectable', function() {
+        selectRow(this, $(this).data('id'));
+    });
+});
+
+// Function untuk select row (click to edit)
+function selectRow(row, id) {
+    // Remove highlight dari semua row
+    document.querySelectorAll('tbody tr').forEach(r => {
+        r.classList.remove('bg-yellow-100', 'border-yellow-300');
+        r.classList.add('hover:bg-gray-50');
+    });
+
+    // Add highlight ke row yang dipilih
+    row.classList.remove('hover:bg-gray-50');
+    row.classList.add('bg-yellow-100', 'border-yellow-300');
+
+    // Simpan data row yang dipilih
+    selectedRowData = {
+        id: row.dataset.id,
+        no_ktp: row.dataset.noKtp,
+        nama: row.dataset.nama,
+        tgl_transaksi: row.dataset.tglTransaksi,
+        tagihan_toserda: row.dataset.tagihanToserda,
+        tagihan_simpanan_wajib: row.dataset.tagihanSimpananWajib,
+        tagihan_simpanan_sukarela: row.dataset.tagihanSimpananSukarela,
+        tagihan_simpanan_khusus_2: row.dataset.tagihanSimpananKhusus2,
+        tagihan_simpanan_pokok: row.dataset.tagihanSimpananPokok,
+        tagihan_pinjaman: row.dataset.tagihanPinjaman,
+        total_tagihan: row.dataset.totalTagihan,
+        keterangan: row.dataset.keterangan
+    };
+}
+
+// Modal functions
+function openModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+
+    // Set default values untuk form add
+    if (modalId === 'addModal') {
+        // Set tanggal sekarang sebagai default
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
+        document.querySelector('#addModal input[name="tgl_transaksi"]').value = dateString;
+
+        // Reset form
+        document.getElementById('addForm').reset();
+        document.querySelector('#addModal input[name="tgl_transaksi"]').value = dateString;
+    }
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+
+// CRUD functions
+function editData() {
+    if (!selectedRowData) {
+        alert('Pilih data yang akan diedit terlebih dahulu!');
+        return;
+    }
+
+    // Buka modal edit dengan data terisi
+    openModal('editModal');
+
+    // Populate info anggota (read-only)
+    document.getElementById('edit_info_nama').textContent = selectedRowData.nama;
+    document.getElementById('edit_info_no_ktp').textContent = selectedRowData.no_ktp;
+    document.getElementById('edit_info_tgl_transaksi').textContent = new Date(selectedRowData.tgl_transaksi)
+        .toLocaleDateString('id-ID');
+
+    // Populate form dengan data yang dipilih (hanya nominal tagihan)
+    document.getElementById('edit_tagihan_simpanan_wajib').value = selectedRowData.tagihan_simpanan_wajib;
+    document.getElementById('edit_tagihan_simpanan_sukarela').value = selectedRowData.tagihan_simpanan_sukarela;
+    document.getElementById('edit_tagihan_simpanan_khusus_2').value = selectedRowData.tagihan_simpanan_khusus_2;
+    document.getElementById('edit_tagihan_simpanan_pokok').value = selectedRowData.tagihan_simpanan_pokok;
+    document.getElementById('edit_tagihan_pinjaman').value = selectedRowData.tagihan_pinjaman;
+    document.getElementById('edit_tagihan_toserda').value = selectedRowData.tagihan_toserda;
+
+    // Hitung total tagihan awal
+    calculateTotalTagihan();
+
+    // Add event listeners untuk auto-calculate total
+    const inputs = document.querySelectorAll('#editModal input[type="number"]');
+    inputs.forEach(input => {
+        input.addEventListener('input', calculateTotalTagihan);
+    });
+}
+
+// Function untuk menghitung total tagihan
+function calculateTotalTagihan() {
+    const toserda = parseFloat(document.getElementById('edit_tagihan_toserda').value) || 0;
+    const simpananWajib = parseFloat(document.getElementById('edit_tagihan_simpanan_wajib').value) || 0;
+    const simpananSukarela = parseFloat(document.getElementById('edit_tagihan_simpanan_sukarela').value) || 0;
+    const simpananKhusus2 = parseFloat(document.getElementById('edit_tagihan_simpanan_khusus_2').value) || 0;
+    const simpananPokok = parseFloat(document.getElementById('edit_tagihan_simpanan_pokok').value) || 0;
+    const pinjaman = parseFloat(document.getElementById('edit_tagihan_pinjaman').value) || 0;
+
+    const total = toserda + simpananWajib + simpananSukarela + simpananKhusus2 + simpananPokok + pinjaman;
+
+    document.getElementById('edit_total_tagihan').textContent = new Intl.NumberFormat('id-ID').format(total);
+}
+
+function deleteData() {
+    if (!selectedRowData) {
+        alert('Pilih data yang akan dihapus terlebih dahulu!');
+        return;
+    }
+
+    if (confirm(`Apakah Anda yakin ingin menghapus data billing untuk ${selectedRowData.nama}?`)) {
+        // Kirim request delete
+        const deleteUrl = `{{ url('billing-utama') }}/${selectedRowData.id}`;
+        fetch(deleteUrl, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Data berhasil dihapus');
+                    location.reload();
+                } else {
+                    alert('Gagal menghapus data: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menghapus data');
+            });
+    }
+}
+
+// Form submission untuk edit data
+document.getElementById('editForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    if (!selectedRowData) {
+        alert('Tidak ada data yang dipilih untuk diedit');
+        return;
+    }
+
+    // Validasi minimal - setidaknya ada satu nominal yang diisi
+    const toserda = parseFloat(document.getElementById('edit_tagihan_toserda').value) || 0;
+    const simpananWajib = parseFloat(document.getElementById('edit_tagihan_simpanan_wajib').value) || 0;
+    const simpananSukarela = parseFloat(document.getElementById('edit_tagihan_simpanan_sukarela').value) || 0;
+    const simpananKhusus2 = parseFloat(document.getElementById('edit_tagihan_simpanan_khusus_2').value) || 0;
+    const simpananPokok = parseFloat(document.getElementById('edit_tagihan_simpanan_pokok').value) || 0;
+    const pinjaman = parseFloat(document.getElementById('edit_tagihan_pinjaman').value) || 0;
+
+    const total = toserda + simpananWajib + simpananSukarela + simpananKhusus2 + simpananPokok + pinjaman;
+
+    if (total === 0) {
+        alert('Minimal harus ada satu nominal tagihan yang diisi');
+        return;
+    }
+
+    const formData = new FormData(this);
+    const updateUrl = `{{ url('billing-utama') }}/${selectedRowData.id}`;
+
+    fetch(updateUrl, {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(Object.fromEntries(formData))
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Nominal tagihan berhasil diupdate');
+                closeModal('editModal');
+                location.reload();
+            } else {
+                alert('Gagal mengupdate data: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat mengupdate data');
+        });
+});
+
 function openUploadModal() {
     document.getElementById('uploadModal').classList.remove('hidden');
     excelLogger.logInfo('MODAL', 'Upload modal opened');
@@ -668,8 +982,7 @@ function proceedBilling() {
 
             if (data.status === 'success') {
                 console.log('✅ Proceed billing successful!');
-                console.log(`📝 Message: ${data.message}`);
-                alert('Berhasil! Data billing berhasil diproses.\n\n' + data.message);
+                alert('Berhasil! Data billing berhasil diproses.\n\n');
                 // Reload page to show updated data
                 window.location.reload();
             } else {

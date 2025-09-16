@@ -92,8 +92,8 @@ class DataPinjamanController extends Controller
     public function terlaksana(string $id)
     {
         try {
-            // Hanya update status pengajuan menjadi terlaksana
-            // Data pinjaman sudah ada di tbl_pinjaman_h sejak status "Disetujui"
+            DB::beginTransaction();
+            
             $pengajuan = data_pengajuan::findOrFail($id);
             
             // Validasi: hanya bisa dari status disetujui
@@ -101,18 +101,42 @@ class DataPinjamanController extends Controller
                 return back()->with('error', 'Hanya pengajuan yang sudah disetujui yang dapat diubah menjadi terlaksana');
             }
 
+            // Update status pengajuan menjadi terlaksana
             $pengajuan->status = 3; // Terlaksana
             $pengajuan->tgl_update = now();
             $pengajuan->save();
 
-            Log::info('Status pengajuan diubah menjadi terlaksana', [
-                'pengajuan_id' => $id,
-                'ajuan_id' => $pengajuan->ajuan_id
-            ]);
+            // Cari data pinjaman yang sudah dibuat saat approve
+            $pinjaman = TblPinjamanH::where('anggota_id', $pengajuan->anggota_id)
+                ->where('status', '1')
+                ->where('lunas', 'Belum')
+                ->orderBy('id', 'desc') // Gunakan id sebagai pengganti created_at
+                ->first();
 
-            return back()->with('success', 'Status pengajuan berhasil diubah menjadi terlaksana');
+            if ($pinjaman) {
+                // Generate jadwal angsuran di tempo_pinjaman
+                $this->generateTempoPinjaman($pinjaman, $pengajuan);
+                
+                // Generate billing data untuk bulan ini
+                $this->generateBillingDataForPinjaman($pinjaman, $pengajuan);
+                
+                Log::info('Status pengajuan diubah menjadi terlaksana, jadwal angsuran dibuat, dan billing data di-generate', [
+                    'pengajuan_id' => $id,
+                    'pinjaman_id' => $pinjaman->id,
+                    'ajuan_id' => $pengajuan->ajuan_id
+                ]);
+            } else {
+                Log::warning('Data pinjaman tidak ditemukan saat terlaksana', [
+                    'pengajuan_id' => $id,
+                    'anggota_id' => $pengajuan->anggota_id
+                ]);
+            }
+
+            DB::commit();
+            return back()->with('success', 'Status pengajuan berhasil diubah menjadi terlaksana dan jadwal angsuran dibuat');
 
         } catch (\Exception $e) {
+            DB::rollback();
             Log::error('Gagal ubah status menjadi terlaksana', [
                 'pengajuan_id' => $id,
                 'error' => $e->getMessage()
@@ -126,6 +150,130 @@ class DataPinjamanController extends Controller
     {
         $pinjaman = TblPinjamanH::with(['anggota', 'detail_angsuran'])->findOrFail($id);
         return view('pinjaman.detail_pinjaman', compact('pinjaman'));
+    }
+
+    /**
+     * Generate billing data untuk pinjaman yang baru terlaksana
+     */
+    private function generateBillingDataForPinjaman($pinjaman, $pengajuan)
+    {
+        try {
+            // Ambil data jadwal angsuran untuk bulan-bulan mendatang
+            $tempoData = DB::table('tempo_pinjaman')
+                ->where('pinjam_id', $pinjaman->id)
+                ->get();
+            
+            foreach ($tempoData as $tempo) {
+                $bulan = date('m', strtotime($tempo->tempo));
+                $tahun = date('Y', strtotime($tempo->tempo));
+                
+                // Hitung angsuran per bulan
+                $angsuranPokok = $pinjaman->jumlah / $pinjaman->lama_angsuran;
+                $angsuranBunga = $pinjaman->bunga_rp / $pinjaman->lama_angsuran;
+                $totalAngsuran = $angsuranPokok + $angsuranBunga;
+                
+                // 1. Insert ke tbl_trans_tagihan
+                DB::table('tbl_trans_tagihan')->updateOrInsert(
+                    [
+                        'tgl_transaksi' => $tempo->tempo,
+                        'no_ktp' => $pinjaman->no_ktp,
+                        'jenis_id' => 999 // ID untuk jenis Pinjaman
+                    ],
+                    [
+                        'anggota_id' => $pinjaman->anggota_id,
+                        'jumlah' => $totalAngsuran,
+                        'keterangan' => 'Tagihan Pinjaman ' . $bulan . '-' . $tahun,
+                        'akun' => '7', // Akun pinjaman
+                        'dk' => 'K', // Kredit
+                        'kas_id' => 1, // Kas utama
+                        'update_data' => now(),
+                        'user_name' => auth()->user()->name ?? 'system'
+                    ]
+                );
+                
+                // 2. Insert ke tbl_trans_sp_bayar_temp dengan logika SUM
+                DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
+                    [
+                        'tgl_transaksi' => \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth()->toDateString(),
+                        'no_ktp' => $pinjaman->no_ktp
+                    ],
+                    [
+                        'anggota_id' => $pinjaman->anggota_id,
+                        'jumlah' => DB::raw('COALESCE(jumlah,0) + ' . $totalAngsuran),
+                        'keterangan' => 'Billing Pinjaman ' . $bulan . '-' . $tahun,
+                        'tagihan_simpanan_wajib' => DB::raw('COALESCE(tagihan_simpanan_wajib,0)'),
+                        'tagihan_simpanan_sukarela' => DB::raw('COALESCE(tagihan_simpanan_sukarela,0)'),
+                        'tagihan_simpanan_khusus_2' => DB::raw('COALESCE(tagihan_simpanan_khusus_2,0)'),
+                        'tagihan_simpanan_pokok' => DB::raw('COALESCE(tagihan_simpanan_pokok,0)'),
+                        'tagihan_pinjaman' => DB::raw('COALESCE(tagihan_pinjaman,0) + ' . $totalAngsuran),
+                        'tagihan_pinjaman_jasa' => DB::raw('COALESCE(tagihan_pinjaman_jasa,0)'),
+                        'tagihan_toserda' => DB::raw('COALESCE(tagihan_toserda,0)'),
+                        'total_tagihan_simpanan' => DB::raw('COALESCE(total_tagihan_simpanan,0)'),
+                        'selisih' => DB::raw('COALESCE(selisih,0)'),
+                        'saldo_simpanan_sukarela' => DB::raw('COALESCE(saldo_simpanan_sukarela,0)'),
+                        'saldo_akhir_simpanan_sukarela' => DB::raw('COALESCE(saldo_akhir_simpanan_sukarela,0)')
+                    ]
+                );
+            }
+            
+            Log::info('Billing data berhasil di-generate untuk pinjaman', [
+                'pinjaman_id' => $pinjaman->id,
+                'no_ktp' => $pinjaman->no_ktp,
+                'jumlah_tempo' => count($tempoData)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Gagal generate billing data untuk pinjaman', [
+                'pinjaman_id' => $pinjaman->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Generate jadwal angsuran di tempo_pinjaman
+     */
+    private function generateTempoPinjaman($pinjaman, $pengajuan)
+    {
+        try {
+            $tglPinjam = Carbon::parse($pinjaman->tgl_pinjam);
+            $lamaAngsuran = $pengajuan->lama_ags;
+            
+            for ($i = 1; $i <= $lamaAngsuran; $i++) {
+                // Hitung tanggal jatuh tempo (mengikuti hari pada tgl_pinjam)
+                $tglTempo = $tglPinjam->copy()->addMonths($i);
+                
+                // Jika bulan tidak memiliki tanggal tersebut, clamp ke akhir bulan
+                $hariPinjam = $tglPinjam->day;
+                if ($tglTempo->daysInMonth < $hariPinjam) {
+                    $tglTempo = $tglTempo->endOfMonth();
+                } else {
+                    $tglTempo->day($hariPinjam);
+                }
+                
+                // Insert ke tempo_pinjaman
+                DB::table('tempo_pinjaman')->insert([
+                    'pinjam_id' => $pinjaman->id,
+                    'no_ktp' => $pinjaman->no_ktp,
+                    'tgl_pinjam' => $tglPinjam->toDateString(),
+                    'tempo' => $tglTempo->toDateString()
+                ]);
+            }
+            
+            Log::info('Jadwal angsuran berhasil di-generate', [
+                'pinjaman_id' => $pinjaman->id,
+                'jumlah_angsuran' => $lamaAngsuran,
+                'tgl_pinjam' => $tglPinjam->toDateString()
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Gagal generate jadwal angsuran', [
+                'pinjaman_id' => $pinjaman->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
 
@@ -208,7 +356,7 @@ class DataPinjamanController extends Controller
         $anggota = data_anggota::all();
         $jenisPinjaman = [
             '1' => 'Biasa',
-            '2' => 'Barang'
+            '3' => 'Barang'
         ];
         $dataKas = \App\Models\DataKas::all();
         
@@ -223,7 +371,7 @@ class DataPinjamanController extends Controller
             'jumlah' => 'required|numeric|min:1000',
             'lama_angsuran' => 'required|integer|min:1|max:60',
             'bunga' => 'required|numeric|min:0|max:100',
-            'jenis_pinjaman' => 'required|in:1,2',
+            'jenis_pinjaman' => 'required|in:1,3',
             'kas_id' => 'required|exists:data_kas,id',
             'keterangan' => 'nullable|string|max:500'
         ]);
@@ -275,7 +423,7 @@ class DataPinjamanController extends Controller
         $anggota = data_anggota::all();
         $jenisPinjaman = [
             '1' => 'Biasa',
-            '2' => 'Barang'
+            '3' => 'Barang'
         ];
         $dataKas = \App\Models\DataKas::all();
         
@@ -290,7 +438,7 @@ class DataPinjamanController extends Controller
             'jumlah' => 'required|numeric|min:1000',
             'lama_angsuran' => 'required|integer|min:1|max:60',
             'bunga' => 'required|numeric|min:0|max:100',
-            'jenis_pinjaman' => 'required|in:1,2',
+            'jenis_pinjaman' => 'required|in:1,3',
             'kas_id' => 'required|exists:data_kas,id',
             'keterangan' => 'nullable|string|max:500'
         ]);

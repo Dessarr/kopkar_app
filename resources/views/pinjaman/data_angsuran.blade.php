@@ -8,36 +8,22 @@
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">Data Angsuran</h1>
         <div class="flex space-x-2">
-            <a href="{{ route('pinjaman.data_pengajuan') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+            <a href="{{ route('pinjaman.data_pengajuan') }}"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
                 <i class="fas fa-file-alt mr-2"></i>Data Pengajuan
             </a>
-            <a href="{{ route('pinjaman.data_pinjaman') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+            <a href="{{ route('pinjaman.data_pinjaman') }}"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
                 <i class="fas fa-money-bill mr-2"></i>Data Pinjaman
             </a>
-            <a href="{{ route('pinjaman.pelunasan') }}" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+            <a href="{{ route('pinjaman.pelunasan') }}"
+                class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
                 <i class="fas fa-credit-card mr-2"></i>Pelunasan
             </a>
-            <a href="{{ route('pinjaman.lunas') }}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+            <a href="{{ route('pinjaman.lunas') }}"
+                class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
                 <i class="fas fa-check-circle mr-2"></i>Pinjaman Lunas
             </a>
-        </div>
-        <div class="flex place-content-around items-center w-1/2">
-            <div class="bg-green-100 p-2 rounded-lg border-2 border-green-400 space-x-2 flex justify-around">
-                <p class="text-sm">Export</p> <img src="{{ asset('img/icons-bootstrap/export/cloud-download.svg') }}"
-                    class="h-auto w-[20px]">
-            </div>
-            <div class="bg-gray-100 p-2 flex flex-row space-x-2 item-center rounded-lg border-2 border-gray-300">
-                <i class="fa-solid fa-magnifying-glass  " style="color:gray;"></i>
-                <p class="text-sm text-gray-500  ">Kode Pinjaman</p>
-            </div>
-
-            <div class="bg-gray-100 p-3 flex flex-row item-center rounded-lg border-2 border-gray-300">
-                <img src="{{ asset('img/icons-bootstrap/calendar/calendar4.svg') }}">
-            </div>
-
-            <div class="bg-green-100 py-2 px-5 rounded-lg border-2 border-green-400">
-                <i class="fa-solid fa-ellipsis-vertical"></i>
-            </div>
         </div>
     </div>
 
@@ -125,10 +111,11 @@
                         <td class="py-1 px-2 border text-center align-top">
                             @php
                             $statusMap = [
-                                '1' => ['Aktif', 'bg-blue-100 text-blue-700 border-blue-300'],
-                                '3' => ['Terlaksana', 'bg-indigo-100 text-indigo-700 border-indigo-300']
+                            '1' => ['Aktif', 'bg-blue-100 text-blue-700 border-blue-300'],
+                            '3' => ['Terlaksana', 'bg-indigo-100 text-indigo-700 border-indigo-300']
                             ];
-                            [$label, $cls] = $statusMap[$pinjaman->status] ?? [$pinjaman->status, 'bg-gray-100 text-gray-700 border-gray-300'];
+                            [$label, $cls] = $statusMap[$pinjaman->status] ?? [$pinjaman->status, 'bg-gray-100
+                            text-gray-700 border-gray-300'];
                             @endphp
                             <span
                                 class="px-1 py-0.5 text-[10px] rounded border truncate max-w-[80px] inline-block text-center {{ $cls }}"
@@ -142,7 +129,8 @@
                                 <a class="w-full px-1.5 py-0.5 text-[10px] rounded border bg-green-50 text-green-700 border-green-300 hover:bg-green-100"
                                     href="{{ route('pinjaman.data_angsuran.show', $pinjaman->id) }}">Bayar</a>
                                 @else
-                                <span class="w-full px-1.5 py-0.5 text-[10px] rounded border bg-gray-50 text-gray-700 border-gray-300 text-center">Lunas</span>
+                                <span
+                                    class="w-full px-1.5 py-0.5 text-[10px] rounded border bg-gray-50 text-gray-700 border-gray-300 text-center">Lunas</span>
                                 @endif
                             </div>
                         </td>

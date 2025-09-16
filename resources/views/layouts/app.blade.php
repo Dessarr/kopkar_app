@@ -18,6 +18,9 @@
     <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/locale/id.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    
+    <!-- Global Number Formatting Script -->
+    <script src="{{ asset('js/number-formatting.js') }}"></script>
 
     <style>
     body {

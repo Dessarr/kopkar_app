@@ -836,16 +836,22 @@ function formatNumber(input) {
         value = parts[0] + '.' + parts.slice(1).join('');
     }
 
+    // Don't format if empty
+    if (value === '') {
+        input.value = '';
+        return;
+    }
+
     // Format with thousand separators for display
     if (value && !isNaN(parseFloat(value))) {
         const number = parseFloat(value);
         if (number > 0) {
-            input.value = number.toLocaleString('id-ID');
+            // Use toLocaleString with proper options to handle large numbers
+            // Remove the formatting to prevent the 1 digit issue
+            input.value = number.toString();
         } else {
             input.value = '';
         }
-    } else if (value === '') {
-        input.value = '';
     }
 }
 

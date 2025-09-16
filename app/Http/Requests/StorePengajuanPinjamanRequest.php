@@ -25,8 +25,7 @@ class StorePengajuanPinjamanRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // jenis_pinjaman opsional, default logic menggunakan 1 (Biasa)
-            'jenis_pinjaman' => ['sometimes'],
+            'jenis_pinjaman' => ['required','in:1,3'], // 1=Biasa, 3=Barang
             'nominal' => ['required','numeric','min:1000'],
             'lama_angsuran' => ['required','integer','min:1','max:60'],
             'keterangan' => ['required','string','max:500'],

@@ -43,6 +43,15 @@ Route::get('/', [AdminController::class, 'showLoginForm'])->name('admin.login.fo
 Route::get('/admin/login', [AdminController::class, 'showLoginForm'])->name('admin.login.form');
 Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.login.post');
 Route::get('/admin/dashboard', [AdminController::class, 'adminDashboard'])->name('admin.dashboard')->middleware('auth:admin');
+
+// Debug route
+Route::get('/debug-pinjaman/{noKtp}/{tahun}/{bulan}', [App\Http\Controllers\MemberController::class, 'debugPinjaman']);
+Route::get('/test-tagihan-kredit/{noKtp}', [App\Http\Controllers\MemberController::class, 'testHitungTagihanKredit']);
+Route::get('/update-status-lunas/{pinjamanId}', [App\Http\Controllers\DataAngsuranController::class, 'updateStatusLunasManual']);
+Route::get('/force-update-status-lunas/{pinjamanId}', [App\Http\Controllers\DataAngsuranController::class, 'forceUpdateStatusLunas']);
+
+// Cleanup route untuk data angsuran yang tidak valid
+Route::get('/cleanup-invalid-angsuran', [App\Http\Controllers\DtaAnggotaController::class, 'cleanupInvalidAngsuranData'])->name('cleanup.invalid.angsuran');
 Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.logout');
 
 // Notification Routes
@@ -213,18 +222,28 @@ Route::middleware(['auth:admin'])->group(function () {
     //Route billing
     Route::prefix('billing')->group(function () {
         Route::get('/', [BillingController::class, 'index'])->name('billing.index');
-        Route::post('/process/{billing_code}', [BillingController::class, 'processPayment'])->name('billing.process');
         Route::get('/export/excel', [BillingController::class, 'exportExcel'])->name('billing.export.excel');
         Route::get('/export/pdf', [BillingController::class, 'exportPdf'])->name('billing.export.pdf');
+        
+        // CRUD Routes for Billing Management
+        Route::post('/', [BillingController::class, 'store'])->name('billing.store');
+        Route::put('/{id}', [BillingController::class, 'update'])->name('billing.update');
+        Route::delete('/{id}', [BillingController::class, 'destroy'])->name('billing.destroy');
         
         // New routes for processed billings
         Route::get('/processed', [BillingController::class, 'processed'])->name('billing.processed');
         Route::post('/cancel/{billing_process_id}', [BillingController::class, 'cancelPayment'])->name('billing.cancel');
+        
+        // New routes for filter actions
+        Route::post('/generate-ulang', [BillingController::class, 'generateUlang'])->name('billing.generate-ulang');
+        Route::post('/clear-table', [BillingController::class, 'clearTable'])->name('billing.clear-table');
         Route::get('/processed/export/excel', [BillingController::class, 'exportProcessedExcel'])->name('billing.processed.export.excel');
         Route::get('/processed/export/pdf', [BillingController::class, 'exportProcessedPdf'])->name('billing.processed.export.pdf');
 
         // Simpanan -> Proses semua ke Billing Utama (tbl_trans_sp_bayar_temp)
         Route::post('/simpanan/process-all', [BillingController::class, 'processAllToMain'])->name('billing.simpanan.process_all');
+        // Simpanan -> Proses selected ke Billing Utama (tbl_trans_sp_bayar_temp)
+        Route::post('/simpanan/process-selected', [BillingController::class, 'processSelectedToMain'])->name('billing.simpanan.process_selected');
     });
 
     // Route Billing Toserda
@@ -243,6 +262,9 @@ Route::middleware(['auth:admin'])->group(function () {
 
     // Billing Utama (ambil dari tbl_trans_sp_bayar_temp)
     Route::get('/billing-utama', [\App\Http\Controllers\BillingUtamaController::class, 'index'])->name('billing.utama');
+    Route::get('/billing-utama/{id}', [\App\Http\Controllers\BillingUtamaController::class, 'show'])->name('billing.utama.show');
+    Route::put('/billing-utama/{id}', [\App\Http\Controllers\BillingUtamaController::class, 'update'])->name('billing.utama.update');
+    Route::delete('/billing-utama/{id}', [\App\Http\Controllers\BillingUtamaController::class, 'destroy'])->name('billing.utama.destroy');
     
     // Billing Periode (untuk table kecil periode)
     Route::get('/billing-periode/summary/{bulan}/{tahun}', [\App\Http\Controllers\BillingPeriodeController::class, 'getPeriodSummary'])->name('billing.periode.summary');
@@ -493,6 +515,9 @@ Route::prefix('toserda')->group(function () {
         
         Route::get('/penarikan', [SimpananController::class, 'penarikanTunai'])->name('simpanan.penarikan');
         Route::post('/penarikan', [SimpananController::class, 'storePenarikan'])->name('simpanan.store.penarikan');
+        Route::post('/penarikan/{id}', [SimpananController::class, 'updatePenarikan'])->name('simpanan.penarikan.update');
+        Route::post('/penarikan/{id}/delete', [SimpananController::class, 'deletePenarikan'])->name('simpanan.penarikan.delete');
+        Route::get('/penarikan/export', [SimpananController::class, 'exportPenarikan'])->name('simpanan.penarikan.export');
         Route::get('/pengajuan-penarikan', [SimpananController::class, 'pengajuanPenarikan'])->name('simpanan.pengajuan_penarikan');
         Route::get('/tagihan', [SimpananController::class, 'tagihan'])->name('simpanan.tagihan');
         Route::post('/tagihan', [SimpananController::class, 'storeTagihan'])->name('simpanan.tagihan.store');
@@ -605,5 +630,11 @@ Route::prefix('toserda')->group(function () {
         Route::get('/toserda/export/pdf', [\App\Http\Controllers\LaporanToserdaController::class, 'exportPdf'])->name('laporan.toserda.export.pdf');
         Route::get('/toserda/export/excel', [\App\Http\Controllers\LaporanToserdaController::class, 'exportExcel'])->name('laporan.toserda.export.excel');
     });
+    
+    // Route untuk cleanup data anggota
+    Route::get('/member/cleanup/{id}', [\App\Http\Controllers\MemberController::class, 'cleanupMemberById'])->name('member.cleanup');
+    
+    // Route untuk cascade delete data anggota
+    Route::get('/member/cascade-delete/{id}', [\App\Http\Controllers\MemberController::class, 'cascadeDeleteById'])->name('member.cascade.delete');
     
 }); // End of admin routes

@@ -105,7 +105,7 @@
     </div>
 
     <!-- Form Pembayaran Angsuran -->
-    @if($pinjaman->lunas === 'Belum')
+    @if($pinjaman->lunas === 'Belum' && $sisaTagihan > 1000)
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 class="text-lg font-semibold mb-4">Pembayaran Angsuran ke-{{ $angsuranKe }}</h2>
         
@@ -137,17 +137,29 @@
                 </div>
                 <div>
                     <label for="jumlah_bayar" class="block text-sm font-medium text-gray-700">Jumlah Bayar (Pokok)</label>
-                    <input type="number" name="jumlah_bayar" id="jumlah_bayar" value="{{ $pinjaman->jumlah_angsuran }}" 
+                    @php
+                        // Hitung angsuran yang seharusnya berdasarkan logika pembulatan yang benar
+                        $angsuranPerBulan = floor($pinjaman->jumlah / $pinjaman->lama_angsuran);
+                        $sisaPembulatan = $pinjaman->jumlah - ($angsuranPerBulan * $pinjaman->lama_angsuran);
+                        
+                        // Untuk angsuran terakhir, tambahkan sisa pembulatan
+                        if ($angsuranKe == $pinjaman->lama_angsuran) {
+                            $minPembayaran = $angsuranPerBulan + $sisaPembulatan;
+                        } else {
+                            $minPembayaran = $angsuranPerBulan;
+                        }
+                    @endphp
+                    <input type="number" name="jumlah_bayar" id="jumlah_bayar" value="{{ $minPembayaran }}" 
                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
-                           min="{{ $pinjaman->jumlah_angsuran }}" max="{{ $sisaTagihan }}" required>
+                           min="{{ $minPembayaran }}" max="{{ $sisaTagihan }}" required>
                     <p class="mt-1 text-xs text-gray-500">
-                        Minimal: Rp {{ number_format($pinjaman->jumlah_angsuran, 0, ',', '.') }} | 
+                        Minimal: Rp {{ number_format($minPembayaran, 0, ',', '.') }} | 
                         Maksimal: Rp {{ number_format($sisaTagihan, 0, ',', '.') }}
                     </p>
                 </div>
                 <div>
                     <label for="bunga" class="block text-sm font-medium text-gray-700">Bunga</label>
-                    <input type="number" name="bunga" id="bunga" value="{{ ($pinjaman->bunga * $pinjaman->jumlah_angsuran) / 100 }}" 
+                    <input type="number" name="bunga" id="bunga" value="{{ ($pinjaman->bunga * $minPembayaran) / 100 }}" 
                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
                 </div>
                 <div>
@@ -185,6 +197,26 @@
                 </button>
             </div>
         </form>
+    </div>
+    @elseif($pinjaman->lunas === 'Lunas' || $sisaTagihan <= 1000)
+    <!-- Informasi Pinjaman Sudah Lunas -->
+    <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-check-circle text-green-400 text-2xl"></i>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-lg font-medium text-green-800">Pinjaman Sudah Lunas</h3>
+                <div class="mt-2 text-sm text-green-700">
+                    <p>Pinjaman ini telah dilunasi sepenuhnya. Tidak ada pembayaran angsuran yang diperlukan lagi.</p>
+                    @if($pinjaman->lunas === 'Lunas')
+                        <p class="mt-1"><strong>Status:</strong> Lunas</p>
+                    @else
+                        <p class="mt-1"><strong>Sisa Tagihan:</strong> Rp {{ number_format($sisaTagihan, 0, ',', '.') }}</p>
+                    @endif
+                </div>
+            </div>
+        </div>
     </div>
     @endif
 
@@ -247,4 +279,55 @@
         @endif
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Format angka untuk input jumlah_bayar
+    const jumlahBayarInput = document.getElementById('jumlah_bayar');
+    
+    if (jumlahBayarInput) {
+        // Format saat input
+        jumlahBayarInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^\d]/g, ''); // Hapus semua karakter non-digit
+            e.target.value = value;
+        });
+        
+        // Format saat blur (keluar dari input)
+        jumlahBayarInput.addEventListener('blur', function(e) {
+            let value = parseInt(e.target.value) || 0;
+            e.target.value = value;
+        });
+    }
+    
+    // Format angka untuk input bunga
+    const bungaInput = document.getElementById('bunga');
+    
+    if (bungaInput) {
+        bungaInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^\d]/g, ''); // Hapus semua karakter non-digit
+            e.target.value = value;
+        });
+        
+        bungaInput.addEventListener('blur', function(e) {
+            let value = parseInt(e.target.value) || 0;
+            e.target.value = value;
+        });
+    }
+    
+    // Format angka untuk input biaya_adm
+    const biayaAdmInput = document.getElementById('biaya_adm');
+    
+    if (biayaAdmInput) {
+        biayaAdmInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^\d]/g, ''); // Hapus semua karakter non-digit
+            e.target.value = value;
+        });
+        
+        biayaAdmInput.addEventListener('blur', function(e) {
+            let value = parseInt(e.target.value) || 0;
+            e.target.value = value;
+        });
+    }
+});
+</script>
 @endsection

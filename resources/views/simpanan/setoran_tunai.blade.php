@@ -749,11 +749,24 @@ function getRawNumberEdit(input) {
 }
 
 function formatNumberSimple(input) {
-    let value = input.value.replace(/[^0-9]/g, '');
-    if (value) {
-        value = parseInt(value).toLocaleString('id-ID');
+    let value = input.value.replace(/[^0-9.]/g, '');
+    
+    // Remove multiple decimal points
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
     }
-    input.value = value;
+    
+    if (value) {
+        const number = parseFloat(value);
+        if (!isNaN(number) && number > 0) {
+            input.value = number.toString();
+        } else {
+            input.value = '';
+        }
+    } else {
+        input.value = '';
+    }
 }
 
 function autoFillJumlah() {

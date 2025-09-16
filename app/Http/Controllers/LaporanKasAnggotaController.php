@@ -15,6 +15,7 @@ use App\Models\View_SimpananBayarTanggal;
 use App\Models\View_SimpananTagihanTanggal;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -23,14 +24,8 @@ class LaporanKasAnggotaController extends Controller
 {
     public function index(Request $request)
     {
-        $periode = $request->input('periode', date('Y-m'));
         $search = $request->input('search');
-        $perPage = $request->input('per_page', 10); // Fixed to 10 data per page as per specification
-
-        // Parse periode
-        $tgl_arr = explode('-', $periode);
-        $tahun = $tgl_arr[0];
-        $bulan = $tgl_arr[1];
+        $perPage = $request->input('per_page', 20); // Increased for better display
 
         $query = data_anggota::where('aktif', 'Y');
 
@@ -51,30 +46,39 @@ class LaporanKasAnggotaController extends Controller
             ->orderBy('urut', 'asc')
             ->get();
 
-        // Get data kas untuk setiap anggota
-        $kasData = [];
+        // Get data untuk setiap anggota (menggunakan logika yang sama dengan dashboard member)
+        $anggotaData = [];
         foreach ($dataAnggota as $anggota) {
-            $kasData[$anggota->no_ktp] = $this->getKasData($anggota->no_ktp, $tahun, $bulan);
+            $anggotaData[$anggota->no_ktp] = [
+                'anggota' => $anggota,
+                'identitas' => $this->getIdentitasAnggota($anggota),
+                'saldo_simpanan' => $this->hitungSaldoSimpanan($anggota->no_ktp),
+                'tagihan_kredit' => $this->hitungTagihanKredit($anggota->no_ktp),
+                'keterangan' => $this->hitungKeteranganPinjaman($anggota->no_ktp)
+            ];
         }
 
-        // Statistik
+        // Statistik - hanya total anggota dan total saldo
         $totalAnggota = data_anggota::where('aktif', 'Y')->count();
-        $totalSimpanan = $this->getTotalSimpanan($tahun, $bulan);
-        $totalPenarikan = $this->getTotalPenarikan($tahun, $bulan);
-        $totalSaldo = $totalSimpanan - $totalPenarikan;
+        
+        // Hitung total saldo dari semua anggota
+        $totalSaldo = 0;
+        foreach ($anggotaData as $data) {
+            $saldo = $data['saldo_simpanan'];
+            $totalSaldo += ($saldo->simpanan_wajib ?? 0) + 
+                          ($saldo->simpanan_sukarela ?? 0) + 
+                          ($saldo->simpanan_khusus_2 ?? 0) + 
+                          ($saldo->simpanan_pokok ?? 0) + 
+                          ($saldo->simpanan_khusus_1 ?? 0) + 
+                          ($saldo->tab_perumahan ?? 0);
+        }
 
         return view('laporan.kas_anggota', compact(
             'dataAnggota',
-            'jenisSimpanan',
-            'kasData',
-            'periode',
-            'tahun',
-            'bulan',
+            'anggotaData',
             'search',
             'perPage',
             'totalAnggota',
-            'totalSimpanan',
-            'totalPenarikan',
             'totalSaldo'
         ));
     }
@@ -680,6 +684,108 @@ class LaporanKasAnggotaController extends Controller
         exit;
     }
 
+    /**
+     * Get identitas anggota data
+     */
+    private function getIdentitasAnggota($anggota)
+    {
+        return [
+            'id_anggota' => $anggota->no_ktp,
+            'nama' => $anggota->nama,
+            'jenis_kelamin' => $anggota->jk == 'L' ? 'Laki-laki' : 'Perempuan',
+            'alamat' => $anggota->alamat,
+            'telp' => $anggota->notelp
+        ];
+    }
+
+    /**
+     * Hitung saldo simpanan (konsisten dengan dashboard member)
+     */
+    private function hitungSaldoSimpanan($noKtp)
+    {
+        return DB::table('tbl_trans_sp')
+            ->selectRaw('
+                SUM(CASE WHEN jenis_id = 41 AND dk = "D" THEN jumlah ELSE 0 END) - 
+                SUM(CASE WHEN jenis_id = 41 AND dk = "K" THEN jumlah ELSE 0 END) as simpanan_wajib,
+                
+                SUM(CASE WHEN jenis_id = 32 AND dk = "D" THEN jumlah ELSE 0 END) - 
+                SUM(CASE WHEN jenis_id = 32 AND dk = "K" THEN jumlah ELSE 0 END) as simpanan_sukarela,
+                
+                SUM(CASE WHEN jenis_id = 52 AND dk = "D" THEN jumlah ELSE 0 END) - 
+                SUM(CASE WHEN jenis_id = 52 AND dk = "K" THEN jumlah ELSE 0 END) as simpanan_khusus_2,
+                
+                SUM(CASE WHEN jenis_id = 40 AND dk = "D" THEN jumlah ELSE 0 END) - 
+                SUM(CASE WHEN jenis_id = 40 AND dk = "K" THEN jumlah ELSE 0 END) as simpanan_pokok,
+                
+                SUM(CASE WHEN jenis_id = 51 AND dk = "D" THEN jumlah ELSE 0 END) - 
+                SUM(CASE WHEN jenis_id = 51 AND dk = "K" THEN jumlah ELSE 0 END) as simpanan_khusus_1,
+                
+                SUM(CASE WHEN jenis_id = 156 AND dk = "D" THEN jumlah ELSE 0 END) - 
+                SUM(CASE WHEN jenis_id = 156 AND dk = "K" THEN jumlah ELSE 0 END) as tab_perumahan
+            ')
+            ->where('no_ktp', $noKtp)
+            ->first();
+    }
+
+    /**
+     * Hitung tagihan kredit menggunakan view seperti dashboard member
+     */
+    private function hitungTagihanKredit($noKtp)
+    {
+        return DB::table('v_hitung_pinjaman')
+            ->selectRaw('
+                SUM(CASE WHEN jenis_pinjaman = 1 THEN jumlah ELSE 0 END) as pinjaman_biasa,
+                SUM(CASE WHEN jenis_pinjaman = 1 AND lunas = "Belum" THEN sisa_pokok ELSE 0 END) as sisa_pinjaman_biasa,
+                SUM(CASE WHEN jenis_pinjaman = 3 THEN jumlah ELSE 0 END) as pinjaman_barang,
+                SUM(CASE WHEN jenis_pinjaman = 3 AND lunas = "Belum" THEN sisa_pokok ELSE 0 END) as sisa_pinjaman_barang
+            ')
+            ->where('no_ktp', $noKtp)
+            ->where('status', '1')
+            ->first();
+    }
+
+    /**
+     * Hitung keterangan pinjaman (konsisten dengan dashboard member)
+     */
+    private function hitungKeteranganPinjaman($noKtp)
+    {
+        $data = DB::table('tbl_pinjaman_h as p')
+            ->selectRaw('
+                COUNT(*) as jumlah_pinjaman,
+                SUM(CASE WHEN p.lunas = "Lunas" THEN 1 ELSE 0 END) as pinjaman_lunas
+            ')
+            ->where('p.no_ktp', $noKtp)
+            ->where('p.status', '1')
+            ->first();
+        
+        // Logika sederhana seperti project lama
+        $statusPembayaran = 'Lancar';
+        $tanggalTempo = '-';
+        
+        if ($data->jumlah_pinjaman > 0) {
+            $pinjamanAktif = DB::table('tbl_pinjaman_h')
+                ->where('no_ktp', $noKtp)
+                ->where('status', '1')
+                ->where('lunas', 'Belum')
+                ->first();
+            
+            if ($pinjamanAktif) {
+                $bulanTempo = date('m', strtotime($pinjamanAktif->tgl_pinjam));
+                $bulanSekarang = date('m');
+                
+                if ($bulanSekarang > $bulanTempo) {
+                    $statusPembayaran = 'Macet';
+                }
+                
+                $tanggalTempo = date('d/m/Y', strtotime($pinjamanAktif->tgl_pinjam));
+            }
+        }
+        
+        $data->status_pembayaran = $statusPembayaran;
+        $data->tanggal_tempo = $tanggalTempo;
+        return $data;
+    }
+
     private function getKasData($noKtp, $tahun, $bulan)
     {
         $data = [
@@ -766,19 +872,38 @@ class LaporanKasAnggotaController extends Controller
         return $data;
     }
 
-    private function getTotalSimpanan($tahun, $bulan)
+    private function getKeteranganPinjaman($no_ktp)
     {
-        return TransaksiSimpanan::where('akun', 'setoran')
-            ->whereYear('tgl_transaksi', $tahun)
-            ->whereMonth('tgl_transaksi', $bulan)
-            ->sum('jumlah');
+        try {
+            // Jumlah Pinjaman
+            $jumlah_pinjaman = TblPinjamanH::where('no_ktp', $no_ktp)->count();
+            
+            // Pinjaman Lunas
+            $pinjaman_lunas = TblPinjamanH::where('no_ktp', $no_ktp)
+                ->where('lunas', 'Lunas')
+                ->count();
+                
+            // Status Pembayaran (default Lancar)
+            $status_pembayaran = 'Lancar';
+            
+            // Tanggal Tempo (default -)
+            $tanggal_tempo = '-';
+            
+            return [
+                'jumlah_pinjaman' => $jumlah_pinjaman,
+                'pinjaman_lunas' => $pinjaman_lunas,
+                'status_pembayaran' => $status_pembayaran,
+                'tanggal_tempo' => $tanggal_tempo
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error getting keterangan pinjaman:', ['error' => $e->getMessage()]);
+            return [
+                'jumlah_pinjaman' => 0,
+                'pinjaman_lunas' => 0,
+                'status_pembayaran' => 'Lancar',
+                'tanggal_tempo' => '-'
+            ];
+        }
     }
 
-    private function getTotalPenarikan($tahun, $bulan)
-    {
-        return TransaksiSimpanan::where('akun', 'penarikan')
-            ->whereYear('tgl_transaksi', $tahun)
-            ->whereMonth('tgl_transaksi', $bulan)
-            ->sum('jumlah');
-    }
 } 

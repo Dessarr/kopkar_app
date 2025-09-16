@@ -394,7 +394,7 @@
                             class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
                             <option value="">-- Pilih Jenis --</option>
                             <option value="1">Biasa</option>
-                            <option value="2">Barang</option>
+                            <option value="3">Barang</option>
                         </select>
                     </div>
 

@@ -30,8 +30,7 @@ class TransaksiSimpanan extends Model
         'user_name',
         'nama_penyetor',
         'no_identitas',
-        'alamat',
-        'id_cabang'
+        'alamat'
     ];
 
     protected $casts = [
@@ -68,18 +67,6 @@ class TransaksiSimpanan extends Model
     public function jenisSimpanan()
     {
         return $this->belongsTo(jns_simpan::class, 'jenis_id', 'id');
-    }
-
-    // Accessor untuk mendapatkan jenis simpanan dengan fallback
-    public function getJenisSimpananAttribute()
-    {
-        $jenis = jns_simpan::find($this->jenis_id);
-        if ($jenis) {
-            return $jenis->jns_simpan;
-        }
-        
-        // Fallback untuk jenis_id yang tidak valid
-        return 'Lainnya';
     }
 
     public function kas()

@@ -106,7 +106,7 @@
                 <select name="jenis" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="all" {{ $jenis_filter == 'all' ? 'selected' : '' }}>Semua Jenis</option>
                     <option value="1" {{ $jenis_filter == '1' ? 'selected' : '' }}>Pinjaman Biasa</option>
-                    <option value="2" {{ $jenis_filter == '2' ? 'selected' : '' }}>Pinjaman Barang</option>
+                    <option value="3" {{ $jenis_filter == '3' ? 'selected' : '' }}>Pinjaman Barang</option>
                 </select>
             </div>
             <div class="md:col-span-4">

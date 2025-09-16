@@ -17,7 +17,7 @@ CREATE TABLE `data_pengajuan` (
   `jumlah` decimal(15,2) NOT NULL,
   `lama_angsuran` int(11) NOT NULL,
   `bunga` decimal(5,2) NOT NULL,
-  `jenis_pinjaman` enum('1','2') NOT NULL COMMENT '1=Biasa, 2=Barang',
+  `jenis_pinjaman` enum('1','3') NOT NULL COMMENT '1=Biasa, 3=Barang',
   `kas_id` bigint(20) unsigned NOT NULL,
   `keterangan` text,
   `status` enum('Pending','Approved','Rejected') DEFAULT 'Pending',
@@ -38,7 +38,7 @@ CREATE TABLE `data_pengajuan` (
 - `jumlah` - Jumlah pinjaman
 - `lama_angsuran` - Durasi angsuran dalam bulan
 - `bunga` - Persentase bunga per tahun
-- `jenis_pinjaman` - 1=Biasa, 2=Barang
+- `jenis_pinjaman` - 1=Biasa, 3=Barang
 - `kas_id` - Foreign key ke data_kas
 - `status` - Status pengajuan (Pending/Approved/Rejected)
 
@@ -57,7 +57,7 @@ CREATE TABLE `tbl_pinjaman_h` (
   `lama_angsuran` int(11) NOT NULL,
   `jumlah_angsuran` decimal(15,2) NOT NULL COMMENT 'Angsuran per bulan',
   `bunga` decimal(5,2) NOT NULL,
-  `jenis_pinjaman` enum('1','2') NOT NULL,
+  `jenis_pinjaman` enum('1','3') NOT NULL,
   `kas_id` bigint(20) unsigned NOT NULL,
   `status` enum('0','1') DEFAULT '1' COMMENT '0=Nonaktif, 1=Aktif',
   `lunas` enum('Belum','Sudah') DEFAULT 'Belum',

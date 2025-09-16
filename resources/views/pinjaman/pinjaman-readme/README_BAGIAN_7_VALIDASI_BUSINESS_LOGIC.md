@@ -239,7 +239,7 @@ private function cekKelengkapanDokumen($pengajuan)
         'kk' => true,
         'slip_gaji' => $pengajuan->jenis_pinjaman == '1',
         'surat_kerja' => $pengajuan->jenis_pinjaman == '1',
-        'jaminan' => $pengajuan->jenis_pinjaman == '2',
+        'jaminan' => $pengajuan->jenis_pinjaman == '3',
         'npwp' => $pengajuan->jumlah > 100000000 // NPWP wajib untuk pinjaman > 100 juta
     ];
     

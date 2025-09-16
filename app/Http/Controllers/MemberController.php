@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;  
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Member;
 use App\Models\JnsPinjaman;
 use Carbon\Carbon;
@@ -15,7 +17,6 @@ use App\Services\ActivityLogService;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Hash as HashFacade;
-use Illuminate\Support\Facades\DB;
 use App\Exports\MemberPaymentReportExport;
 use App\Exports\MemberSavingsReportExport;
 
@@ -66,7 +67,8 @@ class MemberController extends Controller
 
     public function memberDashboard(Request $request)
     {
-        $anggota = auth()->guard('member')->user();
+        $anggota = $this->getAuthenticatedMember();
+        
         $periode = $request->get('periode', date('Y-m'));
         $tahun = substr($periode, 0, 4);
         $bulan = substr($periode, 5, 2);
@@ -74,38 +76,66 @@ class MemberController extends Controller
         // 1. Hitung Saldo Simpanan (konsisten dengan project lama)
         $saldoSimpanan = $this->hitungSaldoSimpanan($anggota->no_ktp);
         
-
         // 2. Hitung Tagihan Kredit
         $tagihanKredit = $this->hitungTagihanKredit($anggota->no_ktp);
         
         // 3. Hitung Keterangan Pinjaman
         $keteranganPinjaman = $this->hitungKeteranganPinjaman($anggota->no_ktp);
         
-        // 4. Ambil data tagihan simpanan untuk periode tertentu
-        $tagihanData = $this->getTagihanSimpanan($anggota->no_ktp, $tahun, $bulan);
+        // 4. Ambil data tagihan simpanan menggunakan method project lama dengan periode yang dipilih
+        $jmlTagihanSimpanan = $this->getJmlTagihanSimpanan($anggota->no_ktp, $tahun, $bulan);
         
-        // 5. Data simpanan list untuk dashboard
-        $simpananList = [
-            ['nama' => 'Simpanan Pokok', 'jumlah' => $tagihanData['simpanan_pokok']],
-            ['nama' => 'Simpanan Wajib', 'jumlah' => $tagihanData['simpanan_wajib']],
-            ['nama' => 'Simpanan Sukarela', 'jumlah' => $tagihanData['simpanan_sukarela']],
-            ['nama' => 'Simpanan Khusus 1', 'jumlah' => $tagihanData['simpanan_khusus_1']],
-            ['nama' => 'Simpanan Khusus 2', 'jumlah' => $tagihanData['simpanan_khusus_2']],
-            ['nama' => 'Tabungan Perumahan', 'jumlah' => $tagihanData['tab_perumahan']]
-        ];
+        // 5. Ambil data pinjaman berdasarkan periode yang dipilih
+        $biasa = $this->getJmlBiasa($anggota->no_ktp, $tahun, $bulan);
+        $bank = $this->getJmlBank($anggota->no_ktp, $tahun, $bulan);
+        $barang = $this->getJmlBarang($anggota->no_ktp, $tahun, $bulan);
         
-        // 6. Pengajuan pinjaman terbaru
+        // Debug: Log data pinjaman (akan diisi setelah perhitungan)
+        
+        // 6. Ambil data toserda dan lain-lain
+        $toserda = $this->getJmlToserda($anggota->no_ktp);
+        $lainLain = $this->getJmlLainLain($anggota->no_ktp);
+        
+        // 7. Data simpanan list untuk dashboard
+        $simpananList = $this->formatSimpananList($jmlTagihanSimpanan);
+        
+        // 8. Pengajuan pinjaman terbaru
         $pengajuanPinjaman = \App\Models\data_pengajuan::where('anggota_id', $anggota->id)
             ->orderBy('tgl_input', 'desc')
             ->first();
         
-        // 7. Tagihan bulan lalu
+        // 9. Data ringkasan tagihan berdasarkan logika project CI lama dengan periode yang dipilih
+        $jmlSimpans = $this->getJmlSimpans($anggota->no_ktp, $tahun, $bulan);
+        $tagihanBulanLaluNew = $this->getTagihanBulanLaluNew($anggota->no_ktp, $tahun, $bulan);
+        $potGaji = $this->getBayarSimpanan($anggota->no_ktp, $tahun, $bulan);
+        $potSimpanan = $this->getBayarSimpananPot($anggota->no_ktp, $tahun, $bulan);
+        
+        // 10. Hitung tag harus dibayar berdasarkan logika studi kasus
+        // Tag harus dibayar = angsuran bulan ini + tag bulan lalu
+        $tagHarusDibayar = $this->hitungTagHarusDibayar($anggota->no_ktp, $tahun, $bulan, $tagihanBulanLaluNew);
+        
+        // 11. Tagihan bulan lalu (legacy - untuk kompatibilitas)
         $tagihanBulanLalu = $this->getTagihanBulanLalu($anggota->no_ktp, $tahun, $bulan);
         
-        // 8. Pengajuan penarikan simpanan terbaru
+        // 10. Pengajuan penarikan simpanan terbaru
         $pengajuanPenarikan = \App\Models\data_pengajuan_penarikan::where('anggota_id', $anggota->id)
             ->orderBy('tgl_input', 'desc')
             ->first();
+        
+        // 11. Format data untuk view
+        $tagihanData = [
+            'simpanan_pokok' => $this->getSimpananByJenis($jmlTagihanSimpanan, 40),
+            'simpanan_wajib' => $this->getSimpananByJenis($jmlTagihanSimpanan, 41),
+            'simpanan_sukarela' => $this->getSimpananByJenis($jmlTagihanSimpanan, 32),
+            'simpanan_khusus_1' => $this->getSimpananByJenis($jmlTagihanSimpanan, 51),
+            'simpanan_khusus_2' => $this->getSimpananByJenis($jmlTagihanSimpanan, 52),
+            'tab_perumahan' => $this->getSimpananByJenis($jmlTagihanSimpanan, 156),
+            'pinjaman_biasa' => $biasa,
+            'pinjaman_barang' => $barang,
+            'pinjaman_bank' => $bank,
+            'toserda' => $toserda,
+            'lain_lain' => $lainLain
+        ];
         
         return view('member.dashboard', compact(
             'anggota', 
@@ -117,7 +147,12 @@ class MemberController extends Controller
             'tagihanBulanLalu',
             'pengajuanPenarikan',
             'tagihanData',
-            'periode'
+            'periode',
+            'jmlSimpans',
+            'tagihanBulanLaluNew',
+            'potGaji',
+            'potSimpanan',
+            'tagHarusDibayar'
         ));
     }
 
@@ -151,210 +186,619 @@ class MemberController extends Controller
     }
 
     /**
-     * Hitung tagihan kredit menggunakan view seperti project CI lama
+     * Hitung tagihan kredit berdasarkan tbl_pinjaman_h (head) yang disetujui
      */
     private function hitungTagihanKredit($noKtp)
     {
-        return \Illuminate\Support\Facades\DB::table('v_hitung_pinjaman')
-            ->selectRaw('
-                SUM(CASE WHEN jenis_pinjaman = 1 THEN jumlah ELSE 0 END) as pinjaman_biasa,
-                SUM(CASE WHEN jenis_pinjaman = 1 AND lunas = "Belum" THEN sisa_pokok ELSE 0 END) as sisa_pinjaman_biasa,
-                SUM(CASE WHEN jenis_pinjaman = 2 THEN jumlah ELSE 0 END) as pinjaman_bank,
-                SUM(CASE WHEN jenis_pinjaman = 2 AND lunas = "Belum" THEN sisa_pokok ELSE 0 END) as sisa_pinjaman_bank,
-                SUM(CASE WHEN jenis_pinjaman = 3 THEN jumlah ELSE 0 END) as pinjaman_barang,
-                SUM(CASE WHEN jenis_pinjaman = 3 AND lunas = "Belum" THEN sisa_pokok ELSE 0 END) as sisa_pinjaman_barang
-            ')
+        // Menggunakan view v_tagihan_kredit_detil untuk logika yang akurat
+        $kreditData = \Illuminate\Support\Facades\DB::table('v_tagihan_kredit_detil')
             ->where('no_ktp', $noKtp)
-            ->where('status', '1')
+            ->get();
+
+        // Hitung total per jenis pinjaman
+        $pinjamanBiasa = $kreditData->where('jenis_pinjaman', '1')->sum('total_pinjaman');
+        $sisaPinjamanBiasa = $kreditData->where('jenis_pinjaman', '1')->sum('sisa_pinjaman');
+        
+        $pinjamanBarang = $kreditData->where('jenis_pinjaman', '3')->sum('total_pinjaman');
+        $sisaPinjamanBarang = $kreditData->where('jenis_pinjaman', '3')->sum('sisa_pinjaman');
+        
+        $pinjamanBank = $kreditData->where('jenis_pinjaman', '2')->sum('total_pinjaman');
+        $sisaPinjamanBank = $kreditData->where('jenis_pinjaman', '2')->sum('sisa_pinjaman');
+        
+        // Hitung tagihan tak terbayar (angsuran yang sudah jatuh tempo tapi belum dibayar)
+        $tagihanTakTerbayar = $kreditData->sum('tagihan_tak_terbayar');
+
+        return (object) [
+            'pinjaman_biasa' => $pinjamanBiasa,
+            'sisa_pinjaman_biasa' => max(0, $sisaPinjamanBiasa),
+            'pinjaman_barang' => $pinjamanBarang,
+            'sisa_pinjaman_barang' => max(0, $sisaPinjamanBarang),
+            'pinjaman_bank' => $pinjamanBank,
+            'sisa_pinjaman_bank' => max(0, $sisaPinjamanBank),
+            'tagihan_takterbayar' => $tagihanTakTerbayar
+        ];
+    }
+
+    /**
+     * Get jumlah tagihan simpanan seperti project CI lama
+     * Menggabungkan data yang sama per jenis simpanan dan menampilkan placeholder 0 jika tidak ada data
+     */
+    private function getJmlTagihanSimpanan($noKtp, $tahun = null, $bulan = null)
+    {
+        $tahun = $tahun ?? date('Y');
+        $bulan = $bulan ?? date('m');
+        $id = [40, 32, 41, 52]; // Pokok, Sukarela, Wajib, Khusus2
+        
+        // Cek dulu di tbl_trans_tagihan dengan GROUP BY untuk menggabungkan data yang sama
+        $tagihanData = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan as a')
+            ->join('jns_simpan as b', 'a.jenis_id', '=', 'b.id')
+            ->select('a.jenis_id', 'b.jns_simpan', DB::raw('SUM(a.jumlah) as jumlah'))
+            ->whereYear('a.tgl_transaksi', $tahun)
+            ->whereMonth('a.tgl_transaksi', $bulan)
+            ->whereIn('a.jenis_id', $id)
+            ->where('a.no_ktp', $noKtp)
+            ->groupBy('a.jenis_id', 'b.jns_simpan')
+            ->get();
+        
+        // Jika tidak ada data di tbl_trans_tagihan, ambil dari tbl_trans_sp dengan GROUP BY
+        if ($tagihanData->isEmpty()) {
+            $tagihanData = \Illuminate\Support\Facades\DB::table('tbl_trans_sp as a')
+                ->join('jns_simpan as b', 'a.jenis_id', '=', 'b.id')
+                ->select('a.jenis_id', 'b.jns_simpan', DB::raw('SUM(a.jumlah) as jumlah'))
+                ->whereYear('a.tgl_transaksi', $tahun)
+                ->whereMonth('a.tgl_transaksi', $bulan)
+                ->whereIn('a.jenis_id', $id)
+                ->where('a.no_ktp', $noKtp)
+                ->where('a.dk', 'D') // Debit untuk setoran
+                ->groupBy('a.jenis_id', 'b.jns_simpan')
+                ->get();
+        }
+        
+        // Jika masih tidak ada data, buat placeholder dengan nilai 0 untuk semua jenis simpanan
+        if ($tagihanData->isEmpty()) {
+            $jenisSimpanan = \Illuminate\Support\Facades\DB::table('jns_simpan')
+                ->whereIn('id', $id)
+                ->get();
+            
+            $tagihanData = $jenisSimpanan->map(function($jenis) {
+                return (object) [
+                    'jenis_id' => $jenis->id,
+                    'jns_simpan' => $jenis->jns_simpan,
+                    'jumlah' => 0
+                ];
+            });
+        }
+        
+        return $tagihanData;
+    }
+
+    /**
+     * Get jumlah simpanan untuk data "Jumlah" (Row 1)
+     * Berdasarkan logika project CI lama: get_jml_simpans()
+     * Menggabungkan data yang sama dan menampilkan 0 jika tidak ada data
+     */
+    private function getJmlSimpans($noKtp, $tahun = null, $bulan = null)
+    {
+        $tahun = $tahun ?? date('Y');
+        $bulan = $bulan ?? date('m');
+        $id = [40, 32, 41, 52]; // Pokok, Sukarela, Wajib, Khusus2
+        
+        // Cek dulu di tbl_trans_tagihan
+        $tagihanTotal = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
+            ->selectRaw('SUM(jumlah) as jml_total')
+            ->whereIn('jenis_id', $id)
+            ->where('no_ktp', $noKtp)
+            ->whereYear('tgl_transaksi', $tahun)
+            ->whereMonth('tgl_transaksi', $bulan)
+            ->first();
+        
+        // Jika tidak ada data di tbl_trans_tagihan, ambil dari tbl_trans_sp
+        if (!$tagihanTotal || $tagihanTotal->jml_total == 0) {
+            $tagihanTotal = \Illuminate\Support\Facades\DB::table('tbl_trans_sp')
+                ->selectRaw('SUM(jumlah) as jml_total')
+                ->whereIn('jenis_id', $id)
+                ->where('no_ktp', $noKtp)
+                ->where('dk', 'D') // Debit untuk setoran
+                ->whereYear('tgl_transaksi', $tahun)
+                ->whereMonth('tgl_transaksi', $bulan)
+                ->first();
+        }
+        
+        // Jika masih tidak ada data, return 0
+        if (!$tagihanTotal || $tagihanTotal->jml_total == null) {
+            $tagihanTotal = (object) ['jml_total' => 0];
+        }
+        
+        return $tagihanTotal;
+    }
+
+    /**
+     * Get tagihan bulan lalu untuk data "Tag Bulan Lalu" berdasarkan tempo_pinjaman
+     * Logika: Angsuran yang belum dibayar dari tempo_pinjaman bulan-bulan sebelumnya
+     */
+    private function getTagihanBulanLaluNew($noKtp, $tahun = null, $bulan = null)
+    {
+        $tahun = $tahun ?? date('Y');
+        $bulan = $bulan ?? date('m');
+        
+        // Ambil data dari view yang sudah dihitung dengan benar
+        $tagihanBulanLalu = \Illuminate\Support\Facades\DB::table('v_hitung_pinjaman_detil')
+            ->where('no_ktp', $noKtp)
+            ->where('lunas', 'Belum') // Hanya yang belum lunas
+            ->sum('tag_bulan_lalu');
+        
+        return $tagihanBulanLalu ?? 0;
+    }
+
+    /**
+     * Get bayar simpanan untuk data "Pot Gaji" (Row 3)
+     * Logika: Jumlah simpanan + angsuran yang sudah dibayar di bulan tersebut
+     */
+    private function getBayarSimpanan($noKtp, $tahun = null, $bulan = null)
+    {
+        $tahun = $tahun ?? date('Y');
+        $bulan = $bulan ?? date('m');
+        
+        // 1. Simpanan (jenis_id NOT IN(155,8,125) AND dk='D')
+        $simpanan = \Illuminate\Support\Facades\DB::table('tbl_trans_sp')
+            ->selectRaw('SUM(jumlah) as jml_total')
+            ->where('no_ktp', $noKtp)
+            ->whereNotIn('jenis_id', [155, 8, 125])
+            ->where('dk', 'D')
+            ->whereYear('tgl_transaksi', $tahun)
+            ->whereMonth('tgl_transaksi', $bulan)
+            ->first();
+            
+        // 2. Angsuran pinjaman yang sudah dibayar di bulan tersebut
+        $angsuranDibayar = \Illuminate\Support\Facades\DB::table('tbl_pinjaman_d as pd')
+            ->join('tbl_pinjaman_h as ph', 'pd.pinjam_id', '=', 'ph.id')
+            ->selectRaw('SUM(pd.jumlah_bayar) as jml_total')
+            ->where('ph.no_ktp', $noKtp)
+            ->whereYear('pd.tgl_bayar', $tahun)
+            ->whereMonth('pd.tgl_bayar', $bulan)
+            ->first();
+            
+        // 3. Toserda
+        $toserda = \Illuminate\Support\Facades\DB::table('tbl_trans_toserda')
+            ->selectRaw('SUM(jumlah) as jml_total')
+            ->where('no_ktp', $noKtp)
+            ->where('dk', 'D')
+            ->whereYear('tgl_transaksi', $tahun)
+            ->whereMonth('tgl_transaksi', $bulan)
+            ->first();
+        
+        return ($simpanan->jml_total ?? 0) + ($angsuranDibayar->jml_total ?? 0) + ($toserda->jml_total ?? 0);
+    }
+
+    /**
+     * Hitung tag harus dibayar berdasarkan logika studi kasus
+     * Logika: Angsuran bulan ini + tag bulan lalu
+     */
+    private function hitungTagHarusDibayar($noKtp, $tahun, $bulan, $tagihanBulanLalu)
+    {
+        // Hitung angsuran yang harus dibayar di bulan ini
+        $angsuranBulanIni = 0;
+        
+        // Ambil semua pinjaman yang aktif (termasuk yang sudah lewat tenor)
+        $pinjamanAktif = \Illuminate\Support\Facades\DB::table('tbl_pinjaman_h')
+            ->where('no_ktp', $noKtp)
+            ->where('status', '1') // Status disetujui
+            ->where('lunas', 'Belum') // Belum lunas
+            ->get();
+        
+        foreach ($pinjamanAktif as $pinjaman) {
+            // Hitung angsuran per bulan dengan pembulatan yang benar
+            $angsuranPerBulan = floor($pinjaman->jumlah / $pinjaman->lama_angsuran);
+            $sisaPembulatan = $pinjaman->jumlah - ($angsuranPerBulan * $pinjaman->lama_angsuran);
+            
+            // Cek apakah ada tempo untuk bulan ini
+            $bulanSekarang = sprintf('%02d', $bulan);
+            $bulanDepan = sprintf('%02d', $bulan + 1);
+            $tahunDepan = $tahun;
+            
+            // Handle kasus Desember (bulan 12) -> Januari tahun depan
+            if ($bulan == 12) {
+                $bulanDepan = '01';
+                $tahunDepan = $tahun + 1;
+            }
+            
+            $tempoBulanIni = \Illuminate\Support\Facades\DB::table('tempo_pinjaman')
+                ->where('no_ktp', $noKtp)
+                ->where('pinjam_id', $pinjaman->id)
+                ->where('tempo', '>=', $tahun . '-' . $bulanSekarang . '-01')
+                ->where('tempo', '<', $tahunDepan . '-' . $bulanDepan . '-01')
+                ->first();
+            
+            // Jika ada tempo untuk bulan ini, tambahkan angsuran
+            if ($tempoBulanIni) {
+                // Hitung bulan ke berapa dari ajuan
+                $bulanAjuan = date('m', strtotime($pinjaman->tgl_pinjam));
+                $tahunAjuan = date('Y', strtotime($pinjaman->tgl_pinjam));
+                $bulanKe = (($tahun - $tahunAjuan) * 12) + ($bulan - $bulanAjuan) + 1;
+                
+                // Tentukan angsuran untuk bulan ini (sisa pembulatan masuk ke bulan terakhir)
+                $angsuranBulanIniValue = $angsuranPerBulan;
+                if ($bulanKe == $pinjaman->lama_angsuran) {
+                    $angsuranBulanIniValue += $sisaPembulatan; // Sisa pembulatan masuk ke angsuran terakhir
+                }
+                
+                $angsuranBulanIni += $angsuranBulanIniValue;
+            }
+        }
+        
+        // Ambil data dari view yang sudah dihitung dengan benar
+        $tagHarusDibayar = \Illuminate\Support\Facades\DB::table('v_hitung_pinjaman_detil')
+            ->where('no_ktp', $noKtp)
+            ->where('lunas', 'Belum') // Hanya yang belum lunas
+            ->sum('tag_harus_dibayar');
+        
+        return $tagHarusDibayar ?? 0;
+    }
+
+    /**
+     * Cek apakah pinjaman sudah lewat tenor berdasarkan periode yang dipilih
+     */
+    private function isPinjamanLewatTenor($pinjaman, $tahun, $bulan)
+    {
+        $bulanAjuan = date('m', strtotime($pinjaman->tgl_pinjam));
+        $tahunAjuan = date('Y', strtotime($pinjaman->tgl_pinjam));
+        
+        // Hitung bulan ke berapa dari ajuan (1-based)
+        $bulanKe = (($tahun - $tahunAjuan) * 12) + ($bulan - $bulanAjuan) + 1;
+        
+        // Debug: Log untuk melihat perhitungan
+        // \Log::info("Pinjaman ID: {$pinjaman->id}, Bulan Ajuan: {$bulanAjuan}/{$tahunAjuan}, Periode: {$bulan}/{$tahun}, Bulan Ke: {$bulanKe}, Lama Angsuran: {$pinjaman->lama_angsuran}");
+        
+        // Jika bulan ke > lama angsuran, berarti sudah lewat tenor
+        return $bulanKe > $pinjaman->lama_angsuran;
+    }
+
+    /**
+     * Helper method untuk mendapatkan anggota yang sedang login
+     */
+    private function getAuthenticatedMember()
+    {
+        $member = auth()->guard('member')->user();
+        if (!$member) {
+            abort(404);
+        }
+        return $member;
+    }
+
+    /**
+     * Method untuk test hitungTagihanKredit (public)
+     */
+    public function testHitungTagihanKredit($noKtp)
+    {
+        return $this->hitungTagihanKredit($noKtp);
+    }
+
+    /**
+     * Debug method untuk melihat data pinjaman
+     */
+    public function debugPinjaman($noKtp, $tahun, $bulan)
+    {
+        $result = [];
+        
+        // Debug Pinjaman Barang (yang ada di studi kasus)
+        $pinjamanBarang = \Illuminate\Support\Facades\DB::table('tbl_pinjaman_h')
+            ->where('no_ktp', $noKtp)
+            ->where('jenis_pinjaman', '3') // Pinjaman Barang
+            ->where('status', '1') // Status disetujui
+            ->first();
+        
+        if ($pinjamanBarang) {
+            $bulanAjuan = date('m', strtotime($pinjamanBarang->tgl_pinjam));
+            $tahunAjuan = date('Y', strtotime($pinjamanBarang->tgl_pinjam));
+            $bulanKe = (($tahun - $tahunAjuan) * 12) + ($bulan - $bulanAjuan) + 1;
+            
+            // Hitung angsuran per bulan dengan pembulatan yang benar
+            $angsuranPerBulan = floor($pinjamanBarang->jumlah / $pinjamanBarang->lama_angsuran);
+            $sisaPembulatan = $pinjamanBarang->jumlah - ($angsuranPerBulan * $pinjamanBarang->lama_angsuran);
+            
+            // Hitung tracker berdasarkan logika baru
+            if ($bulanKe <= 1) {
+                $tracker = 0;
+            } else if ($bulanKe > $pinjamanBarang->lama_angsuran) {
+                $tracker = $pinjamanBarang->lama_angsuran;
+            } else {
+                $tracker = $bulanKe - 1;
+            }
+            
+            // Hitung Tag Bulan Lalu
+            $tagBulanLalu = $this->getTagihanBulanLaluNew($noKtp, $tahun, $bulan);
+            
+            // Hitung Tag Harus Dibayar
+            $tagHarusDibayar = $this->hitungTagHarusDibayar($noKtp, $tahun, $bulan, $tagBulanLalu);
+            
+            // Debug: Cek data tempo_pinjaman
+            $tempoData = \Illuminate\Support\Facades\DB::table('tempo_pinjaman')
+                ->where('no_ktp', $noKtp)
+                ->where('pinjam_id', $pinjamanBarang->id)
+                ->orderBy('tempo', 'asc')
+                ->get();
+            
+            $result['pinjaman_barang'] = [
+                'pinjaman_id' => $pinjamanBarang->id,
+                'tgl_pinjam' => $pinjamanBarang->tgl_pinjam,
+                'bulan_ajuan' => "{$bulanAjuan}/{$tahunAjuan}",
+                'periode' => "{$bulan}/{$tahun}",
+                'bulan_ke' => $bulanKe,
+                'lama_angsuran' => $pinjamanBarang->lama_angsuran,
+                'tracker' => $tracker,
+                'lunas' => $pinjamanBarang->lunas,
+                'jumlah' => $pinjamanBarang->jumlah,
+                'angsuran_per_bulan' => $angsuranPerBulan,
+                'sisa_pembulatan' => $sisaPembulatan,
+                'tag_bulan_lalu' => $tagBulanLalu,
+                'tag_harus_dibayar' => $tagHarusDibayar,
+                'tempo_data' => $tempoData
+            ];
+        } else {
+            $result['pinjaman_barang'] = "Tidak ada pinjaman barang";
+        }
+        
+        return $result;
+    }
+
+
+    /**
+     * Get bayar simpanan pot untuk data "Pot Simpanan" (Row 4)
+     * Berdasarkan logika project CI lama: get_bayar_simpanan_pot()
+     */
+    private function getBayarSimpananPot($noKtp, $tahun = null, $bulan = null)
+    {
+        $tahun = $tahun ?? date('Y');
+        $bulan = $bulan ?? date('m');
+        
+        return \Illuminate\Support\Facades\DB::table('tbl_trans_sp')
+            ->selectRaw('SUM(jumlah) as jml_total')
+            ->where('no_ktp', $noKtp)
+            ->whereNotIn('jenis_id', [8, 125])
+            ->where('jumlah', '<', 0) // Nilai negatif
+            ->whereYear('tgl_transaksi', $tahun)
+            ->whereMonth('tgl_transaksi', $bulan)
             ->first();
     }
 
     /**
-     * Ambil data tagihan simpanan untuk periode tertentu
+     * Get jumlah pinjaman biasa berdasarkan periode dan logika studi kasus
      */
-    private function getTagihanSimpanan($noKtp, $tahun, $bulan)
+    private function getJmlBiasa($noKtp, $tahun = null, $bulan = null)
     {
-        // 1. Simpanan Wajib
-        $simpananWajib = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
+        $tahun = $tahun ?? date('Y');
+        $bulan = $bulan ?? date('m');
+        
+        // Ambil data dari view yang sudah dihitung dengan benar
+        $pinjaman = \Illuminate\Support\Facades\DB::table('v_hitung_pinjaman_detil')
             ->where('no_ktp', $noKtp)
-            ->where('jenis_id', 41)
-            ->whereYear('tgl_transaksi', $tahun)
-            ->whereMonth('tgl_transaksi', $bulan)
-            ->sum('jumlah');
-        
-        // 2. Simpanan Sukarela
-        $simpananSukarela = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
-            ->where('no_ktp', $noKtp)
-            ->where('jenis_id', 32)
-            ->whereYear('tgl_transaksi', $tahun)
-            ->whereMonth('tgl_transaksi', $bulan)
-            ->sum('jumlah');
-        
-        // 3. Simpanan Khusus 1
-        $simpananKhusus1 = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
-            ->where('no_ktp', $noKtp)
-            ->where('jenis_id', 51)
-            ->whereYear('tgl_transaksi', $tahun)
-            ->whereMonth('tgl_transaksi', $bulan)
-            ->sum('jumlah');
-        
-        // 4. Simpanan Khusus 2
-        $simpananKhusus2 = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
-            ->where('no_ktp', $noKtp)
-            ->where('jenis_id', 52)
-            ->whereYear('tgl_transaksi', $tahun)
-            ->whereMonth('tgl_transaksi', $bulan)
-            ->sum('jumlah');
-        
-        // 5. Simpanan Pokok
-        $simpananPokok = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
-            ->where('no_ktp', $noKtp)
-            ->where('jenis_id', 40)
-            ->whereYear('tgl_transaksi', $tahun)
-            ->whereMonth('tgl_transaksi', $bulan)
-            ->sum('jumlah');
-        
-        // 6. Tabungan Perumahan
-        $tabPerumahan = \Illuminate\Support\Facades\DB::table('tbl_trans_tagihan')
-            ->where('no_ktp', $noKtp)
-            ->where('jenis_id', 156)
-            ->whereYear('tgl_transaksi', $tahun)
-            ->whereMonth('tgl_transaksi', $bulan)
-            ->sum('jumlah');
-        
-        // 7. Pinjaman Biasa
-        $pinjamanBiasa = $this->getPinjamanData($noKtp, 'Biasa', $tahun, $bulan);
-        
-        // 8. Pinjaman Barang
-        $pinjamanBarang = $this->getPinjamanData($noKtp, 'Barang', $tahun, $bulan);
-        
-        // 9. Pinjaman Bank BSM
-        $pinjamanBank = $this->getPinjamanData($noKtp, 'Bank BSM', $tahun, $bulan);
-        
-        // 10. Toserda
-        $toserda = \Illuminate\Support\Facades\DB::table('tbl_shu')
-            ->where('no_ktp', $noKtp)
-            ->where('jns_trans', 155)
-            ->whereYear('tgl_transaksi', $tahun)
-            ->whereMonth('tgl_transaksi', $bulan)
-            ->sum('jumlah_bayar');
-        
-        // 11. Lain-lain
-        $lainLain = \Illuminate\Support\Facades\DB::table('tbl_shu')
-            ->where('no_ktp', $noKtp)
-            ->where('jns_trans', 154)
-            ->whereYear('tgl_transaksi', $tahun)
-            ->whereMonth('tgl_transaksi', $bulan)
-            ->sum('jumlah_bayar');
-        
-        // 12. Hitung summary
-        $summary = $this->calculateSummary([
-            'simpanan_wajib' => $simpananWajib,
-            'simpanan_sukarela' => $simpananSukarela,
-            'simpanan_khusus_1' => $simpananKhusus1,
-            'simpanan_khusus_2' => $simpananKhusus2,
-            'simpanan_pokok' => $simpananPokok,
-            'tab_perumahan' => $tabPerumahan,
-            'pinjaman_biasa' => $pinjamanBiasa['jumlah'],
-            'jasa_biasa' => $pinjamanBiasa['jasa'],
-            'pinjaman_barang' => $pinjamanBarang['jumlah'],
-            'jasa_barang' => $pinjamanBarang['jasa'],
-            'pinjaman_bank' => $pinjamanBank['jumlah'],
-            'jasa_bank' => $pinjamanBank['jasa'],
-            'toserda' => $toserda,
-            'lain_lain' => $lainLain
-        ], $noKtp, $tahun, $bulan);
-        
-        return [
-            'simpanan_wajib' => $simpananWajib,
-            'simpanan_sukarela' => $simpananSukarela,
-            'simpanan_khusus_1' => $simpananKhusus1,
-            'simpanan_khusus_2' => $simpananKhusus2,
-            'simpanan_pokok' => $simpananPokok,
-            'tab_perumahan' => $tabPerumahan,
-            'pinjaman_biasa' => $pinjamanBiasa,
-            'pinjaman_barang' => $pinjamanBarang,
-            'pinjaman_bank' => $pinjamanBank,
-            'toserda' => $toserda,
-            'lain_lain' => $lainLain,
-            'summary' => $summary
-        ];
-    }
-    
-    /**
-     * Ambil data pinjaman untuk jenis tertentu
-     */
-    private function getPinjamanData($noKtp, $jenisPinjaman, $tahun, $bulan)
-    {
-        $pinjaman = \Illuminate\Support\Facades\DB::table('tbl_pinjaman_h')
-            ->where('no_ktp', $noKtp)
-            ->where('jenis_pinjaman', $jenisPinjaman)
-            ->where('lunas', 'Belum')
+            ->where('jenis_pinjaman', '1') // Pinjaman Biasa
+            ->where('lunas', 'Belum') // Hanya yang belum lunas
             ->first();
         
         if (!$pinjaman) {
-            return [
+            return (object) [
                 'jumlah' => 0,
                 'jasa' => 0,
-                'sudah_bayar' => 0,
-                'total_angsuran' => 0
+                'lama_angsuran' => 0,
+                'angsuran' => 0
             ];
         }
         
-        // Hitung angsuran yang sudah dibayar
-        $sudahBayar = \Illuminate\Support\Facades\DB::table('tbl_pinjaman_d')
-            ->where('pinjam_id', $pinjaman->id)
-            ->where('status_bayar', 'Lunas')
-            ->count();
+        $bulanAjuan = date('m', strtotime($pinjaman->tgl_pinjam));
+        $tahunAjuan = date('Y', strtotime($pinjaman->tgl_pinjam));
         
+        // Jika bukan bulan ajuan atau setelahnya, return 0
+        if ($tahun < $tahunAjuan || ($tahun == $tahunAjuan && $bulan < $bulanAjuan)) {
+            return (object) [
+                'jumlah' => 0,
+                'jasa' => 0,
+                'lama_angsuran' => 0,
+                'angsuran' => 0
+            ];
+        }
+        
+        // Tracker dari view sudah dihitung dengan benar berdasarkan pembayaran aktual
+        $tracker = $pinjaman->sudah_bayar;
+        
+        return (object) [
+            'jumlah' => $pinjaman->total_pinjaman,
+            'jasa' => $pinjaman->bunga_rp ?? 0,
+            'lama_angsuran' => $pinjaman->lama_angsuran,
+            'angsuran' => $tracker
+        ];
+    }
+
+    /**
+     * Get jumlah pinjaman barang berdasarkan periode dan logika studi kasus
+     */
+    private function getJmlBarang($noKtp, $tahun = null, $bulan = null)
+    {
+        $tahun = $tahun ?? date('Y');
+        $bulan = $bulan ?? date('m');
+        
+        // Ambil data dari view yang sudah dihitung dengan benar
+        $pinjaman = \Illuminate\Support\Facades\DB::table('v_hitung_pinjaman_detil')
+            ->where('no_ktp', $noKtp)
+            ->where('jenis_pinjaman', '3') // Pinjaman Barang
+            ->where('lunas', 'Belum') // Hanya yang belum lunas
+            ->first();
+        
+        if (!$pinjaman) {
+            return (object) [
+                'jumlah' => 0,
+                'jasa' => 0,
+                'lama_angsuran' => 0,
+                'angsuran' => 0
+            ];
+        }
+        
+        $bulanAjuan = date('m', strtotime($pinjaman->tgl_pinjam));
+        $tahunAjuan = date('Y', strtotime($pinjaman->tgl_pinjam));
+        
+        // Jika bukan bulan ajuan atau setelahnya, return 0
+        if ($tahun < $tahunAjuan || ($tahun == $tahunAjuan && $bulan < $bulanAjuan)) {
+            return (object) [
+                'jumlah' => 0,
+                'jasa' => 0,
+                'lama_angsuran' => 0,
+                'angsuran' => 0
+            ];
+        }
+        
+        // Tracker dari view sudah dihitung dengan benar berdasarkan pembayaran aktual
+        $tracker = $pinjaman->sudah_bayar;
+        
+        return (object) [
+            'jumlah' => $pinjaman->total_pinjaman,
+            'jasa' => $pinjaman->bunga_rp ?? 0,
+            'lama_angsuran' => $pinjaman->lama_angsuran,
+            'angsuran' => $tracker
+        ];
+    }
+
+    /**
+     * Get jumlah pinjaman bank berdasarkan periode dan logika studi kasus
+     */
+    private function getJmlBank($noKtp, $tahun = null, $bulan = null)
+    {
+        $tahun = $tahun ?? date('Y');
+        $bulan = $bulan ?? date('m');
+        
+        // Ambil data dari view yang sudah dihitung dengan benar
+        $pinjaman = \Illuminate\Support\Facades\DB::table('v_hitung_pinjaman_detil')
+            ->where('no_ktp', $noKtp)
+            ->where('jenis_pinjaman', '2') // Pinjaman Bank BSM
+            ->where('lunas', 'Belum') // Hanya yang belum lunas
+            ->first();
+        
+        if (!$pinjaman) {
+            return (object) [
+                'jumlah' => 0,
+                'jasa' => 0,
+                'lama_angsuran' => 0,
+                'angsuran' => 0
+            ];
+        }
+        
+        $bulanAjuan = date('m', strtotime($pinjaman->tgl_pinjam));
+        $tahunAjuan = date('Y', strtotime($pinjaman->tgl_pinjam));
+        
+        // Jika bukan bulan ajuan atau setelahnya, return 0
+        if ($tahun < $tahunAjuan || ($tahun == $tahunAjuan && $bulan < $bulanAjuan)) {
+            return (object) [
+                'jumlah' => 0,
+                'jasa' => 0,
+                'lama_angsuran' => 0,
+                'angsuran' => 0
+            ];
+        }
+        
+        // Tracker dari view sudah dihitung dengan benar berdasarkan pembayaran aktual
+        $tracker = $pinjaman->sudah_bayar;
+        
+        return (object) [
+            'jumlah' => $pinjaman->total_pinjaman,
+            'jasa' => $pinjaman->bunga_rp ?? 0,
+            'lama_angsuran' => $pinjaman->lama_angsuran,
+            'angsuran' => $tracker
+        ];
+    }
+
+    /**
+     * Get jumlah toserda seperti project CI lama
+     */
+    private function getJmlToserda($noKtp)
+    {
+        return \Illuminate\Support\Facades\DB::table('v_lap_toserda')
+            ->select('jumlah_bayar')
+            ->whereYear('tgl_transaksi', date('Y'))
+            ->whereMonth('tgl_transaksi', date('m'))
+            ->where('no_ktp', $noKtp)
+            ->first();
+    }
+
+    /**
+     * Get jumlah lain-lain seperti project CI lama
+     */
+    private function getJmlLainLain($noKtp)
+    {
+        return \Illuminate\Support\Facades\DB::table('v_lap_lain_lain')
+            ->select('jumlah_bayar')
+            ->whereYear('tgl_transaksi', date('Y'))
+            ->whereMonth('tgl_transaksi', date('m'))
+            ->where('no_ktp', $noKtp)
+            ->first();
+    }
+
+    /**
+     * Format simpanan list untuk dashboard
+     */
+    private function formatSimpananList($jmlTagihanSimpanan)
+    {
+        $simpananList = [];
+        
+        foreach ($jmlTagihanSimpanan as $simpanan) {
+            $simpananList[] = [
+                'nama' => $simpanan->jns_simpan,
+                'jumlah' => $simpanan->jumlah
+            ];
+        }
+        
+        return $simpananList;
+    }
+
+    /**
+     * Get simpanan by jenis ID
+     */
+    private function getSimpananByJenis($jmlTagihanSimpanan, $jenisId)
+    {
+        foreach ($jmlTagihanSimpanan as $simpanan) {
+            if ($simpanan->jenis_id == $jenisId) {
+                return $simpanan->jumlah;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Ambil data tagihan simpanan untuk periode tertentu (LEGACY - tidak digunakan lagi)
+     */
+    private function getTagihanSimpanan($noKtp, $tahun, $bulan)
+    {
+        // Method ini dipertahankan untuk kompatibilitas dengan kode lama
+        // Tapi tidak digunakan lagi di dashboard member
+        return [];
+    }
+    
+    /**
+     * Ambil data pinjaman untuk jenis tertentu (LEGACY - tidak digunakan lagi)
+     */
+    private function getPinjamanData($noKtp, $jenisPinjaman, $tahun, $bulan)
+    {
+        // Method ini dipertahankan untuk kompatibilitas dengan kode lama
+        // Tapi tidak digunakan lagi di dashboard member
         return [
-            'jumlah' => $pinjaman->jumlah,
-            'jasa' => $pinjaman->bunga_rp,
-            'sudah_bayar' => $sudahBayar,
-            'total_angsuran' => $pinjaman->lama_angsuran
+            'jumlah' => 0,
+            'jasa' => 0,
+            'sudah_bayar' => 0,
+            'total_angsuran' => 0
         ];
     }
     
     /**
-     * Hitung summary tagihan
+     * Hitung summary tagihan (LEGACY - tidak digunakan lagi)
      */
     private function calculateSummary($data, $noKtp, $tahun, $bulan)
     {
-        // Hitung jumlah total
-        $jumlah = array_sum([
-            $data['simpanan_wajib'],
-            $data['simpanan_sukarela'],
-            $data['simpanan_khusus_1'],
-            $data['simpanan_khusus_2'],
-            $data['simpanan_pokok'],
-            $data['tab_perumahan'],
-            $data['pinjaman_biasa'],
-            $data['jasa_biasa'],
-            $data['pinjaman_barang'],
-            $data['jasa_barang'],
-            $data['pinjaman_bank'],
-            $data['jasa_bank'],
-            $data['toserda'],
-            $data['lain_lain']
-        ]);
-        
-        // Hitung tagihan bulan lalu
-        $bulanLalu = $this->getTagihanBulanLalu($noKtp, $tahun, $bulan);
-        
-        // Hitung potongan gaji (default 0)
-        $potGaji = 0;
-        
-        // Hitung potongan simpanan (default 0)
-        $potSimpanan = 0;
-        
-        $tagHarusDibayar = $jumlah + $bulanLalu - $potGaji - $potSimpanan;
-        
+        // Method ini dipertahankan untuk kompatibilitas dengan kode lama
+        // Tapi tidak digunakan lagi di dashboard member
         return [
-            'jumlah' => $jumlah,
-            'tag_bulan_lalu' => $bulanLalu,
-            'pot_gaji' => $potGaji,
-            'pot_simpanan' => $potSimpanan,
-            'tag_harus_dibayar' => $tagHarusDibayar
+            'jumlah' => 0,
+            'tag_bulan_lalu' => 0,
+            'pot_gaji' => 0,
+            'pot_simpanan' => 0,
+            'tag_harus_dibayar' => 0
         ];
     }
     
@@ -380,45 +824,58 @@ class MemberController extends Controller
     }
     
     /**
-     * Hitung keterangan pinjaman (konsisten dengan project lama)
+     * Hitung keterangan pinjaman berdasarkan tbl_pinjaman_h yang disetujui dan terlaksana
      */
     private function hitungKeteranganPinjaman($noKtp)
     {
-        $data = \Illuminate\Support\Facades\DB::table('tbl_pinjaman_h as p')
-            ->selectRaw('
-                COUNT(*) as jumlah_pinjaman,
-                SUM(CASE WHEN p.lunas = "Lunas" THEN 1 ELSE 0 END) as pinjaman_lunas
-            ')
-            ->where('p.no_ktp', $noKtp)
-            ->where('p.status', '1')
-            ->first();
+        // Hitung dari tabel tbl_pinjaman_h langsung untuk akurasi
+        $allPinjaman = \App\Models\TblPinjamanH::where('no_ktp', $noKtp)
+            ->where('status', '1') // Status terlaksana/disetujui
+            ->get();
+
+        // Hitung jumlah pinjaman dan pinjaman lunas
+        $jumlahPinjaman = $allPinjaman->where('lunas', 'Belum')->count();
+        $pinjamanLunas = $allPinjaman->where('lunas', 'Lunas')->count();
         
-        // Logika sederhana seperti project lama
+        // Ambil data pinjaman aktif untuk status pembayaran
+        $kreditData = \Illuminate\Support\Facades\DB::table('v_tagihan_kredit_detil')
+            ->where('no_ktp', $noKtp)
+            ->get();
+        
+        // Hitung status pembayaran berdasarkan keterlambatan
         $statusPembayaran = 'Lancar';
         $tanggalTempo = '-';
         
-        if ($data->jumlah_pinjaman > 0) {
-            $pinjamanAktif = \Illuminate\Support\Facades\DB::table('tbl_pinjaman_h')
-                ->where('no_ktp', $noKtp)
-                ->where('status', '1')
-                ->where('lunas', 'Belum')
+        if ($jumlahPinjaman > 0) {
+            // Cek apakah ada pinjaman yang macet (ada tagihan tak terbayar)
+            $adaTagihanTakTerbayar = $kreditData->where('tagihan_tak_terbayar', '>', 0)->count() > 0;
+            
+            if ($adaTagihanTakTerbayar) {
+                $statusPembayaran = 'Macet';
+            }
+            
+            // Ambil tanggal tempo terdekat dari data yang ada
+            $tempoTerdekat = $kreditData->where('tempo_bulan_depan', '>=', date('Y-m-d'))
+                ->sortBy('tempo_bulan_depan')
                 ->first();
             
-            if ($pinjamanAktif) {
-                $bulanTempo = date('m', strtotime($pinjamanAktif->tgl_pinjam));
-                $bulanSekarang = date('m');
-                
-                if ($bulanSekarang > $bulanTempo) {
-                    $statusPembayaran = 'Macet';
+            if ($tempoTerdekat) {
+                $tanggalTempo = date('d/m/Y', strtotime($tempoTerdekat->tempo_bulan_depan));
+            } else {
+                // Jika tidak ada tempo yang akan datang, ambil tempo terakhir
+                $tempoTerakhir = $kreditData->sortByDesc('tempo_bulan_depan')->first();
+                if ($tempoTerakhir) {
+                    $tanggalTempo = date('d/m/Y', strtotime($tempoTerakhir->tempo_bulan_depan));
                 }
-                
-                $tanggalTempo = date('d/m/Y', strtotime($pinjamanAktif->tgl_pinjam));
             }
         }
         
-        $data->status_pembayaran = $statusPembayaran;
-        $data->tanggal_tempo = $tanggalTempo;
-        return $data;
+        return (object) [
+            'jumlah_pinjaman' => $jumlahPinjaman,
+            'pinjaman_lunas' => $pinjamanLunas,
+            'status_pembayaran' => $statusPembayaran,
+            'tanggal_tempo' => $tanggalTempo
+        ];
     }
     
 
@@ -559,15 +1016,18 @@ class MemberController extends Controller
             $member = auth()->guard('member')->user();
             
             // Get Toserda billing for the member
-            $query = \App\Models\billing::where('no_ktp', $member->no_ktp)
-                ->where('jns_trans', 'Toserda')
-                ->orderBy('tahun', 'desc')
-                ->orderBy('bulan', 'desc');
+            $query = \App\Models\billing::where('id_anggota', $member->id)
+                ->where('jns_trans', 'toserda')
+                ->orderBy('bulan_tahun', 'desc');
                 
-            // Filter by status if requested
-            if ($request->has('status') && in_array($request->status, ['Lunas', 'Belum Lunas'])) {
-                $query->where('status_bayar', $request->status);
-            }
+            // Filter by status if requested - kolom status sudah tidak ada
+            // if ($request->has('status') && in_array($request->status, ['Lunas', 'Belum Lunas'])) {
+            //     if ($request->status === 'Lunas') {
+            //         $query->where('status', 'Y');
+            //     } else {
+            //         $query->where('status', 'N');
+            //     }
+            // }
             
             $billings = $query->paginate(10);
             
@@ -590,23 +1050,23 @@ class MemberController extends Controller
             $member = auth()->guard('member')->user();
             
             // Find the billing record
-            $billing = \App\Models\billing::where('biliing_code', $biliing_code)
-                ->where('no_ktp', $member->no_ktp)
-                ->where('jns_trans', 'Toserda')
+            $billing = \App\Models\billing::where('billing_code', $biliing_code)
+                ->where('id_anggota', $member->id)
+                ->where('jns_trans', 'toserda')
                 ->first();
             
             if (!$billing) {
                 return redirect()->back()->with('error', 'Tagihan tidak ditemukan');
             }
             
-            if ($billing->status_bayar === 'Lunas') {
-                return redirect()->back()->with('error', 'Tagihan ini sudah lunas');
-            }
+            // Kolom status sudah tidak ada, mungkin perlu logika lain untuk cek status pembayaran
+            // if ($billing->status === 'Y') {
+            //     return redirect()->back()->with('error', 'Tagihan ini sudah lunas');
+            // }
             
             // Process payment (in a real application, this would integrate with a payment gateway)
-            // For now, we'll just mark it as paid
-            $billing->status_bayar = 'Lunas';
-            $billing->status = 'Y';
+            // For now, we'll just mark it as paid - kolom status sudah tidak ada
+            // $billing->status = 'Y';
             $billing->updated_at = now();
             $billing->save();
             
@@ -701,7 +1161,7 @@ class MemberController extends Controller
             $pengajuan->ajuan_id = $ajuanId;
             $pengajuan->anggota_id = $member->id;
             $pengajuan->tgl_input = now();
-            $pengajuan->jenis = '1'; // default Biasa
+            $pengajuan->jenis = $request->input('jenis_pinjaman', '1'); // Ambil dari form, default Biasa
             $pengajuan->nominal = $nominal;
             $pengajuan->lama_ags = (int)$request->input('lama_angsuran');
             $pengajuan->keterangan = $request->input('keterangan');
@@ -971,23 +1431,23 @@ class MemberController extends Controller
 
     private function getMemberSavingsData($noKtp, $tgl_dari, $tgl_samp, $jenis_filter)
     {
-        $query = \App\Models\TblTransSps::select([
-                'tbl_trans_sps.*',
+        $query = \App\Models\TblTransSp::select([
+                'tbl_trans_sp.*',
                 'jns_simpan.jns_simpan as jenis_simpanan_nama',
                 'jns_simpan.jumlah as jenis_simpanan_jumlah'
             ])
-            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sps.jenis_id')
-            ->where('tbl_trans_sps.no_ktp', $noKtp)
-            ->where('tbl_trans_sps.akun', 'Setoran')
-            ->where('tbl_trans_sps.dk', 'D')
-            ->whereBetween('tbl_trans_sps.tgl_transaksi', [$tgl_dari, $tgl_samp]);
+            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sp.jenis_id')
+            ->where('tbl_trans_sp.no_ktp', $noKtp)
+            ->where('tbl_trans_sp.akun', 'Setoran')
+            ->where('tbl_trans_sp.dk', 'D')
+            ->whereBetween('tbl_trans_sp.tgl_transaksi', [$tgl_dari, $tgl_samp]);
 
         // Apply jenis filter
         if ($jenis_filter !== 'all') {
-            $query->where('tbl_trans_sps.jenis_id', $jenis_filter);
+            $query->where('tbl_trans_sp.jenis_id', $jenis_filter);
         }
 
-        $savings = $query->orderBy('tbl_trans_sps.tgl_transaksi', 'desc')
+        $savings = $query->orderBy('tbl_trans_sp.tgl_transaksi', 'desc')
             ->paginate(15);
 
         // Add calculated fields
@@ -1002,12 +1462,12 @@ class MemberController extends Controller
 
     private function calculateSavingsStatistics($noKtp, $tgl_dari, $tgl_samp)
     {
-        $stats = \App\Models\TblTransSps::select([
-                \DB::raw('COUNT(*) as total_transaksi'),
-                \DB::raw('SUM(tbl_trans_sps.jumlah) as total_setoran'),
-                \DB::raw('AVG(tbl_trans_sps.jumlah) as rata_rata_setoran'),
-                \DB::raw('MAX(tbl_trans_sps.jumlah) as setoran_terbesar'),
-                \DB::raw('MIN(tbl_trans_sps.jumlah) as setoran_terkecil')
+        $stats = \App\Models\TblTransSp::select([
+                DB::raw('COUNT(*) as total_transaksi'),
+                DB::raw('SUM(tbl_trans_sp.jumlah) as total_setoran'),
+                DB::raw('AVG(tbl_trans_sp.jumlah) as rata_rata_setoran'),
+                DB::raw('MAX(tbl_trans_sp.jumlah) as setoran_terbesar'),
+                DB::raw('MIN(tbl_trans_sp.jumlah) as setoran_terkecil')
             ])
             ->where('no_ktp', $noKtp)
             ->where('akun', 'Setoran')
@@ -1016,18 +1476,18 @@ class MemberController extends Controller
             ->first();
 
         // Get breakdown by jenis simpanan
-        $breakdown = \App\Models\TblTransSps::select([
-                'tbl_trans_sps.jenis_id',
+        $breakdown = \App\Models\TblTransSp::select([
+                'tbl_trans_sp.jenis_id',
                 'jns_simpan.jns_simpan',
-                \DB::raw('COUNT(*) as jumlah_transaksi'),
-                \DB::raw('SUM(tbl_trans_sps.jumlah) as total_jumlah')
+                DB::raw('COUNT(*) as jumlah_transaksi'),
+                DB::raw('SUM(tbl_trans_sp.jumlah) as total_jumlah')
             ])
-            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sps.jenis_id')
-            ->where('tbl_trans_sps.no_ktp', $noKtp)
-            ->where('tbl_trans_sps.akun', 'Setoran')
-            ->where('tbl_trans_sps.dk', 'D')
-            ->whereBetween('tbl_trans_sps.tgl_transaksi', [$tgl_dari, $tgl_samp])
-            ->groupBy('tbl_trans_sps.jenis_id', 'jns_simpan.jns_simpan')
+            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sp.jenis_id')
+            ->where('tbl_trans_sp.no_ktp', $noKtp)
+            ->where('tbl_trans_sp.akun', 'Setoran')
+            ->where('tbl_trans_sp.dk', 'D')
+            ->whereBetween('tbl_trans_sp.tgl_transaksi', [$tgl_dari, $tgl_samp])
+            ->groupBy('tbl_trans_sp.jenis_id', 'jns_simpan.jns_simpan')
             ->get();
 
         return [
@@ -1042,15 +1502,15 @@ class MemberController extends Controller
 
     private function getRecentSavingsActivities($noKtp)
     {
-        return \App\Models\TblTransSps::select([
-                'tbl_trans_sps.*',
+        return \App\Models\TblTransSp::select([
+                'tbl_trans_sp.*',
                 'jns_simpan.jns_simpan as jenis_simpanan_nama'
             ])
-            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sps.jenis_id')
-            ->where('tbl_trans_sps.no_ktp', $noKtp)
-            ->where('tbl_trans_sps.akun', 'Setoran')
-            ->where('tbl_trans_sps.dk', 'D')
-            ->orderBy('tbl_trans_sps.tgl_transaksi', 'desc')
+            ->leftJoin('jns_simpan', 'jns_simpan.id', '=', 'tbl_trans_sp.jenis_id')
+            ->where('tbl_trans_sp.no_ktp', $noKtp)
+            ->where('tbl_trans_sp.akun', 'Setoran')
+            ->where('tbl_trans_sp.dk', 'D')
+            ->orderBy('tbl_trans_sp.tgl_transaksi', 'desc')
             ->limit(5)
             ->get()
             ->map(function ($saving) {
@@ -1370,11 +1830,11 @@ class MemberController extends Controller
     private function calculatePaymentStatistics($noKtp, $tgl_dari, $tgl_samp)
     {
         $query = \App\Models\TblPinjamanD::select([
-                \DB::raw('COUNT(*) as total_pembayaran'),
-                \DB::raw('SUM(tbl_pinjaman_d.jumlah_bayar) as total_pokok_dibayar'),
-                \DB::raw('SUM(tbl_pinjaman_d.bunga) as total_bunga_dibayar'),
-                \DB::raw('SUM(tbl_pinjaman_d.denda_rp) as total_denda_dibayar'),
-                \DB::raw('SUM(tbl_pinjaman_d.jumlah_bayar + tbl_pinjaman_d.bunga + tbl_pinjaman_d.denda_rp) as total_semua_pembayaran')
+                DB::raw('COUNT(*) as total_pembayaran'),
+                DB::raw('SUM(tbl_pinjaman_d.jumlah_bayar) as total_pokok_dibayar'),
+                DB::raw('SUM(tbl_pinjaman_d.bunga) as total_bunga_dibayar'),
+                DB::raw('SUM(tbl_pinjaman_d.denda_rp) as total_denda_dibayar'),
+                DB::raw('SUM(tbl_pinjaman_d.jumlah_bayar + tbl_pinjaman_d.bunga + tbl_pinjaman_d.denda_rp) as total_semua_pembayaran')
             ])
             ->join('tbl_pinjaman_h', 'tbl_pinjaman_h.id', '=', 'tbl_pinjaman_d.pinjam_id')
             ->join('tbl_anggota', 'tbl_anggota.id', '=', 'tbl_pinjaman_h.anggota_id')
@@ -1386,8 +1846,8 @@ class MemberController extends Controller
 
         // Get payment frequency
         $paymentFrequency = \App\Models\TblPinjamanD::select([
-                \DB::raw('COUNT(*) as frekuensi'),
-                \DB::raw('AVG(tbl_pinjaman_d.jumlah_bayar + tbl_pinjaman_d.bunga + tbl_pinjaman_d.denda_rp) as rata_rata_pembayaran')
+                DB::raw('COUNT(*) as frekuensi'),
+                DB::raw('AVG(tbl_pinjaman_d.jumlah_bayar + tbl_pinjaman_d.bunga + tbl_pinjaman_d.denda_rp) as rata_rata_pembayaran')
             ])
             ->join('tbl_pinjaman_h', 'tbl_pinjaman_h.id', '=', 'tbl_pinjaman_d.pinjam_id')
             ->join('tbl_anggota', 'tbl_anggota.id', '=', 'tbl_pinjaman_h.anggota_id')
@@ -1529,7 +1989,7 @@ class MemberController extends Controller
         $member = auth()->guard('member')->user();
         
         // Refresh member data to get latest file_pic
-        $member->refresh();
+        $member = Member::find($member->id);
         
         return view('member.ubah_pic', compact('member'));
     }
@@ -1563,8 +2023,8 @@ class MemberController extends Controller
             $member = auth()->guard('member')->user();
             
             // Hapus foto lama jika ada
-            if ($member->file_pic && \Storage::disk('public')->exists('anggota/' . $member->file_pic)) {
-                \Storage::disk('public')->delete('anggota/' . $member->file_pic);
+            if ($member->file_pic && Storage::disk('public')->exists('anggota/' . $member->file_pic)) {
+                Storage::disk('public')->delete('anggota/' . $member->file_pic);
             }
 
             // Upload foto baru
@@ -1577,15 +2037,15 @@ class MemberController extends Controller
             $this->resizeImage(storage_path('app/public/' . $path), 250, 250);
             
             // Update database
-            $member->update(['file_pic' => $filename]);
+            Member::where('id', $member->id)->update(['file_pic' => $filename]);
             
             // Refresh member data
-            $member->refresh();
+            $member = Member::find($member->id);
             
             return redirect()->route('member.ubah.pic')->with('success', 'Foto profil berhasil diperbarui!');
             
         } catch (\Exception $e) {
-            \Log::error('Error updating profile picture: ' . $e->getMessage());
+            Log::error('Error updating profile picture: ' . $e->getMessage());
             return redirect()->route('member.ubah.pic')->with('error', 'Gagal memperbarui foto: ' . $e->getMessage());
         }
     }
@@ -1699,7 +2159,7 @@ class MemberController extends Controller
             return redirect()->route('member.ubah.password')->with('success', 'Password berhasil diubah.');
             
         } catch (\Exception $e) {
-            \Log::error('Error updating password: ' . $e->getMessage());
+            Log::error('Error updating password: ' . $e->getMessage());
             return redirect()->route('member.ubah.password')->with('error', 'Terjadi kesalahan saat mengubah password.');
         }
     }
@@ -1719,9 +2179,9 @@ class MemberController extends Controller
         // Apply status filter
         if ($status_filter !== 'all') {
             if ($status_filter === 'lunas') {
-                $query->where('lunas', 'Y');
+                $query->where('lunas', 'Lunas');
             } elseif ($status_filter === 'belum_lunas') {
-                $query->where('lunas', 'N');
+                $query->where('lunas', 'Belum');
             }
         }
         
@@ -1807,8 +2267,8 @@ class MemberController extends Controller
         $sisa_tagihan = $total_tagihan - $total_dibayar;
         
         // Count by status
-        $lunas_count = $pinjaman->where('lunas', 'Y')->count();
-        $belum_lunas_count = $pinjaman->where('lunas', 'N')->count();
+        $lunas_count = $pinjaman->where('lunas', 'Lunas')->count();
+        $belum_lunas_count = $pinjaman->where('lunas', 'Belum')->count();
         
         // Calculate average loan amount
         $avg_pinjaman = $pinjaman->count() > 0 ? $total_pinjaman / $pinjaman->count() : 0;
@@ -1862,7 +2322,8 @@ class MemberController extends Controller
     {
         $pinjaman = \App\Models\TblPinjamanH::where('no_ktp', $noKtp)->get();
         
-        $active_loans = $pinjaman->where('lunas', 'N');
+        // Perbaiki logika: gunakan 'Belum' dan 'Lunas' sesuai dengan database
+        $active_loans = $pinjaman->where('lunas', 'Belum');
         $total_active_amount = $active_loans->sum('jumlah');
         $total_active_installments = $active_loans->sum('lama_angsuran');
         
@@ -1883,7 +2344,7 @@ class MemberController extends Controller
             'total_active_installments' => $total_active_installments,
             'next_payment' => $next_payment,
             'total_loans_count' => $pinjaman->count(),
-            'completed_loans_count' => $pinjaman->where('lunas', 'Y')->count()
+            'completed_loans_count' => $pinjaman->where('lunas', 'Lunas')->count()
         ];
     }
     
@@ -1892,7 +2353,7 @@ class MemberController extends Controller
      */
     private function determineLoanStatus($loan, $angsuran_count, $sisa_tagihan)
     {
-        if ($loan->lunas === 'Y') {
+        if ($loan->lunas === 'Lunas') {
             return 'Lunas';
         }
         
@@ -1915,65 +2376,300 @@ class MemberController extends Controller
         }
     }
 
-public function hitungSimulasi(Request $request)
-{
-    try {
-        $request->validate([
-            'nominal' => 'required|numeric|min:1000',
-            'lama_angsuran' => 'required|numeric|min:1|max:60',
-            'jenis_pinjaman' => 'required'
-        ]);
+    public function hitungSimulasi(Request $request)
+    {
+        try {
+            $request->validate([
+                'nominal' => 'required|numeric|min:1000',
+                'lama_angsuran' => 'required|numeric|min:1|max:60',
+                'jenis_pinjaman' => 'required'
+            ]);
 
-        $nominal = (float) $request->nominal;
-        $lama_angsuran = (int) $request->lama_angsuran;
-        
-        // Set bunga dan biaya admin ke 0 sesuai permintaan
-        $bunga = 0;
-        $biaya_admin = 0;
+            $nominal = (float) $request->nominal;
+            $lama_angsuran = (int) $request->lama_angsuran;
+            
+            // Set bunga dan biaya admin ke 0 sesuai permintaan
+            $bunga = 0;
+            $biaya_admin = 0;
 
-        // Hitung angsuran pokok (nominal dibagi jumlah bulan)
-        $angsuran_pokok = $nominal / $lama_angsuran;
-        
-        // Biaya bunga dan admin tetap 0
-        $biaya_bunga = 0;
-        
-        // Jumlah tagihan per bulan
-        $jumlah_tagihan = $angsuran_pokok + $biaya_bunga + $biaya_admin;
+            // Hitung angsuran pokok (nominal dibagi jumlah bulan)
+            $angsuran_pokok = $nominal / $lama_angsuran;
+            
+            // Biaya bunga dan admin tetap 0
+            $biaya_bunga = 0;
+            
+            // Jumlah tagihan per bulan
+            $jumlah_tagihan = $angsuran_pokok + $biaya_bunga + $biaya_admin;
 
-        $data = [];
+            $data = [];
 
-        for ($i = 1; $i <= $lama_angsuran; $i++) {
-            // Hitung tanggal tempo (28 hari setiap bulan)
-            $tanggal_tempo = Carbon::now()->addMonths($i)->format('d F Y');
+            for ($i = 1; $i <= $lama_angsuran; $i++) {
+                // Hitung tanggal tempo (28 hari setiap bulan)
+                $tanggal_tempo = Carbon::now()->addMonths($i)->format('d F Y');
 
-            $data[] = [
-                'angsuran_ke' => $i,
-                'tanggal_tempo' => $tanggal_tempo,
-                'angsuran_pokok' => number_format($angsuran_pokok, 0, ',', '.'),
-                'biaya_bunga' => number_format($biaya_bunga, 0, ',', '.'),
-                'biaya_admin' => number_format($biaya_admin, 0, ',', '.'),
-                'jumlah_tagihan' => number_format($jumlah_tagihan, 0, ',', '.'),
+                $data[] = [
+                    'angsuran_ke' => $i,
+                    'tanggal_tempo' => $tanggal_tempo,
+                    'angsuran_pokok' => number_format($angsuran_pokok, 0, ',', '.'),
+                    'biaya_bunga' => number_format($biaya_bunga, 0, ',', '.'),
+                    'biaya_admin' => number_format($biaya_admin, 0, ',', '.'),
+                    'jumlah_tagihan' => number_format($jumlah_tagihan, 0, ',', '.'),
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'summary' => [
+                    'total_pinjaman' => number_format($nominal, 0, ',', '.'),
+                    'total_angsuran' => number_format($nominal, 0, ',', '.'),
+                    'jumlah_bulan' => $lama_angsuran
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan dalam perhitungan simulasi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Method untuk membersihkan data anggota dari semua tabel terkait
+     * Digunakan untuk menghapus data duplikat atau data lama
+     */
+    public function cleanupMemberData($member_id, $no_ktp = null)
+    {
+        try {
+            DB::beginTransaction();
+            
+            $total_deleted = 0;
+            $deleted_details = [];
+
+            // 1. Hapus data dari tbl_pengajuan (by anggota_id)
+            $deleted_pengajuan = DB::table('tbl_pengajuan')
+                ->where('anggota_id', $member_id)
+                ->delete();
+            $total_deleted += $deleted_pengajuan;
+            $deleted_details['tbl_pengajuan'] = $deleted_pengajuan;
+
+            // 2. Hapus data dari tbl_trans_sp (by anggota_id)
+            $deleted_trans_sp_id = DB::table('tbl_trans_sp')
+                ->where('anggota_id', $member_id)
+                ->delete();
+            $total_deleted += $deleted_trans_sp_id;
+            $deleted_details['tbl_trans_sp_by_id'] = $deleted_trans_sp_id;
+
+            // 3. Hapus data dari tbl_trans_sp (by no_ktp jika ada)
+            if ($no_ktp) {
+                $deleted_trans_sp_ktp = DB::table('tbl_trans_sp')
+                    ->where('no_ktp', $no_ktp)
+                    ->delete();
+                $total_deleted += $deleted_trans_sp_ktp;
+                $deleted_details['tbl_trans_sp_by_ktp'] = $deleted_trans_sp_ktp;
+            }
+
+            // 4. Hapus data dari billing
+            $deleted_billing = DB::table('billing')
+                ->where('id_anggota', $member_id)
+                ->delete();
+            $total_deleted += $deleted_billing;
+            $deleted_details['billing'] = $deleted_billing;
+
+            // 5. Hapus data dari tbl_anggota (data lama) - hapus SEMUA data dengan no_ktp yang sama
+            if ($no_ktp) {
+                $deleted_tbl_anggota = DB::table('tbl_anggota')
+                    ->where('no_ktp', $no_ktp)
+                    ->delete();
+                $total_deleted += $deleted_tbl_anggota;
+                $deleted_details['tbl_anggota'] = $deleted_tbl_anggota;
+            }
+
+            // 6. Hapus data dari data_anggota (data baru) - hanya jika ada
+            try {
+                $deleted_data_anggota = DB::table('data_anggota')
+                    ->where('id', $member_id)
+                    ->delete();
+                $total_deleted += $deleted_data_anggota;
+                $deleted_details['data_anggota'] = $deleted_data_anggota;
+            } catch (\Exception $e) {
+                // Tabel data_anggota mungkin tidak ada di MySQL
+                $deleted_details['data_anggota'] = 0;
+            }
+
+            // 7. Hapus data duplikat dari tbl_pengajuan dengan no_ktp yang sama
+            if ($no_ktp) {
+                // Cari anggota_id lain yang menggunakan no_ktp yang sama
+                $duplicate_anggota_ids = DB::table('tbl_anggota')
+                    ->where('no_ktp', $no_ktp)
+                    ->pluck('id')
+                    ->toArray();
+                
+                if (!empty($duplicate_anggota_ids)) {
+                    $deleted_duplicate_pengajuan = DB::table('tbl_pengajuan')
+                        ->whereIn('anggota_id', $duplicate_anggota_ids)
+                        ->delete();
+                    $total_deleted += $deleted_duplicate_pengajuan;
+                    $deleted_details['duplicate_pengajuan'] = $deleted_duplicate_pengajuan;
+                }
+            }
+
+            DB::commit();
+
+            return [
+                'success' => true,
+                'message' => "Berhasil menghapus $total_deleted records",
+                'total_deleted' => $total_deleted,
+                'details' => $deleted_details
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return [
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+                'total_deleted' => 0,
+                'details' => []
             ];
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-            'summary' => [
-                'total_pinjaman' => number_format($nominal, 0, ',', '.'),
-                'total_angsuran' => number_format($nominal, 0, ',', '.'),
-                'jumlah_bulan' => $lama_angsuran
-            ]
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Terjadi kesalahan dalam perhitungan simulasi: ' . $e->getMessage()
-        ], 500);
     }
-}
 
+    /**
+     * Method untuk membersihkan data anggota berdasarkan ID
+     * Route: /member/cleanup/{id}
+     */
+    public function cleanupMemberById($id)
+    {
+        // Ambil data anggota terlebih dahulu
+        $member = DB::table('data_anggota')->where('id', $id)->first();
+        
+        if (!$member) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data anggota tidak ditemukan'
+            ], 404);
+        }
 
+        $result = $this->cleanupMemberData($id, $member->no_ktp);
+        
+        return response()->json($result);
+    }
 
+    /**
+     * Method untuk cascade delete data anggota dari tbl_anggota
+     * Menghapus semua data terkait di seluruh tabel dan view
+     * TIDAK menghapus data sistem seperti tbl_user
+     */
+    public function cascadeDeleteAnggota($anggota_id, $no_ktp = null)
+    {
+        try {
+            DB::beginTransaction();
+            
+            $total_deleted = 0;
+            $deleted_details = [];
+            
+            // Dapatkan no_ktp jika tidak disediakan
+            if (!$no_ktp) {
+                $anggota = DB::table('tbl_anggota')->where('id', $anggota_id)->first();
+                if (!$anggota) {
+                    throw new \Exception('Data anggota tidak ditemukan');
+                }
+                $no_ktp = $anggota->no_ktp;
+            }
+
+            echo "=== CASCADE DELETE UNTUK ANGGOTA ID: $anggota_id, NO_KTP: $no_ktp ===\n";
+
+            // Helper function untuk menghapus data dengan pengecekan kolom
+            $deleteFromTable = function($table, $conditions, $description) use (&$total_deleted, &$deleted_details) {
+                try {
+                    $query = DB::table($table);
+                    $deleted = 0;
+                    
+                    foreach ($conditions as $column => $value) {
+                        // Cek apakah kolom ada di tabel
+                        $columns = DB::select("DESCRIBE $table");
+                        $column_names = array_column($columns, 'Field');
+                        
+                        if (in_array($column, $column_names)) {
+                            $query->where($column, $value);
+                        }
+                    }
+                    
+                    $deleted = $query->delete();
+                    $total_deleted += $deleted;
+                    $deleted_details[$table] = $deleted;
+                    echo "✓ $description: $deleted records\n";
+                    
+                } catch (\Exception $e) {
+                    $deleted_details[$table] = 0;
+                    echo "- $description: Error - " . $e->getMessage() . "\n";
+                }
+            };
+
+            // Daftar tabel yang AMAN untuk dihapus (hanya data anggota, bukan data sistem)
+            $safe_tables = [
+                'tbl_pengajuan' => ['anggota_id' => $anggota_id],
+                'tbl_pengajuan_penarikan' => ['anggota_id' => $anggota_id],
+                'tbl_pinjaman_h' => ['no_ktp' => $no_ktp],
+                'tbl_pinjaman_d' => ['anggota_id' => $anggota_id],
+                'tempo_pinjaman' => ['no_ktp' => $no_ktp],
+                'tbl_trans_sp' => ['anggota_id' => $anggota_id, 'no_ktp' => $no_ktp],
+                'tbl_trans_sps' => ['anggota_id' => $anggota_id, 'no_ktp' => $no_ktp],
+                'tbl_trans_tagihan' => ['anggota_id' => $anggota_id, 'no_ktp' => $no_ktp],
+                'tbl_trans_tagihans' => ['anggota_id' => $anggota_id, 'no_ktp' => $no_ktp],
+                'tbl_trans_toserda' => ['anggota_id' => $anggota_id, 'no_ktp' => $no_ktp],
+                'billing' => ['id_anggota' => $anggota_id],
+                'tbl_billing_toserda' => ['anggota_id' => $anggota_id, 'no_ktp' => $no_ktp],
+                'tbl_billing_processed_toserda' => ['anggota_id' => $anggota_id, 'no_ktp' => $no_ktp],
+                'tbl_shu' => ['anggota_id' => $anggota_id, 'no_ktp' => $no_ktp],
+                'transaksi_simpanan' => ['anggota_id' => $anggota_id, 'no_ktp' => $no_ktp],
+                'transaksi_kas' => ['anggota_id' => $anggota_id, 'no_ktp' => $no_ktp],
+                'tbl_trans_angkutan' => ['anggota_id' => $anggota_id, 'no_ktp' => $no_ktp],
+                'tbl_trans_kas' => ['anggota_id' => $anggota_id, 'no_ktp' => $no_ktp],
+                'activity_logs' => ['anggota_id' => $anggota_id],
+                'tbl_anggota' => ['id' => $anggota_id],
+                'data_anggota' => ['id' => $anggota_id]
+            ];
+
+            echo "=== MENGHAPUS DATA ANGGOTA DARI TABEL YANG AMAN ===\n";
+
+            // Loop melalui semua tabel yang aman untuk dihapus
+            foreach ($safe_tables as $table => $conditions) {
+                $deleteFromTable($table, $conditions, $table);
+            }
+
+            DB::commit();
+
+            echo "\n=== TOTAL DATA YANG DIHAPUS: $total_deleted records ===\n";
+            echo "=== CASCADE DELETE SELESAI ===\n";
+
+            return [
+                'success' => true,
+                'message' => "Berhasil menghapus $total_deleted records dari semua tabel terkait",
+                'total_deleted' => $total_deleted,
+                'details' => $deleted_details
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            echo "Error: " . $e->getMessage() . "\n";
+            return [
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+                'total_deleted' => 0,
+                'details' => []
+            ];
+        }
+    }
+
+    /**
+     * Method untuk cascade delete berdasarkan ID anggota
+     * Route: /member/cascade-delete/{id}
+     */
+    public function cascadeDeleteById($id)
+    {
+        $result = $this->cascadeDeleteAnggota($id);
+        return response()->json($result);
+    }
 }

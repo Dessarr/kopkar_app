@@ -10,6 +10,7 @@ use App\Models\jns_akun;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AngkutanController extends Controller
 {
@@ -68,7 +69,7 @@ class AngkutanController extends Controller
         // Base query for pengeluaran (akun = 'Pengeluaran')
         $query = transaksi_kas::with(['dariKas', 'untukKas'])
             ->where('akun', 'Pengeluaran')
-            ->where('dk', 'D');
+            ->where('dk', 'K');
 
         // Apply filters
         $query = $this->applyFilters($query, $startDate, $endDate, $search, $kasFilter);
@@ -348,7 +349,7 @@ class AngkutanController extends Controller
             $transaksi->akun = 'Pengeluaran'; // ENUM value: 'Pemasukan','Pengeluaran','Transfer'
             $transaksi->dari_kas_id = $validated['dari_kas_id'];
             $transaksi->untuk_kas_id = null; // Pengeluaran tidak ada untuk_kas_id
-            $transaksi->dk = 'D'; // Debit untuk pengeluaran
+            $transaksi->dk = 'K'; // Kredit untuk pengeluaran
             $transaksi->no_polisi = '';
         $transaksi->update_data = now();
             $transaksi->user_name = Auth::user()->u_name ?? 'System';
@@ -448,7 +449,7 @@ class AngkutanController extends Controller
             $transaksi->akun = 'Pengeluaran'; // ENUM value: 'Pemasukan','Pengeluaran','Transfer'
             $transaksi->dari_kas_id = $validated['dari_kas_id'];
             $transaksi->untuk_kas_id = null; // Pengeluaran tidak ada untuk_kas_id
-            $transaksi->dk = 'D'; // Debit untuk pengeluaran
+            $transaksi->dk = 'K'; // Kredit untuk pengeluaran
             $transaksi->no_polisi = '';
             $transaksi->update_data = now();
             $transaksi->user_name = Auth::user()->u_name ?? 'System';
@@ -539,7 +540,7 @@ class AngkutanController extends Controller
         $transaksi = $query->orderBy('tgl_catat', 'desc')->get();
         $totalPemasukan = $transaksi->sum('jumlah');
 
-        $pdf = \PDF::loadView('angkutan.pdf.pemasukan', compact('transaksi', 'totalPemasukan', 'startDate', 'endDate'));
+        $pdf = Pdf::loadView('angkutan.pdf.pemasukan', compact('transaksi', 'totalPemasukan', 'startDate', 'endDate'));
         return $pdf->download('laporan_pemasukan_angkutan_' . date('Ymd') . '.pdf');
     }
 
@@ -562,7 +563,7 @@ class AngkutanController extends Controller
         $transaksi = $query->orderBy('tgl_catat', 'desc')->get();
         $totalPengeluaran = $transaksi->sum('jumlah');
 
-        $pdf = \PDF::loadView('angkutan.pdf.pengeluaran', compact('transaksi', 'totalPengeluaran', 'startDate', 'endDate'));
+        $pdf = Pdf::loadView('angkutan.pdf.pengeluaran', compact('transaksi', 'totalPengeluaran', 'startDate', 'endDate'));
         return $pdf->download('laporan_pengeluaran_angkutan_' . date('Ymd') . '.pdf');
     }
 

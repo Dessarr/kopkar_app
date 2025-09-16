@@ -442,15 +442,20 @@ function cetakNota(id) {
 }
 
 function formatNumberSimple(input) {
-    let value = input.value.replace(/[^\d]/g, '');
+    let value = input.value.replace(/[^\d.]/g, '');
     if (value) {
-        value = parseInt(value).toLocaleString('id-ID');
+        const number = parseFloat(value);
+        if (!isNaN(number) && number > 0) {
+            value = number.toString();
+        } else {
+            value = '';
+        }
     }
     input.value = value;
 }
 
 function formatNumber(num) {
-    return num ? parseInt(num).toLocaleString('id-ID') : '';
+    return num ? parseFloat(num).toString() : '';
 }
 
 function showNotification(type, message) {

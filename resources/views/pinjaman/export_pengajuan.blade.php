@@ -90,7 +90,16 @@
                     <br><small>({{ $pengajuan->anggota_id }})</small>
                 </td>
                 <td>{{ \Carbon\Carbon::parse($pengajuan->tgl_input)->format('d/m/Y') }}</td>
-                <td>{{ $pengajuan->jenis == '1' ? 'Biasa' : 'Barang' }}</td>
+                <td>
+                    @php
+                    $jenisMap = [
+                        '1' => 'Biasa',
+                        '3' => 'Barang'
+                    ];
+                    $jenisText = $jenisMap[$pengajuan->jenis] ?? $pengajuan->jenis;
+                    @endphp
+                    {{ $jenisText }}
+                </td>
                 <td>Rp {{ number_format($pengajuan->nominal, 0, ',', '.') }}</td>
                 <td>{{ $pengajuan->lama_ags }}</td>
                 <td>

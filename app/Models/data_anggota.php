@@ -36,5 +36,6 @@ class data_anggota extends Model
         'jns_trans',
         'id_cabang'
     ];
+    
     public $timestamps = false;
 }   

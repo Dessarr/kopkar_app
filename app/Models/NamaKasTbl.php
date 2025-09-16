@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class NamaKasTbl extends Model
 {
     use SoftDeletes;
+    
+    public $timestamps = false;
 
     /**
      * The table associated with the model.

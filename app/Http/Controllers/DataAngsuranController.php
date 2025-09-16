@@ -45,6 +45,17 @@ class DataAngsuranController extends Controller
         // Hitung total tagihan yang benar (termasuk bunga dan biaya admin)
         $totalTagihan = $this->hitungTotalTagihan($pinjaman);
         $sisaTagihan = $totalTagihan - $totalBayar;
+        
+        // Pastikan sisa tagihan tidak negatif
+        if ($sisaTagihan < 0) {
+            $sisaTagihan = 0;
+        }
+        
+        // Update status lunas jika diperlukan
+        $this->updateStatusLunas($id);
+        
+        // Reload data pinjaman setelah update status
+        $pinjaman->refresh();
 
         return view('pinjaman.detail_angsuran', compact('pinjaman', 'sisaAngsuran', 'angsuranKe', 'tglTempo', 'denda', 'totalTagihan', 'sisaTagihan'));
     }
@@ -53,10 +64,10 @@ class DataAngsuranController extends Controller
     {
         $request->validate([
             'tgl_bayar' => 'required|date',
-            'jumlah_bayar' => 'required|numeric|min:0',
-            'bunga' => 'required|numeric|min:0',
-            'biaya_adm' => 'required|numeric|min:0',
-            'denda_rp' => 'nullable|numeric|min:0',
+            'jumlah_bayar' => 'required|numeric|min:0|integer',
+            'bunga' => 'required|numeric|min:0|integer',
+            'biaya_adm' => 'required|numeric|min:0|integer',
+            'denda_rp' => 'nullable|numeric|min:0|integer',
             'keterangan' => 'nullable|string|max:500',
             'kas_id' => 'required|exists:data_kas,id'
         ]);
@@ -91,13 +102,29 @@ class DataAngsuranController extends Controller
             
             // Validasi 2: Pastikan pembayaran tidak melebihi sisa tagihan untuk semua angsuran
             if ($request->jumlah_bayar > $sisaTagihan) {
-                throw new \Exception('Jumlah pembayaran melebihi sisa tagihan. Sisa tagihan: Rp ' . number_format($sisaTagihan, 0, ',', '.'));
+                throw new \Exception('Jumlah pembayaran melebihi sisa tagihan. Sisa tagihan: Rp ' . number_format((float)$sisaTagihan, 0, ',', '.'));
             }
             
-            // Validasi 3: Pastikan pembayaran minimal sesuai dengan angsuran per bulan
-            $minPembayaran = $pinjaman->jumlah_angsuran;
+            // Validasi 3: Gunakan method validasi dari DtaAnggotaController untuk mencegah data tidak valid
+            $validation = \App\Http\Controllers\DtaAnggotaController::validateAngsuranData($pinjamanId, $request->jumlah_bayar);
+            if (!$validation['valid']) {
+                throw new \Exception($validation['message']);
+            }
+            
+            // Validasi 4: Pastikan pembayaran minimal sesuai dengan angsuran per bulan
+            // Hitung angsuran yang seharusnya berdasarkan logika pembulatan yang benar
+            $angsuranPerBulan = floor($pinjaman->jumlah / $pinjaman->lama_angsuran);
+            $sisaPembulatan = $pinjaman->jumlah - ($angsuranPerBulan * $pinjaman->lama_angsuran);
+            
+            // Untuk angsuran terakhir, tambahkan sisa pembulatan
+            if ($angsuranKe == $pinjaman->lama_angsuran) {
+                $minPembayaran = $angsuranPerBulan + $sisaPembulatan;
+            } else {
+                $minPembayaran = $angsuranPerBulan;
+            }
+            
             if ($request->jumlah_bayar < $minPembayaran) {
-                throw new \Exception('Jumlah pembayaran minimal: Rp ' . number_format($minPembayaran, 0, ',', '.'));
+                throw new \Exception('Jumlah pembayaran minimal: Rp ' . number_format((float)$minPembayaran, 0, ',', '.'));
             }
 
             // Tentukan ket_bayar berdasarkan jumlah pembayaran
@@ -228,13 +255,16 @@ class DataAngsuranController extends Controller
 
     /**
      * Hitung total tagihan yang benar (termasuk bunga dan biaya admin)
-     * Sesuai dengan logika project lama: ags_per_bulan × lama_angsuran + biaya admin
+     * Menggunakan logika pembulatan yang benar: floor(jumlah/lama_angsuran) × lama_angsuran + sisa_pembulatan + biaya_admin
      */
     private function hitungTotalTagihan($pinjaman)
     {
-        // Total tagihan = angsuran per bulan × lama angsuran + biaya admin
-        // Ini sesuai dengan logika project lama yang menggunakan ags_per_bulan
-        $totalTagihan = ($pinjaman->jumlah_angsuran * $pinjaman->lama_angsuran) + $pinjaman->biaya_adm;
+        // Hitung angsuran per bulan dengan pembulatan ke bawah
+        $angsuranPerBulan = floor($pinjaman->jumlah / $pinjaman->lama_angsuran);
+        $sisaPembulatan = $pinjaman->jumlah - ($angsuranPerBulan * $pinjaman->lama_angsuran);
+        
+        // Total tagihan = (angsuran per bulan × lama angsuran) + sisa pembulatan + biaya admin
+        $totalTagihan = ($angsuranPerBulan * $pinjaman->lama_angsuran) + $sisaPembulatan + $pinjaman->biaya_adm;
         
         return $totalTagihan;
     }
@@ -252,8 +282,8 @@ class DataAngsuranController extends Controller
         $totalBayar = $pinjaman->detail_angsuran->sum('jumlah_bayar');
         $totalTagihan = $this->hitungTotalTagihan($pinjaman);
 
-        // Cek apakah sudah lunas
-        if ($totalBayar >= $totalTagihan) {
+        // Cek apakah sudah lunas (dengan toleransi 1000 rupiah untuk pembulatan)
+        if ($totalBayar >= $totalTagihan || ($totalTagihan - $totalBayar) <= 1000) {
             $pinjaman->lunas = 'Lunas';
             // Tidak mengubah kolom status, tetap 1 sesuai dengan struktur database
             $pinjaman->save();
@@ -268,7 +298,7 @@ class DataAngsuranController extends Controller
             ]);
         } else {
             // Jika belum lunas, pastikan status tetap 'Belum'
-            if ($pinjaman->lunas !== 'Belum') {
+            if ($pinjaman->lunas !== 'Belum' && ($totalTagihan - $totalBayar) > 1000) {
                 $pinjaman->lunas = 'Belum';
                 // Tidak mengubah kolom status, tetap 1 sesuai dengan struktur database
                 $pinjaman->save();
@@ -380,5 +410,77 @@ class DataAngsuranController extends Controller
         
         // Generate PDF atau view cetak
         return view('pinjaman.cetak_angsuran', compact('angsuran'));
+    }
+
+    /**
+     * Method untuk mengupdate status lunas pinjaman secara manual
+     */
+    public function updateStatusLunasManual($pinjamanId)
+    {
+        try {
+            $pinjaman = TblPinjamanH::find($pinjamanId);
+            if (!$pinjaman) {
+                return response()->json(['error' => 'Pinjaman tidak ditemukan'], 404);
+            }
+
+            // Hitung total yang sudah dibayar
+            $totalBayar = TblPinjamanD::where('pinjam_id', $pinjamanId)
+                ->sum('jumlah_bayar');
+
+            // Hitung total tagihan
+            $totalTagihan = $pinjaman->jumlah;
+
+            // Update status lunas jika sudah lunas
+            if ($totalBayar >= $totalTagihan) {
+                $pinjaman->lunas = 'Lunas';
+                $pinjaman->save();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Status lunas berhasil diupdate',
+                    'pinjaman_id' => $pinjamanId,
+                    'total_bayar' => $totalBayar,
+                    'total_tagihan' => $totalTagihan
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pinjaman belum lunas',
+                    'pinjaman_id' => $pinjamanId,
+                    'total_bayar' => $totalBayar,
+                    'total_tagihan' => $totalTagihan,
+                    'sisa' => $totalTagihan - $totalBayar
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Method untuk memaksa update status lunas (untuk testing)
+     */
+    public function forceUpdateStatusLunas($pinjamanId)
+    {
+        try {
+            $pinjaman = TblPinjamanH::find($pinjamanId);
+            if (!$pinjaman) {
+                return response()->json(['error' => 'Pinjaman tidak ditemukan'], 404);
+            }
+
+            // Paksa update status lunas
+            $pinjaman->lunas = 'Lunas';
+            $pinjaman->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Status lunas dipaksa diupdate (untuk testing)',
+                'pinjaman_id' => $pinjamanId,
+                'status_sebelum' => 'Belum',
+                'status_sesudah' => 'Lunas'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 }

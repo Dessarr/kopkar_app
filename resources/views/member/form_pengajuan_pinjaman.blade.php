@@ -14,19 +14,20 @@
 
         <div class="bg-white p-6">
             @if (session('success'))
-                <div class="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">{{ session('success') }}</div>
+            <div class="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">{{ session('success') }}
+            </div>
             @endif
             @if (session('error'))
-                <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">{{ session('error') }}</div>
+            <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">{{ session('error') }}</div>
             @endif
             @if ($errors->any())
-                <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                    <ul class="list-disc list-inside">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
+            <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                <ul class="list-disc list-inside">
+                    @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
             @endif
             <form id="loan-form" method="POST" action="{{ route('member.pengajuan.pinjaman.store') }}">
                 @csrf
@@ -87,7 +88,6 @@
                             class="form-input w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent"
                             id="nominal" name="nominal" placeholder="Masukkan nominal pinjaman" required>
                     </div>
-                    <p class="text-sm text-gray-500 mt-1">Minimal Rp 1.000</p>
                 </div>
 
 
@@ -99,7 +99,8 @@
                     </label>
                     <textarea
                         class="form-textarea w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent"
-                        id="keterangan" name="keterangan" rows="4" placeholder="Masukkan keterangan"></textarea>
+                        id="keterangan" name="keterangan" rows="4" placeholder="Masukkan keterangan"
+                        required></textarea>
                     <p class="text-sm text-gray-600 mt-1">*Harus diisi</p>
                 </div>
 

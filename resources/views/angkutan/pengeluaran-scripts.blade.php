@@ -455,7 +455,13 @@ document.addEventListener('keydown', function(e) {
 // Enhanced number formatting functions
 function formatNumber(input) {
     // Remove non-numeric characters except decimal point
-    let value = input.value.replace(/[^0-9]/g, '');
+    let value = input.value.replace(/[^0-9.]/g, '');
+    
+    // Remove multiple decimal points
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
     
     // Don't format if empty
     if (value === '') {
@@ -464,18 +470,18 @@ function formatNumber(input) {
     }
     
     // Convert to number and format with thousand separators
-    const number = parseInt(value);
+    const number = parseFloat(value);
     if (!isNaN(number) && number > 0) {
-        // Format with thousand separators using Indonesian format
-        input.value = number.toLocaleString('id-ID');
+        // Remove the formatting to prevent the 1 digit issue
+        input.value = number.toString();
     } else {
         input.value = '';
     }
 }
 
 function validateNumber(input) {
-    const rawValue = input.value.replace(/[^0-9]/g, '');
-    const number = parseInt(rawValue);
+    const rawValue = input.value.replace(/[^0-9.]/g, '');
+    const number = parseFloat(rawValue);
     
     if (rawValue && (isNaN(number) || number <= 0)) {
         alert('Jumlah harus berupa angka yang valid dan lebih dari 0');
@@ -488,7 +494,7 @@ function validateNumber(input) {
 
 function getRawNumber(input) {
     // Return clean number without formatting
-    const rawValue = input.value.replace(/[^0-9]/g, '');
+    const rawValue = input.value.replace(/[^0-9.]/g, '');
     return rawValue || '0';
 }
 

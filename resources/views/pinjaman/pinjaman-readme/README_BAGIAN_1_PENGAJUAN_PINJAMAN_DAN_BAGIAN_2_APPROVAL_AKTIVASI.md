@@ -16,7 +16,7 @@ Proses pengajuan pinjaman adalah tahap awal dalam sistem pinjaman terintegrasi. 
 - `jumlah` - Jumlah pinjaman (required, numeric, min:1000)
 - `lama_angsuran` - Durasi angsuran (required, integer, min:1, max:60)
 - `bunga` - Persentase bunga (required, numeric, min:0, max:100)
-- `jenis_pinjaman` - Jenis pinjaman (required, in:1,2)
+- `jenis_pinjaman` - Jenis pinjaman (required, in:1,3)
 - `kas_id` - Sumber dana (required, exists:data_kas,id)
 - `keterangan` - Keterangan tambahan
 
@@ -28,7 +28,7 @@ $request->validate([
     'jumlah' => 'required|numeric|min:1000',
     'lama_angsuran' => 'required|integer|min:1|max:60',
     'bunga' => 'required|numeric|min:0|max:100',
-    'jenis_pinjaman' => 'required|in:1,2',
+    'jenis_pinjaman' => 'required|in:1,3',
     'kas_id' => 'required|exists:data_kas,id'
 ]);
 ```

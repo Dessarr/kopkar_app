@@ -315,82 +315,104 @@
                 </div>
             </div>
         </div>
-        <div class="space-y-1 text-xs">
-            @foreach($simpananList as $simpanan)
-            <div class="flex justify-between">
-                <span>{{ $simpanan['nama'] }}:</span>
-                <span class="font-bold">{{ number_format($simpanan['jumlah'], 0, ',', '.') }}</span>
+        
+        <!-- Layout Grid System -->
+        <div class="grid grid-cols-10 grid-rows-13 gap-1 text-xs">
+            <!-- Header -->
+            <div class="col-span-3 font-semibold text-green-700">Item</div>
+            <div class="col-span-5 font-semibold text-green-700 text-right">Nominal</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Simpanan Sukarela -->
+            <div class="col-span-3">Simpanan Sukarela:</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($simpananList[0]['jumlah'] ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Simpanan Pokok -->
+            <div class="col-span-3">Simpanan Pokok:</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($simpananList[1]['jumlah'] ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Simpanan Wajib -->
+            <div class="col-span-3">Simpanan Wajib:</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($simpananList[2]['jumlah'] ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Simpanan Khusus II -->
+            <div class="col-span-3">Simpanan Khusus II:</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($simpananList[3]['jumlah'] ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Jumlah (Total Simpanan) -->
+            <div class="col-span-3 border-t border-green-200 pt-1 font-bold">Jumlah:</div>
+            <div class="col-span-5 border-t border-green-200 pt-1 font-bold text-right">{{ number_format($jmlSimpans->jml_total ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Pinjaman Biasa -->
+            <div class="col-span-3">Pinjaman Biasa:</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($tagihanData['pinjaman_biasa']->jumlah ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2 text-center">
+                <span class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">{{ $tagihanData['pinjaman_biasa']->angsuran ?? 0 }}/{{ $tagihanData['pinjaman_biasa']->lama_angsuran ?? 0 }}</span>
             </div>
-            @endforeach
-            <div class="flex justify-between">
-                <span>Pinjaman Biasa:</span>
-                <span
-                    class="font-bold">{{ number_format($tagihanData['pinjaman_biasa']['jumlah'], 0, ',', '.') }}</span>
-                <span
-                    class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">{{ $tagihanData['pinjaman_biasa']['sudah_bayar'] }}/{{ $tagihanData['pinjaman_biasa']['total_angsuran'] }}</span>
+            
+            <!-- Jasa (1%) -->
+            <div class="col-span-3">Jasa (1%):</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($tagihanData['pinjaman_biasa']->jasa ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Pinjaman Barang -->
+            <div class="col-span-3">Pinjaman Barang:</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($tagihanData['pinjaman_barang']->jumlah ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2 text-center">
+                <span class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">{{ $tagihanData['pinjaman_barang']->angsuran ?? 0 }}/{{ $tagihanData['pinjaman_barang']->lama_angsuran ?? 0 }}</span>
             </div>
-            <div class="flex justify-between">
-                <span>Jasa (1%):</span>
-                <span class="font-bold">{{ number_format($tagihanData['pinjaman_biasa']['jasa'], 0, ',', '.') }}</span>
+            
+            <!-- Jasa (2%) -->
+            <div class="col-span-3">Jasa (2%):</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($tagihanData['pinjaman_barang']->jasa ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Pinjaman Bank BSM -->
+            <div class="col-span-3">Pinjaman Bank BSM:</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($tagihanData['pinjaman_bank']->jumlah ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2 text-center">
+                <span class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">{{ $tagihanData['pinjaman_bank']->angsuran ?? 0 }}/{{ $tagihanData['pinjaman_bank']->lama_angsuran ?? 0 }}</span>
             </div>
-            <div class="flex justify-between">
-                <span>Pinjaman Barang:</span>
-                <span
-                    class="font-bold">{{ number_format($tagihanData['pinjaman_barang']['jumlah'], 0, ',', '.') }}</span>
-                <span
-                    class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">{{ $tagihanData['pinjaman_barang']['sudah_bayar'] }}/{{ $tagihanData['pinjaman_barang']['total_angsuran'] }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Jasa (2%):</span>
-                <span class="font-bold">{{ number_format($tagihanData['pinjaman_barang']['jasa'], 0, ',', '.') }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Pinjaman Bank BSM:</span>
-                <span class="font-bold">{{ number_format($tagihanData['pinjaman_bank']['jumlah'], 0, ',', '.') }}</span>
-                <span
-                    class="bg-pink-500 text-white px-1 py-0.5 rounded text-xs">{{ $tagihanData['pinjaman_bank']['sudah_bayar'] }}/{{ $tagihanData['pinjaman_bank']['total_angsuran'] }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Jasa (1%):</span>
-                <span class="font-bold">{{ number_format($tagihanData['pinjaman_bank']['jasa'], 0, ',', '.') }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Toserda:</span>
-                <span class="font-bold">{{ number_format($tagihanData['toserda'], 0, ',', '.') }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Lain-lain:</span>
-                <span class="font-bold">{{ number_format($tagihanData['lain_lain'], 0, ',', '.') }}</span>
-            </div>
-            <div class="border-t border-white border-opacity-30 pt-1 mt-1">
-                <div class="space-y-1">
-                    <div class="flex justify-between">
-                        <span>Jumlah:</span>
-                        <span
-                            class="font-bold">{{ number_format($tagihanData['summary']['jumlah'], 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>Tag Bulan Lalu:</span>
-                        <span
-                            class="font-bold">{{ number_format($tagihanData['summary']['tag_bulan_lalu'], 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="font-bold">Pot Gaji:</span>
-                        <span
-                            class="font-bold">{{ number_format($tagihanData['summary']['pot_gaji'], 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="font-bold">Pot Simpanan:</span>
-                        <span
-                            class="font-bold">{{ number_format($tagihanData['summary']['pot_simpanan'], 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>Tag Harus Dibayar:</span>
-                        <span
-                            class="font-bold">{{ number_format($tagihanData['summary']['tag_harus_dibayar'], 0, ',', '.') }}</span>
-                    </div>
-                </div>
-            </div>
+            
+            <!-- Jasa (1%) -->
+            <div class="col-span-3">Jasa (1%):</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($tagihanData['pinjaman_bank']->jasa ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Toserda -->
+            <div class="col-span-3">Toserda:</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($tagihanData['toserda']->jumlah_bayar ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Lain-lain -->
+            <div class="col-span-3">Lain-lain:</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($tagihanData['lain_lain']->jumlah_bayar ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Tag Bulan Lalu -->
+            <div class="col-span-3 border-t border-green-200 pt-1">Tag Bulan Lalu:</div>
+            <div class="col-span-5 border-t border-green-200 pt-1 font-bold text-right">{{ number_format($tagihanBulanLaluNew, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Pot Gaji -->
+            <div class="col-span-3 font-bold">Pot Gaji:</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($potGaji, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Pot Simpanan -->
+            <div class="col-span-3 font-bold">Pot Simpanan:</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($potSimpanan->jml_total ?? 0, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
+            
+            <!-- Tag Harus Dibayar -->
+            <div class="col-span-3">Tag Harus Dibayar:</div>
+            <div class="col-span-5 font-bold text-right">{{ number_format($tagHarusDibayar, 0, ',', '.') }}</div>
+            <div class="col-span-2"></div>
         </div>
     </div>
 

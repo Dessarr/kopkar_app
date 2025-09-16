@@ -139,10 +139,13 @@ class BillingUploadController extends Controller
                     ->where('tahun', $tahun)
                     ->delete();
 
-                // Insert new upload data
+                // Insert new upload data to tbl_trans_sp_temp (SIMPLE TABLE)
                 foreach (array_chunk($processedData, 100) as $chunk) {
-                    DB::table('billing_upload_temp')->insert($chunk);
+                    DB::table('tbl_trans_sp_temp')->insert($chunk);
                 }
+
+                // Call stored procedure to process data to tbl_trans_sp_bayar_temp
+                $this->callStoredProcedureBayarUpload($bulan, $tahun);
 
                 // Update main billing table with upload data
                 $this->updateMainBillingWithUpload($bulan, $tahun);
@@ -173,6 +176,25 @@ class BillingUploadController extends Controller
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Call stored procedure bayar_upload to process data from tbl_trans_sp_temp to tbl_trans_sp_bayar_temp
+     */
+    private function callStoredProcedureBayarUpload($bulan, $tahun)
+    {
+        try {
+            $periode = $tahun . '-' . str_pad($bulan, 2, '0', STR_PAD_LEFT);
+            
+            // Call stored procedure bayar_upload
+            DB::statement("CALL bayar_upload('{$periode}')");
+            
+            Log::info("Stored procedure bayar_upload called successfully for period: {$periode}");
+            
+        } catch (\Exception $e) {
+            Log::error("Error calling stored procedure bayar_upload: " . $e->getMessage());
+            throw $e;
         }
     }
 

@@ -20,7 +20,16 @@
         <div class="row"><div class="label">ID Ajuan</div><div class="value">{{ $pengajuan->ajuan_id }}</div></div>
         <div class="row"><div class="label">Anggota</div><div class="value">{{ $member->nama }} (ID: {{ $member->id }})</div></div>
         <div class="row"><div class="label">Tanggal Pengajuan</div><div class="value">{{ \Carbon\Carbon::parse($pengajuan->tgl_input)->format('d/m/Y H:i') }}</div></div>
-        <div class="row"><div class="label">Jenis</div><div class="value">{{ $pengajuan->jenis == '1' ? 'Biasa' : $pengajuan->jenis }}</div></div>
+        <div class="row"><div class="label">Jenis</div><div class="value">
+            @php
+            $jenisMap = [
+                '1' => 'Biasa',
+                '3' => 'Barang'
+            ];
+            $jenisText = $jenisMap[$pengajuan->jenis] ?? $pengajuan->jenis;
+            @endphp
+            {{ $jenisText }}
+        </div></div>
         <div class="row"><div class="label">Jumlah</div><div class="value">Rp {{ number_format($pengajuan->nominal,0,',','.') }}</div></div>
         <div class="row"><div class="label">Lama Angsuran</div><div class="value">{{ $pengajuan->lama_ags }} bulan</div></div>
         <div class="row"><div class="label">Status</div><div class="value">{{ [0=>'Pending',1=>'Disetujui',2=>'Ditolak',3=>'Terlaksana',4=>'Batal'][$pengajuan->status] ?? $pengajuan->status }}</div></div>

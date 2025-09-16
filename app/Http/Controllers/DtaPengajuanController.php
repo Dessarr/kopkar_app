@@ -207,8 +207,8 @@ class DtaPengajuanController extends Controller
             $pinjaman->id_cabang = 1; // Default cabang ID
             $pinjaman->save();
 
-            // GENERATE JADWAL ANGSURAN DI tempo_pinjaman
-            $this->generateTempoPinjaman($pinjaman, $pengajuan);
+            // TIDAK generate tempo_pinjaman di sini
+            // Tempo_pinjaman akan di-generate saat status menjadi Terlaksana
 
             DB::commit();
 
@@ -245,6 +245,85 @@ class DtaPengajuanController extends Controller
         $pengajuan->save();
         Log::info('Admin menolak pengajuan', ['id'=>$id, 'ajuan_id'=>$pengajuan->ajuan_id, 'alasan'=>$request->alasan]);
         return back()->with('success', 'Pengajuan ditolak');
+    }
+
+    /**
+     * Generate billing data untuk pinjaman yang baru terlaksana
+     */
+    private function generateBillingDataForPinjaman($pinjaman, $pengajuan)
+    {
+        try {
+            // Ambil data jadwal angsuran untuk bulan-bulan mendatang
+            $tempoData = DB::table('tempo_pinjaman')
+                ->where('pinjam_id', $pinjaman->id)
+                ->get();
+            
+            foreach ($tempoData as $tempo) {
+                $bulan = date('m', strtotime($tempo->tempo));
+                $tahun = date('Y', strtotime($tempo->tempo));
+                
+                // Hitung angsuran per bulan
+                $angsuranPokok = $pinjaman->jumlah / $pinjaman->lama_angsuran;
+                $angsuranBunga = $pinjaman->bunga_rp / $pinjaman->lama_angsuran;
+                $totalAngsuran = $angsuranPokok + $angsuranBunga;
+                
+                // 1. Insert ke tbl_trans_tagihan
+                DB::table('tbl_trans_tagihan')->updateOrInsert(
+                    [
+                        'tgl_transaksi' => $tempo->tempo,
+                        'no_ktp' => $pinjaman->no_ktp,
+                        'jenis_id' => 999 // ID untuk jenis Pinjaman
+                    ],
+                    [
+                        'anggota_id' => $pinjaman->anggota_id,
+                        'jumlah' => $totalAngsuran,
+                        'keterangan' => 'Tagihan Pinjaman ' . $bulan . '-' . $tahun,
+                        'akun' => '7', // Akun pinjaman
+                        'dk' => 'K', // Kredit
+                        'kas_id' => 1, // Kas utama
+                        'update_data' => now(),
+                        'user_name' => auth()->user()->name ?? 'system'
+                    ]
+                );
+                
+                // 2. Insert ke tbl_trans_sp_bayar_temp dengan logika SUM
+                DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
+                    [
+                        'tgl_transaksi' => \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth()->toDateString(),
+                        'no_ktp' => $pinjaman->no_ktp
+                    ],
+                    [
+                        'anggota_id' => $pinjaman->anggota_id,
+                        'jumlah' => DB::raw('COALESCE(jumlah,0) + ' . $totalAngsuran),
+                        'keterangan' => 'Billing Pinjaman ' . $bulan . '-' . $tahun,
+                        'tagihan_simpanan_wajib' => DB::raw('COALESCE(tagihan_simpanan_wajib,0)'),
+                        'tagihan_simpanan_sukarela' => DB::raw('COALESCE(tagihan_simpanan_sukarela,0)'),
+                        'tagihan_simpanan_khusus_2' => DB::raw('COALESCE(tagihan_simpanan_khusus_2,0)'),
+                        'tagihan_simpanan_pokok' => DB::raw('COALESCE(tagihan_simpanan_pokok,0)'),
+                        'tagihan_pinjaman' => DB::raw('COALESCE(tagihan_pinjaman,0) + ' . $totalAngsuran),
+                        'tagihan_pinjaman_jasa' => DB::raw('COALESCE(tagihan_pinjaman_jasa,0)'),
+                        'tagihan_toserda' => DB::raw('COALESCE(tagihan_toserda,0)'),
+                        'total_tagihan_simpanan' => DB::raw('COALESCE(total_tagihan_simpanan,0)'),
+                        'selisih' => DB::raw('COALESCE(selisih,0)'),
+                        'saldo_simpanan_sukarela' => DB::raw('COALESCE(saldo_simpanan_sukarela,0)'),
+                        'saldo_akhir_simpanan_sukarela' => DB::raw('COALESCE(saldo_akhir_simpanan_sukarela,0)')
+                    ]
+                );
+            }
+            
+            Log::info('Billing data berhasil di-generate untuk pinjaman', [
+                'pinjaman_id' => $pinjaman->id,
+                'no_ktp' => $pinjaman->no_ktp,
+                'jumlah_tempo' => count($tempoData)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Gagal generate billing data untuk pinjaman', [
+                'pinjaman_id' => $pinjaman->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -305,10 +384,34 @@ class DtaPengajuanController extends Controller
 
     public function destroy(string $id)
     {
-        $pengajuan = data_pengajuan::findOrFail($id);
-        $pengajuan->delete();
-        Log::warning('Admin menghapus pengajuan', ['id'=>$id, 'ajuan_id'=>$pengajuan->ajuan_id]);
-        return back()->with('success', 'Pengajuan dihapus');
+        try {
+            $pengajuan = data_pengajuan::findOrFail($id);
+            $ajuanId = $pengajuan->ajuan_id; // Simpan ajuan_id sebelum delete
+            
+            // Hard delete - hapus permanen dari database
+            $pengajuan->delete();
+            
+            // Clear cache jika ada
+            if (class_exists('\Illuminate\Support\Facades\Cache')) {
+                \Illuminate\Support\Facades\Cache::flush();
+            }
+            
+            Log::warning('Admin menghapus pengajuan', [
+                'id' => $id, 
+                'ajuan_id' => $ajuanId,
+                'deleted_at' => now()
+            ]);
+            
+            return back()->with('success', 'Pengajuan berhasil dihapus permanen');
+            
+        } catch (\Exception $e) {
+            Log::error('Gagal menghapus pengajuan', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return back()->with('error', 'Gagal menghapus pengajuan: ' . $e->getMessage());
+        }
     }
 
     public function terlaksana(string $id)
@@ -328,14 +431,31 @@ class DtaPengajuanController extends Controller
             $pengajuan->tgl_update = now();
             $pengajuan->save();
 
-            // Tidak perlu update status pinjaman karena bisa menyebabkan error
-            // Status pinjaman tetap aktif (1) dan yang penting adalah status pengajuan
-            // yang sudah berubah menjadi terlaksana (3)
-            Log::info('Status pengajuan berhasil diubah menjadi terlaksana', [
-                'pengajuan_id' => $id,
-                'anggota_id' => $pengajuan->anggota_id,
-                'note' => 'Status pinjaman tidak diubah untuk menghindari error constraint'
-            ]);
+            // Cari data pinjaman yang sudah dibuat saat approve
+            $pinjaman = TblPinjamanH::where('anggota_id', $pengajuan->anggota_id)
+                ->where('status', '1')
+                ->where('lunas', 'Belum')
+                ->orderBy('id', 'desc') // Gunakan id sebagai pengganti created_at
+                ->first();
+
+            if ($pinjaman) {
+                // Generate jadwal angsuran di tempo_pinjaman
+                $this->generateTempoPinjaman($pinjaman, $pengajuan);
+                
+                // Generate billing data untuk bulan ini
+                $this->generateBillingDataForPinjaman($pinjaman, $pengajuan);
+                
+                Log::info('Status pengajuan berhasil diubah menjadi terlaksana, jadwal angsuran dibuat, dan billing data di-generate', [
+                    'pengajuan_id' => $id,
+                    'pinjaman_id' => $pinjaman->id,
+                    'anggota_id' => $pengajuan->anggota_id
+                ]);
+            } else {
+                Log::warning('Data pinjaman tidak ditemukan saat terlaksana', [
+                    'pengajuan_id' => $id,
+                    'anggota_id' => $pengajuan->anggota_id
+                ]);
+            }
 
             DB::commit();
 

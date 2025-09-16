@@ -110,7 +110,7 @@
                                             data-value="1">Biasa</button>
                                         <button type="button"
                                             class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
-                                            data-value="2">Barang</button>
+                                            data-value="3">Barang</button>
                                     </div>
                                 </div>
                             </div>
@@ -240,7 +240,14 @@
                                 </div>
                             </td>
                             <td class="py-1 px-2 border align-top">
-                                {{ $Pengajuan->jenis == '1' ? 'Biasa' : $Pengajuan->jenis }}
+                                @php
+                                $jenisMap = [
+                                '1' => 'Biasa',
+                                '3' => 'Barang'
+                                ];
+                                $jenisText = $jenisMap[$Pengajuan->jenis] ?? $Pengajuan->jenis;
+                                @endphp
+                                {{ $jenisText }}
                             </td>
                             <td class="py-1 px-2 border text-right whitespace-nowrap align-top"
                                 title="Rp {{ number_format($Pengajuan->nominal, 0, ',', '.') }}">
@@ -461,7 +468,12 @@ function initializeFilters() {
     // Set jenis filter
     const jenis = urlParams.get('jenis');
     if (jenis) {
-        const jenisText = jenis === '1' ? 'Biasa' : jenis === '2' ? 'Barang' : 'Semua Jenis';
+        const jenisMap = {
+            '1': 'Biasa',
+            '2': 'Barang',
+            '3': 'Bank BSM'
+        };
+        const jenisText = jenisMap[jenis] || 'Semua Jenis';
         document.getElementById('jenisText').textContent = jenisText;
         document.getElementById('jenisHidden').value = jenis;
     }

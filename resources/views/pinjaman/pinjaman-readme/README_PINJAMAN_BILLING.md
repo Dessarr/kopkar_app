@@ -18,7 +18,7 @@ Sistem Pinjaman & Billing adalah aplikasi terintegrasi yang mengelola seluruh si
 - `jumlah` - Jumlah pinjaman (required, numeric, min:1000)
 - `lama_angsuran` - Durasi angsuran (required, integer, min:1, max:60)
 - `bunga` - Persentase bunga (required, numeric, min:0, max:100)
-- `jenis_pinjaman` - Jenis pinjaman (required, in:1,2)
+- `jenis_pinjaman` - Jenis pinjaman (required, in:1,3)
 - `kas_id` - Sumber dana (required, exists:data_kas,id)
 - `keterangan` - Keterangan tambahan
 
@@ -30,7 +30,7 @@ $request->validate([
     'jumlah' => 'required|numeric|min:1000',
     'lama_angsuran' => 'required|integer|min:1|max:60',
     'bunga' => 'required|numeric|min:0|max:100',
-    'jenis_pinjaman' => 'required|in:1,2',
+    'jenis_pinjaman' => 'required|in:1,3',
     'kas_id' => 'required|exists:data_kas,id'
 ]);
 ```
@@ -147,7 +147,7 @@ CREATE TABLE `data_pengajuan` (
   `jumlah` decimal(15,2) NOT NULL,
   `lama_angsuran` int(11) NOT NULL,
   `bunga` decimal(5,2) NOT NULL,
-  `jenis_pinjaman` enum('1','2') NOT NULL,
+  `jenis_pinjaman` enum('1','3') NOT NULL,
   `kas_id` bigint(20) unsigned NOT NULL,
   `keterangan` text,
   `status` enum('Pending','Approved','Rejected') DEFAULT 'Pending',
@@ -174,7 +174,7 @@ CREATE TABLE `tbl_pinjaman_h` (
   `lama_angsuran` int(11) NOT NULL,
   `jumlah_angsuran` decimal(15,2) NOT NULL COMMENT 'Angsuran per bulan',
   `bunga` decimal(5,2) NOT NULL,
-  `jenis_pinjaman` enum('1','2') NOT NULL,
+  `jenis_pinjaman` enum('1','3') NOT NULL,
   `kas_id` bigint(20) unsigned NOT NULL,
   `status` enum('0','1') DEFAULT '1' COMMENT '0=Nonaktif, 1=Aktif',
   `lunas` enum('Belum','Sudah') DEFAULT 'Belum',

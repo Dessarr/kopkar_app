@@ -81,9 +81,29 @@ class BillingPinjamanController extends Controller
             $billingData = [];
             
             foreach ($jadwalAngsuran as $jadwal) {
-                // Hitung angsuran per bulan
-                $angsuranPokok = $jadwal->jumlah / $jadwal->lama_angsuran;
-                $angsuranBunga = $jadwal->bunga_rp / $jadwal->lama_angsuran;
+                // Hitung angsuran per bulan dengan pembulatan yang benar
+                $angsuranPokok = floor($jadwal->jumlah / $jadwal->lama_angsuran);
+                $sisaPembulatan = $jadwal->jumlah - ($angsuranPokok * $jadwal->lama_angsuran);
+                
+                // Hitung angsuran bunga
+                $angsuranBunga = floor($jadwal->bunga_rp / $jadwal->lama_angsuran);
+                $sisaBunga = $jadwal->bunga_rp - ($angsuranBunga * $jadwal->lama_angsuran);
+                
+                // Tentukan apakah ini angsuran terakhir untuk menambahkan sisa pembulatan
+                $bulanTempo = date('m', strtotime($jadwal->tempo));
+                $tahunTempo = date('Y', strtotime($jadwal->tempo));
+                $bulanPinjam = date('m', strtotime($jadwal->tgl_pinjam ?? $jadwal->tempo));
+                $tahunPinjam = date('Y', strtotime($jadwal->tgl_pinjam ?? $jadwal->tempo));
+                
+                // Hitung bulan ke berapa dari total angsuran
+                $bulanKe = (($tahunTempo - $tahunPinjam) * 12) + ($bulanTempo - $bulanPinjam) + 1;
+                
+                // Jika ini angsuran terakhir, tambahkan sisa pembulatan
+                if ($bulanKe == $jadwal->lama_angsuran) {
+                    $angsuranPokok += $sisaPembulatan;
+                    $angsuranBunga += $sisaBunga;
+                }
+                
                 $totalAngsuran = $angsuranPokok + $angsuranBunga;
                 
                 // Generate tagihan untuk semua jadwal, terlepas dari status lunas
@@ -168,12 +188,12 @@ class BillingPinjamanController extends Controller
                     ],
                     [
                         'anggota_id' => $anggotaId,
-                        'jumlah' => DB::raw('COALESCE(jumlah,0)'),
+                        'jumlah' => DB::raw('COALESCE(jumlah,0) + ' . ($tagihan->total ?? 0)),
                         'keterangan' => 'Billing Pinjaman ' . $bulan . '-' . $tahun,
                         'tagihan_simpanan_wajib' => DB::raw('COALESCE(tagihan_simpanan_wajib,0)'),
                         'tagihan_simpanan_sukarela' => DB::raw('COALESCE(tagihan_simpanan_sukarela,0)'),
                         'tagihan_simpanan_khusus_2' => DB::raw('COALESCE(tagihan_simpanan_khusus_2,0)'),
-                        'tagihan_pinjaman' => $tagihan->total ?? 0,
+                        'tagihan_pinjaman' => DB::raw('COALESCE(tagihan_pinjaman,0) + ' . ($tagihan->total ?? 0)),
                         'tagihan_pinjaman_jasa' => DB::raw('COALESCE(tagihan_pinjaman_jasa,0)'),
                         'tagihan_toserda' => DB::raw('COALESCE(tagihan_toserda,0)'),
                         'total_tagihan_simpanan' => DB::raw('COALESCE(total_tagihan_simpanan,0)'),

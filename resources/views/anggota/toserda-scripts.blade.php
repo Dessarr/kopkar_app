@@ -464,19 +464,27 @@ function formatNumberSimple(input) {
     // Remove non-numeric characters except decimal point
     let value = input.value.replace(/[^0-9.]/g, '');
     
-    // Ensure only one decimal point
+    // Remove multiple decimal points
     const parts = value.split('.');
     if (parts.length > 2) {
         value = parts[0] + '.' + parts.slice(1).join('');
     }
     
-    // Add thousand separators
-    if (parts[0]) {
-        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        value = parts.join('.');
+    // Don't format if empty
+    if (value === '') {
+        input.value = '';
+        return;
     }
     
-    input.value = value;
+    // Format with thousand separators for display
+    if (value && !isNaN(parseFloat(value))) {
+        const number = parseFloat(value);
+        if (number > 0) {
+            input.value = number.toString();
+        } else {
+            input.value = '';
+        }
+    }
 }
 
 // Close modal when clicking outside

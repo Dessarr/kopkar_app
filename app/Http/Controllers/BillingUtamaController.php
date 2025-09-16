@@ -15,8 +15,9 @@ class BillingUtamaController extends Controller
         $tahun = $request->input('tahun', date('Y'));
         $search = $request->input('search');
 
-        // Generate billing pinjaman otomatis untuk bulan yang dipilih
-        $this->generateBillingPinjamanOtomatis($bulan, $tahun);
+        // HAPUS: Generate billing pinjaman otomatis
+        // Data pinjaman harus di-generate manual via halaman Pinjaman -> Process All
+        // $this->generateBillingPinjamanOtomatis($bulan, $tahun);
 
         $query = DB::table('tbl_trans_sp_bayar_temp as t')
             ->join('tbl_anggota as a', 't.no_ktp', '=', 'a.no_ktp')
@@ -26,6 +27,7 @@ class BillingUtamaController extends Controller
                      ->where('u.tahun', $tahun);
             })
             ->select(
+                't.id',
                 't.no_ktp',
                 't.tgl_transaksi',
                 't.tagihan_simpanan_wajib',
@@ -42,7 +44,7 @@ class BillingUtamaController extends Controller
                 DB::raw('(COALESCE(SUM(u.jumlah), 0) - (COALESCE(t.tagihan_simpanan_wajib, 0) + COALESCE(t.tagihan_simpanan_sukarela, 0) + COALESCE(t.tagihan_simpanan_khusus_2, 0) + COALESCE(t.tagihan_simpanan_pokok, 0) + COALESCE(t.tagihan_pinjaman, 0) + COALESCE(t.tagihan_toserda, 0))) as selisih_calculated')
             )
             // HAPUS FILTER status_lunas agar semua data tetap ditampilkan
-            ->groupBy('t.no_ktp', 't.tgl_transaksi', 't.tagihan_simpanan_wajib', 't.tagihan_simpanan_sukarela', 't.tagihan_simpanan_khusus_2', 't.tagihan_simpanan_pokok', 't.tagihan_pinjaman', 't.tagihan_toserda', 't.jumlah', 't.keterangan', 'a.nama', 'u.bulan', 'u.tahun');
+            ->groupBy('t.id', 't.no_ktp', 't.tgl_transaksi', 't.tagihan_simpanan_wajib', 't.tagihan_simpanan_sukarela', 't.tagihan_simpanan_khusus_2', 't.tagihan_simpanan_pokok', 't.tagihan_pinjaman', 't.tagihan_toserda', 't.jumlah', 't.keterangan', 'a.nama', 'u.bulan', 'u.tahun');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -135,7 +137,7 @@ class BillingUtamaController extends Controller
             'tgl_transaksi', 'no_ktp', 'anggota_id', 'jenis_id', 'jumlah', 'keterangan', 'akun', 'dk', 'kas_id'
         ], function ($query) use ($bulan, $tahun) {
             $query->select(
-                DB::raw('NOW() as tgl_transaksi'), 'a.no_ktp', 'a.anggota_id', 
+                'a.tgl_transaksi', 'a.no_ktp', 'a.anggota_id', 
                 DB::raw("'41' as jenis_id"), 'a.tagihan_simpanan_wajib', 
                 DB::raw("'Setoran Simpanan Wajib - " . $bulan . "-" . $tahun . "' as keterangan"), 
                 DB::raw("'Setoran' as akun"), DB::raw("'D' as dk"), DB::raw("'4' as kas_id")
@@ -150,7 +152,7 @@ class BillingUtamaController extends Controller
             'tgl_transaksi', 'no_ktp', 'anggota_id', 'jenis_id', 'jumlah', 'keterangan', 'akun', 'dk', 'kas_id'
         ], function ($query) use ($bulan, $tahun) {
             $query->select(
-                DB::raw('NOW() as tgl_transaksi'), 'a.no_ktp', 'a.anggota_id', 
+                'a.tgl_transaksi', 'a.no_ktp', 'a.anggota_id', 
                 DB::raw("'40' as jenis_id"), 'a.tagihan_simpanan_pokok', 
                 DB::raw("'Setoran Simpanan Pokok - " . $bulan . "-" . $tahun . "' as keterangan"), 
                 DB::raw("'Setoran' as akun"), DB::raw("'D' as dk"), DB::raw("'4' as kas_id")
@@ -165,7 +167,7 @@ class BillingUtamaController extends Controller
             'tgl_transaksi', 'no_ktp', 'anggota_id', 'jenis_id', 'jumlah', 'keterangan', 'akun', 'dk', 'kas_id'
         ], function ($query) use ($bulan, $tahun) {
             $query->select(
-                DB::raw('NOW() as tgl_transaksi'), 'a.no_ktp', 'a.anggota_id', 
+                'a.tgl_transaksi', 'a.no_ktp', 'a.anggota_id', 
                 DB::raw("'32' as jenis_id"), 'a.tagihan_simpanan_sukarela', 
                 DB::raw("'Setoran Simpanan Sukarela - " . $bulan . "-" . $tahun . "' as keterangan"), 
                 DB::raw("'Setoran' as akun"), DB::raw("'D' as dk"), DB::raw("'4' as kas_id")
@@ -180,7 +182,7 @@ class BillingUtamaController extends Controller
             'tgl_transaksi', 'no_ktp', 'anggota_id', 'jenis_id', 'jumlah', 'keterangan', 'akun', 'dk', 'kas_id'
         ], function ($query) use ($bulan, $tahun) {
             $query->select(
-                DB::raw('NOW() as tgl_transaksi'), 'a.no_ktp', 'a.anggota_id', 
+                'a.tgl_transaksi', 'a.no_ktp', 'a.anggota_id', 
                 DB::raw("'52' as jenis_id"), 'a.tagihan_simpanan_khusus_2', 
                 DB::raw("'Setoran Simpanan Khusus 2 - " . $bulan . "-" . $tahun . "' as keterangan"), 
                 DB::raw("'Setoran' as akun"), DB::raw("'D' as dk"), DB::raw("'4' as kas_id")
@@ -192,26 +194,32 @@ class BillingUtamaController extends Controller
     }
 
     /**
-     * Process pinjaman data to tbl_pinjaman_d
+     * Process pinjaman data - HANYA LOGGING, TIDAK INSERT KE tbl_pinjaman_d
+     * Karena tbl_pinjaman_d adalah untuk PEMBAYARAN, bukan TAGIHAN
      */
     private function processPinjamanData($bulan, $tahun)
     {
-        // Process pinjaman payments
-        DB::table('tbl_pinjaman_d')->insertUsing([
-            'tgl_bayar', 'pinjam_id', 'angsuran_ke', 'jumlah_bayar', 'bunga'
-        ], function ($query) use ($bulan, $tahun) {
-            $query->select(
-                'a.tgl_transaksi as tgl_bayar', 'b.id as pinjam_id',
-                DB::raw('COUNT(c.angsuran_ke) + 1 as angsuran_ke'),
-                'a.tagihan_pinjaman as jumlah_bayar', 'a.tagihan_pinjaman_jasa as bunga'
-            )
-            ->from('tbl_trans_sp_bayar_temp as a')
+        // Hanya log data pinjaman yang akan diproses
+        $pinjamanData = DB::table('tbl_trans_sp_bayar_temp as a')
             ->join('tbl_pinjaman_h as b', 'a.no_ktp', '=', 'b.no_ktp')
-            ->join('tbl_pinjaman_d as c', 'c.pinjam_id', '=', 'b.id')
+            ->select(
+                'a.no_ktp',
+                'b.id as pinjam_id',
+                'a.tagihan_pinjaman',
+                'a.tagihan_pinjaman_jasa',
+                'a.tgl_transaksi'
+            )
             ->whereRaw('YEAR(a.tgl_transaksi) = ? AND MONTH(a.tgl_transaksi) = ?', [$tahun, $bulan])
-            ->where('a.selisih', '=', 0)
-            ->groupBy('a.tgl_transaksi', 'a.no_ktp', 'b.id');
-        });
+            ->where('a.tagihan_pinjaman', '>', 0)
+            ->get();
+
+        Log::info('Pinjaman data processed (billing finalization only)', [
+            'bulan' => $bulan,
+            'tahun' => $tahun,
+            'count' => $pinjamanData->count(),
+            'data' => $pinjamanData->toArray(),
+            'note' => 'Data tidak dimasukkan ke tbl_pinjaman_d karena ini adalah finalisasi billing, bukan pembayaran'
+        ]);
     }
 
     /**
@@ -224,13 +232,13 @@ class BillingUtamaController extends Controller
             'tgl_transaksi', 'no_ktp', 'anggota_id', 'jenis_id', 'jumlah', 'keterangan', 'akun', 'dk', 'kas_id'
         ], function ($query) use ($bulan, $tahun) {
             $query->select(
-                DB::raw('NOW() as tgl_transaksi'), 'a.no_ktp', 'a.anggota_id', 
-                DB::raw("'155' as jenis_id"), 'a.tagihan_toserda', 'b.keterangan', 
+                'a.tgl_transaksi', 'a.no_ktp', 'a.anggota_id', 
+                DB::raw("'155' as jenis_id"), 'a.tagihan_toserda', 
+                DB::raw("'Setoran Toserda - " . $bulan . "-" . $tahun . "' as keterangan"), 
                 DB::raw("'Setoran' as akun"), DB::raw("'D' as dk"), DB::raw("'4' as kas_id")
             )
             ->from('tbl_trans_sp_bayar_temp as a')
-            ->join('tbl_trans_tagihan as b', 'a.no_ktp', '=', 'b.no_ktp')
-            ->whereRaw('YEAR(a.tgl_transaksi) = ? AND MONTH(b.tgl_transaksi) = ?', [$tahun, $bulan])
+            ->whereRaw('YEAR(a.tgl_transaksi) = ? AND MONTH(a.tgl_transaksi) = ?', [$tahun, $bulan])
             ->where('a.tagihan_toserda', '<>', 0);
         });
     }
@@ -240,16 +248,28 @@ class BillingUtamaController extends Controller
      */
     private function cleanupTemporaryData($bulan, $tahun)
     {
-        // Delete data from tbl_trans_sp_bayar_temp
-        DB::table('tbl_trans_sp_bayar_temp')
-            ->whereRaw('YEAR(tgl_transaksi) = ? AND MONTH(tgl_transaksi) = ?', [$tahun, $bulan])
+        // Count data before deletion for logging
+        $countBefore = DB::table('tbl_trans_sp_bayar_temp')->count();
+
+        // HAPUS SEMUA data dari tbl_trans_sp_bayar_temp untuk periode tertentu
+        // Sesuai dengan alur sistem: setelah proceed, data dipindah ke tabel utama dan temporary dihapus
+        $deletedCount = DB::table('tbl_trans_sp_bayar_temp')
+            ->whereRaw('MONTH(tgl_transaksi) = ? AND YEAR(tgl_transaksi) = ?', [$bulan, $tahun])
             ->delete();
 
-        // Delete data from billing_upload_temp
+        // Delete data from billing_upload_temp untuk periode tertentu
         DB::table('billing_upload_temp')
             ->where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->delete();
+
+        Log::info('Cleanup temporary data completed', [
+            'bulan' => $bulan,
+            'tahun' => $tahun,
+            'count_before' => $countBefore,
+            'deleted_count' => $deletedCount,
+            'note' => 'All temporary data deleted for selected period (data moved to main tables)'
+        ]);
     }
 
     /**
@@ -296,9 +316,29 @@ class BillingUtamaController extends Controller
             $billingData = [];
             
             foreach ($jadwalAngsuran as $jadwal) {
-                // Hitung angsuran per bulan
-                $angsuranPokok = $jadwal->jumlah / $jadwal->lama_angsuran;
-                $angsuranBunga = $jadwal->bunga_rp / $jadwal->lama_angsuran;
+                // Hitung angsuran per bulan dengan pembulatan yang benar
+                $angsuranPokok = floor($jadwal->jumlah / $jadwal->lama_angsuran);
+                $sisaPembulatan = $jadwal->jumlah - ($angsuranPokok * $jadwal->lama_angsuran);
+                
+                // Hitung angsuran bunga
+                $angsuranBunga = floor($jadwal->bunga_rp / $jadwal->lama_angsuran);
+                $sisaBunga = $jadwal->bunga_rp - ($angsuranBunga * $jadwal->lama_angsuran);
+                
+                // Tentukan apakah ini angsuran terakhir untuk menambahkan sisa pembulatan
+                $bulanTempo = date('m', strtotime($jadwal->tempo));
+                $tahunTempo = date('Y', strtotime($jadwal->tempo));
+                $bulanPinjam = date('m', strtotime($jadwal->tgl_pinjam ?? $jadwal->tempo));
+                $tahunPinjam = date('Y', strtotime($jadwal->tgl_pinjam ?? $jadwal->tempo));
+                
+                // Hitung bulan ke berapa dari total angsuran
+                $bulanKe = (($tahunTempo - $tahunPinjam) * 12) + ($bulanTempo - $bulanPinjam) + 1;
+                
+                // Jika ini angsuran terakhir, tambahkan sisa pembulatan
+                if ($bulanKe == $jadwal->lama_angsuran) {
+                    $angsuranPokok += $sisaPembulatan;
+                    $angsuranBunga += $sisaBunga;
+                }
+                
                 $totalAngsuran = $angsuranPokok + $angsuranBunga;
                 
                 // Generate tagihan untuk semua jadwal, terlepas dari status lunas
@@ -364,12 +404,12 @@ class BillingUtamaController extends Controller
                     ],
                     [
                         'anggota_id' => $anggotaId,
-                        'jumlah' => DB::raw('COALESCE(jumlah,0)'),
+                        'jumlah' => DB::raw('COALESCE(jumlah,0) + ' . ($tagihan->total ?? 0)),
                         'keterangan' => 'Billing Pinjaman ' . $bulan . '-' . $tahun,
                         'tagihan_simpanan_wajib' => DB::raw('COALESCE(tagihan_simpanan_wajib,0)'),
                         'tagihan_simpanan_sukarela' => DB::raw('COALESCE(tagihan_simpanan_sukarela,0)'),
                         'tagihan_simpanan_khusus_2' => DB::raw('COALESCE(tagihan_simpanan_khusus_2,0)'),
-                        'tagihan_pinjaman' => $tagihan->total ?? 0,
+                        'tagihan_pinjaman' => DB::raw('COALESCE(tagihan_pinjaman,0) + ' . ($tagihan->total ?? 0)),
                         'tagihan_pinjaman_jasa' => DB::raw('COALESCE(tagihan_pinjaman_jasa,0)'),
                         'tagihan_toserda' => DB::raw('COALESCE(tagihan_toserda,0)'),
                         'total_tagihan_simpanan' => DB::raw('COALESCE(total_tagihan_simpanan,0)'),
@@ -400,28 +440,38 @@ class BillingUtamaController extends Controller
         try {
             $periode = $tahun . '-' . str_pad($bulan, 2, '0', STR_PAD_LEFT);
             
-            // Query Total Anggota - SELALU ambil dari tbl_anggota (konsisten)
-            $totalAnggota = DB::table('tbl_anggota')
-                ->where('aktif', 'Y')  // Hanya anggota aktif
+            // Query Total Anggota - Ambil dari tbl_trans_sp untuk periode tertentu (menghindari duplikasi)
+            $totalAnggota = DB::table('tbl_trans_sp')
+                ->where('dk', 'D')
+                ->whereIn('jenis_id', [32, 40, 41]) // Simpanan Wajib, Pokok, Sukarela
+                ->whereMonth('tgl_transaksi', $bulan)
+                ->whereYear('tgl_transaksi', $tahun)
+                ->distinct('no_ktp')
                 ->count('no_ktp');
 
-            // Query Simpanan Pokok - SELALU ambil dari tbl_anggota (konsisten)
-            // Note: tbl_anggota tidak memiliki kolom simpanan_pokok, gunakan simpanan_wajib sebagai gantinya
-            $simpananPokok = DB::table('tbl_anggota')
-                ->where('aktif', 'Y')  // Hanya anggota aktif
-                ->sum('simpanan_wajib');
-
-            // Query Simpanan Sukarela (dari billing) - SAMA dengan BillingPeriodeController
-            $simpananSukarela = DB::table('tbl_trans_sp_bayar_temp')
+            // Query Simpanan Pokok - Ambil dari tbl_trans_sp (data resmi)
+            $simpananPokok = DB::table('tbl_trans_sp')
+                ->where('jenis_id', 40) // Simpanan Pokok
+                ->where('dk', 'D')
                 ->whereMonth('tgl_transaksi', $bulan)
                 ->whereYear('tgl_transaksi', $tahun)
-                ->sum('tagihan_simpanan_sukarela') ?? 0;
+                ->sum('jumlah') ?? 0;
 
-            // Query Simpanan Wajib (dari billing) - SAMA dengan BillingPeriodeController
-            $simpananWajib = DB::table('tbl_trans_sp_bayar_temp')
+            // Query Simpanan Sukarela - Ambil dari tbl_trans_sp (data resmi)
+            $simpananSukarela = DB::table('tbl_trans_sp')
+                ->where('jenis_id', 32) // Simpanan Sukarela
+                ->where('dk', 'D')
                 ->whereMonth('tgl_transaksi', $bulan)
                 ->whereYear('tgl_transaksi', $tahun)
-                ->sum('tagihan_simpanan_wajib') ?? 0;
+                ->sum('jumlah') ?? 0;
+
+            // Query Simpanan Wajib - Ambil dari tbl_trans_sp (data resmi)
+            $simpananWajib = DB::table('tbl_trans_sp')
+                ->where('jenis_id', 41) // Simpanan Wajib
+                ->where('dk', 'D')
+                ->whereMonth('tgl_transaksi', $bulan)
+                ->whereYear('tgl_transaksi', $tahun)
+                ->sum('jumlah') ?? 0;
 
             // Debug: Log the results untuk konsistensi
             Log::info("BillingUtamaController period summary results:", [
@@ -454,4 +504,132 @@ class BillingUtamaController extends Controller
             ];
         }
     }
+
+
+    /**
+     * Update billing data - Hanya mengedit nominal tagihan tertentu
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'tagihan_simpanan_wajib' => 'nullable|numeric|min:0',
+                'tagihan_simpanan_sukarela' => 'nullable|numeric|min:0',
+                'tagihan_simpanan_khusus_2' => 'nullable|numeric|min:0',
+                'tagihan_simpanan_pokok' => 'nullable|numeric|min:0',
+                'tagihan_pinjaman' => 'nullable|numeric|min:0',
+                'tagihan_toserda' => 'nullable|numeric|min:0'
+            ]);
+
+            // Check if record exists
+            $record = DB::table('tbl_trans_sp_bayar_temp')->where('id', $id)->first();
+            if (!$record) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data billing tidak ditemukan'
+                ]);
+            }
+
+            // Calculate total tagihan dari field yang diizinkan untuk diedit
+            $totalTagihan = ($request->tagihan_simpanan_wajib ?? 0) + 
+                           ($request->tagihan_simpanan_sukarela ?? 0) + 
+                           ($request->tagihan_simpanan_khusus_2 ?? 0) + 
+                           ($request->tagihan_simpanan_pokok ?? 0) + 
+                           ($request->tagihan_pinjaman ?? 0) + 
+                           ($request->tagihan_toserda ?? 0);
+
+            // Update hanya field nominal tagihan yang diizinkan
+            DB::table('tbl_trans_sp_bayar_temp')->where('id', $id)->update([
+                'tagihan_simpanan_wajib' => $request->tagihan_simpanan_wajib ?? 0,
+                'tagihan_simpanan_sukarela' => $request->tagihan_simpanan_sukarela ?? 0,
+                'tagihan_simpanan_khusus_2' => $request->tagihan_simpanan_khusus_2 ?? 0,
+                'tagihan_simpanan_pokok' => $request->tagihan_simpanan_pokok ?? 0,
+                'tagihan_pinjaman' => $request->tagihan_pinjaman ?? 0,
+                'tagihan_toserda' => $request->tagihan_toserda ?? 0,
+                'jumlah' => $totalTagihan
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Nominal tagihan berhasil diupdate'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error updating billing data: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengupdate data: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+
+    /**
+     * Get single billing data for edit
+     */
+    public function show($id)
+    {
+        try {
+            $data = DB::table('tbl_trans_sp_bayar_temp as t')
+                ->join('tbl_anggota as a', 't.no_ktp', '=', 'a.no_ktp')
+                ->select(
+                    't.*',
+                    'a.nama'
+                )
+                ->where('t.id', $id)
+                ->first();
+
+            if (!$data) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data billing tidak ditemukan'
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error getting billing data: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Delete billing data
+     */
+    public function destroy($id)
+    {
+        try {
+            // Check if record exists
+            $record = DB::table('tbl_trans_sp_bayar_temp')->where('id', $id)->first();
+            if (!$record) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data billing tidak ditemukan'
+                ]);
+            }
+
+            // Delete data
+            DB::table('tbl_trans_sp_bayar_temp')->where('id', $id)->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data billing berhasil dihapus'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error deleting billing data: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage()
+            ]);
+        }
+    }
+
 }

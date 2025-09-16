@@ -87,18 +87,65 @@ class SimpananController extends Controller
         ));
     }
 
-    public function penarikanTunai()
+    public function penarikanTunai(Request $request)
     {
-
-            $dataAnggota = data_anggota::where('aktif', 'Y')->paginate(10);
-            $jenisSimpanan = jns_simpan::all();
-            $dataKas = NamaKasTbl::where('aktif', 'Y')->where('tmpl_simpan', 'Y')->get();
-            $transaksiPenarikan = TransaksiSimpanan::where('akun', 'penarikan')
-                ->orderBy('update_data', 'desc')
-                ->paginate(10);
+        try {
+            // Get filter parameters
+            $startDate = $request->get('start_date');
+            $endDate = $request->get('end_date');
+            $search = $request->get('search');
             
-            return view('simpanan.penarikan_tunai', compact('dataAnggota', 'jenisSimpanan', 'dataKas', 'transaksiPenarikan'));
-        
+            // Build query for penarikan (withdrawal transactions)
+            $query = TransaksiSimpanan::with(['anggota', 'jenisSimpanan'])
+                ->where('akun', 'Penarikan')
+                ->orderBy('tgl_transaksi', 'desc')
+                ->orderBy('id', 'desc');
+            
+            // Apply date filter
+            if ($startDate && $endDate) {
+                if ($startDate === $endDate) {
+                    $query->whereDate('tgl_transaksi', $startDate);
+                } else {
+                    $query->whereBetween('tgl_transaksi', [
+                        $startDate . ' 00:00:00', 
+                        $endDate . ' 23:59:59'
+                    ]);
+                }
+            }
+            
+            // Apply search filter - similar to tagihan logic
+            if ($search) {
+                // Check if search is numeric (ID) or text (name/ktp)
+                if (is_numeric($search)) {
+                    // For numeric search, check both id and anggota_id
+                    $query->where(function($q) use ($search) {
+                        $q->where('id', $search)
+                          ->orWhere('anggota_id', $search);
+                    });
+                } else {
+                    // Case-insensitive search for text
+                    $query->whereHas('anggota', function($q) use ($search) {
+                        $q->whereRaw('LOWER(nama) LIKE ?', ['%' . strtolower($search) . '%'])
+                          ->orWhereRaw('LOWER(no_ktp) LIKE ?', ['%' . strtolower($search) . '%']);
+                    });
+                }
+            }
+            
+            $transaksiPenarikan = $query->paginate(10);
+            
+            // Get data for dropdowns
+            $dataAnggota = data_anggota::where('aktif', 'Y')->get();
+            $jenisSimpanan = jns_simpan::where('tampil', 'Y')->get();
+            $dataKas = NamaKasTbl::where('aktif', 'Y')->where('tmpl_penarikan', 'Y')->get();
+            
+            
+            return view('simpanan.penarikan_tunai', compact(
+                'transaksiPenarikan', 'dataAnggota', 'jenisSimpanan', 'dataKas',
+                'startDate', 'endDate', 'search'
+            ));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     public function storeSetoran(Request $request)
@@ -119,7 +166,6 @@ class SimpananController extends Controller
             'nama_penyetor' => 'required|string',
             'no_identitas' => 'required|string',
             'alamat' => 'required|string',
-            'id_cabang' => 'required|string'
         ]);
 
         try {
@@ -146,7 +192,6 @@ class SimpananController extends Controller
                 'nama_penyetor' => $request->nama_penyetor,
                 'no_identitas' => $request->no_identitas,
                 'alamat' => $request->alamat,
-                'id_cabang' => $request->id_cabang
             ]);
 
             DB::commit();
@@ -175,48 +220,249 @@ class SimpananController extends Controller
 
     public function storePenarikan(Request $request)
     {
-        try {
-            DB::beginTransaction();
+        // Clean jumlah field before validation (remove commas and dots)
+        $cleanJumlah = str_replace([',', '.'], '', $request->jumlah);
+        $request->merge(['jumlah' => $cleanJumlah]);
 
         $request->validate([
             'tgl_transaksi' => 'required|date',
-            'no_ktp' => 'required|string',
+            'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
             'anggota_id' => 'required|exists:tbl_anggota,id',
             'jenis_id' => 'required|exists:jns_simpan,id',
             'jumlah' => 'required|numeric|min:0',
             'keterangan' => 'nullable|string',
             'akun' => 'required|string',
             'dk' => 'required|string',
-            'kas_id' => 'required|exists:data_kas,id',
+            'kas_id' => 'required|exists:nama_kas_tbl,id',
             'nama_penyetor' => 'required|string',
             'no_identitas' => 'required|string',
-            'alamat' => 'required|string',
-            'id_cabang' => 'required|string'
+            'alamat' => 'required|string'
+        ], [
+            'jumlah.numeric' => 'Jumlah harus berupa angka',
+            'jumlah.min' => 'Jumlah harus lebih dari 0',
+            'jenis_id.exists' => 'Jenis simpanan tidak valid',
+            'no_ktp.exists' => 'No KTP tidak ditemukan',
+            'anggota_id.exists' => 'Anggota tidak ditemukan',
+            'kas_id.exists' => 'Kas tidak ditemukan'
         ]);
+
+        try {
+            DB::beginTransaction();
+
+            $anggota = data_anggota::findOrFail($request->anggota_id);
 
             $transaksi = TransaksiSimpanan::create([
                 'tgl_transaksi' => $request->tgl_transaksi,
                 'no_ktp' => $request->no_ktp,
                 'anggota_id' => $request->anggota_id,
                 'jenis_id' => $request->jenis_id,
-                'jumlah' => $request->jumlah,
+                'jumlah' => $cleanJumlah,
                 'keterangan' => $request->keterangan ?? 'Penarikan Tunai',
-                'akun' => $request->akun,
-                'dk' => $request->dk,
+                'akun' => 'Penarikan',
+                'dk' => 'K', // Kredit untuk penarikan
                 'kas_id' => $request->kas_id,
                 'update_data' => now(),
-                'user_name' => Auth::user()->name ?? 'admin',
+                'user_name' => Auth::user()->u_name ?? 'admin',
                 'nama_penyetor' => $request->nama_penyetor,
                 'no_identitas' => $request->no_identitas,
                 'alamat' => $request->alamat,
-                'id_cabang' => $request->id_cabang
             ]);
 
             DB::commit();
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Penarikan tunai berhasil disimpan'
+                ]);
+            }
+            
             return redirect()->back()->with('success', 'Penarikan tunai berhasil disimpan');
         } catch (\Exception $e) {
             DB::rollback();
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ]);
+            }
+            
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    public function updatePenarikan(Request $request, $id)
+    {
+        // Clean jumlah field before validation (remove commas and dots)
+        $cleanJumlah = str_replace([',', '.'], '', $request->jumlah);
+        $request->merge(['jumlah' => $cleanJumlah]);
+
+        $request->validate([
+            'tgl_transaksi' => 'required|date',
+            'no_ktp' => 'required|exists:tbl_anggota,no_ktp',
+            'anggota_id' => 'required|exists:tbl_anggota,id',
+            'jenis_id' => 'required|exists:jns_simpan,id',
+            'jumlah' => 'required|numeric|min:0',
+            'keterangan' => 'nullable|string',
+            'akun' => 'required|string',
+            'dk' => 'required|string',
+            'kas_id' => 'required|exists:nama_kas_tbl,id',
+            'nama_penyetor' => 'required|string',
+            'no_identitas' => 'required|string',
+            'alamat' => 'required|string',
+        ], [
+            'jumlah.numeric' => 'Format jumlah tidak valid. Gunakan angka saja.',
+            'jumlah.min' => 'Jumlah harus lebih dari 0.',
+            'jenis_id.exists' => 'Jenis simpanan tidak valid.',
+            'no_ktp.exists' => 'Anggota tidak ditemukan.',
+            'anggota_id.exists' => 'ID anggota tidak valid.',
+            'kas_id.exists' => 'Kas tidak ditemukan.'
+        ]);
+
+        try {
+            $transaksi = TransaksiSimpanan::findOrFail($id);
+            $transaksi->tgl_transaksi = $request->tgl_transaksi;
+            $transaksi->no_ktp = $request->no_ktp;
+            $transaksi->anggota_id = $request->anggota_id;
+            $transaksi->jenis_id = $request->jenis_id;
+            $transaksi->jumlah = $cleanJumlah;
+            $transaksi->keterangan = $request->keterangan;
+            $transaksi->akun = $request->akun;
+            $transaksi->dk = $request->dk;
+            $transaksi->kas_id = $request->kas_id;
+            $transaksi->nama_penyetor = $request->nama_penyetor;
+            $transaksi->no_identitas = $request->no_identitas;
+            $transaksi->alamat = $request->alamat;
+            $transaksi->id_cabang = $request->id_cabang;
+            $transaksi->update_data = now();
+            $transaksi->user_name = Auth::user()->u_name ?? 'admin';
+            $transaksi->save();
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data penarikan tunai berhasil diupdate'
+                ]);
+            }
+            
+            return redirect()->back()->with('success', 'Penarikan tunai berhasil diupdate');
+        } catch (\Exception $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ]);
+            }
+            
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    public function deletePenarikan(Request $request, $id)
+    {
+        try {
+            $transaksi = TransaksiSimpanan::findOrFail($id);
+            $transaksi->delete();
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data penarikan tunai berhasil dihapus'
+                ]);
+            }
+            
+            return redirect()->back()->with('success', 'Penarikan tunai berhasil dihapus');
+        } catch (\Exception $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ]);
+            }
+            
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    public function exportPenarikan(Request $request)
+    {
+        try {
+            $startDate = $request->get('start_date');
+            $endDate = $request->get('end_date');
+            $search = $request->get('search');
+
+            $query = TransaksiSimpanan::with(['anggota', 'jenisSimpanan'])
+                ->where('akun', 'Penarikan');
+
+            if ($startDate && $endDate) {
+                if ($startDate === $endDate) {
+                    $query->whereDate('tgl_transaksi', $startDate);
+                } else {
+                    $query->whereBetween('tgl_transaksi', [
+                        $startDate . ' 00:00:00',
+                        $endDate . ' 23:59:59'
+                    ]);
+                }
+            }
+
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('anggota', function($subQ) use ($search) {
+                        $subQ->where('nama', 'like', "%{$search}%")
+                             ->orWhere('no_ktp', 'like', "%{$search}%");
+                    })->orWhere('id', 'like', "%{$search}%");
+                });
+            }
+
+            $penarikan = $query->orderBy('tgl_transaksi', 'desc')->get();
+
+            $filename = 'penarikan_tunai_' . date('Y-m-d_H-i-s') . '.csv';
+            
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+
+            $callback = function() use ($penarikan) {
+                $file = fopen('php://output', 'w');
+                
+                // Header CSV
+                fputcsv($file, [
+                    'No',
+                    'Kode Transaksi',
+                    'Tanggal Transaksi',
+                    'ID Anggota',
+                    'Nama Anggota',
+                    'No KTP',
+                    'Jenis Penarikan',
+                    'Jumlah',
+                    'Keterangan',
+                    'User'
+                ]);
+
+                $no = 1;
+                foreach ($penarikan as $p) {
+                    fputcsv($file, [
+                        $no++,
+                        'TRK' . str_pad($p->id, 5, '0', STR_PAD_LEFT),
+                        $p->tgl_transaksi ? \Carbon\Carbon::parse($p->tgl_transaksi)->format('d/m/Y H:i') : '-',
+                        'AG' . str_pad($p->anggota ? $p->anggota->id : 0, 4, '0', STR_PAD_LEFT),
+                        $p->anggota ? $p->anggota->nama : 'N/A',
+                        $p->no_ktp ?? 'N/A',
+                        $p->jenisSimpanan ? $p->jenisSimpanan->jns_simpan : 'N/A',
+                        number_format($p->jumlah ?? 0, 0, ',', '.'),
+                        $p->keterangan ?? '',
+                        $p->user_name ?? '-'
+                    ]);
+                }
+
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat export: ' . $e->getMessage());
         }
     }
 
@@ -540,7 +786,6 @@ class SimpananController extends Controller
             'nama_penyetor' => 'required|string',
             'no_identitas' => 'required|string',
             'alamat' => 'required|string',
-            'id_cabang' => 'required|string'
         ], [
             'jumlah.numeric' => 'Format jumlah tidak valid. Gunakan angka saja.',
             'jumlah.min' => 'Jumlah harus lebih dari 0.',

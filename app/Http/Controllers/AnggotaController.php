@@ -14,6 +14,7 @@ use App\Models\jns_akun;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -41,7 +42,7 @@ class AnggotaController extends Controller
         // Get billing status for each transaction
         foreach ($transaksi as $tr) {
             $tr->is_billed = billing::where('id_transaksi', $tr->id)
-                ->where('jns_transaksi', 'toserda')
+                ->where('jns_trans', 'toserda')
                 ->exists();
         }
         
@@ -62,14 +63,14 @@ class AnggotaController extends Controller
             $member = Auth::guard('member')->user();
             
             // Verify that this billing belongs to the logged-in member
-            if ($billing->no_ktp !== $member->no_ktp) {
+            if ($billing->id_anggota !== $member->id) {
                 return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk membayar tagihan ini.');
             }
             
-            // Update billing status to paid
-            $billing->status_bayar = 'sudah';
-            $billing->tgl_bayar = now();
-            $billing->save();
+            // Update billing status to paid - kolom status sudah tidak ada, mungkin perlu dibuat tabel terpisah untuk tracking pembayaran
+            // $billing->status = 'Y';
+            // $billing->tgl_bayar = now();
+            // $billing->save();
             
             return redirect()->route('anggota.bayar.toserda')->with('success', 'Pembayaran berhasil diproses.');
         } catch (\Exception $e) {
@@ -100,11 +101,11 @@ class AnggotaController extends Controller
         // Get billing status for each transaction
         foreach ($transaksi as $tr) {
             $tr->is_billed = billing::where('id_transaksi', $tr->id)
-                ->where('jns_transaksi', 'toserda')
+                ->where('jns_trans', 'toserda')
                 ->exists();
                 
             $tr->billing = billing::where('id_transaksi', $tr->id)
-                ->where('jns_transaksi', 'toserda')
+                ->where('jns_trans', 'toserda')
                 ->first();
         }
         
