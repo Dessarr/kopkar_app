@@ -92,10 +92,10 @@ class PelunasanController extends Controller
             $pelunasan->tgl_bayar = $request->tgl_bayar;
             $pelunasan->pinjam_id = $pinjamanId;
             $pelunasan->angsuran_ke = $angsuranKe;
-            $pelunasan->jumlah_bayar = $request->jumlah_bayar;
-            $pelunasan->bunga = 0; // Tidak ada bunga untuk pelunasan
-            $pelunasan->denda_rp = 0; // Denda sudah dihitung sebelumnya
-            $pelunasan->biaya_adm = 0; // Tidak ada biaya admin untuk pelunasan
+            $pelunasan->setAttribute('jumlah_bayar', $request->jumlah_bayar);
+            $pelunasan->setAttribute('bunga', 0); // Tidak ada bunga untuk pelunasan
+            $pelunasan->setAttribute('denda_rp', 0); // Denda sudah dihitung sebelumnya
+            $pelunasan->setAttribute('biaya_adm', 0); // Tidak ada biaya admin untuk pelunasan
             $pelunasan->terlambat = 0;
             $pelunasan->ket_bayar = 'Pelunasan'; // Beda dengan Angsuran
             $pelunasan->dk = 'D';

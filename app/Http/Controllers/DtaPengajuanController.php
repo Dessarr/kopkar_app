@@ -7,6 +7,7 @@ use App\Models\TblPinjamanH;
 use App\Models\suku_bunga;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class DtaPengajuanController extends Controller
@@ -191,10 +192,10 @@ class DtaPengajuanController extends Controller
             $pinjaman->anggota_id = $pengajuan->anggota_id;
             $pinjaman->barang_id = 4; // Default barang (uang)
             $pinjaman->lama_angsuran = $pengajuan->lama_ags;
-            $pinjaman->jumlah_angsuran = $jumlahAngsuran;
-            $pinjaman->jumlah = $pengajuan->nominal;
-            $pinjaman->bunga = $bungaPersen;
-            $pinjaman->bunga_rp = $bungaRp;
+            $pinjaman->setAttribute('jumlah_angsuran', $jumlahAngsuran);
+            $pinjaman->setAttribute('jumlah', $pengajuan->nominal);
+            $pinjaman->setAttribute('bunga', $bungaPersen);
+            $pinjaman->setAttribute('bunga_rp', $bungaRp);
             $pinjaman->biaya_adm = $biayaAdmin;
             $pinjaman->lunas = 'Belum';
             $pinjaman->dk = 'K';
@@ -282,7 +283,7 @@ class DtaPengajuanController extends Controller
                         'dk' => 'K', // Kredit
                         'kas_id' => 1, // Kas utama
                         'update_data' => now(),
-                        'user_name' => auth()->user()->name ?? 'system'
+                        'user_name' => Auth::user()->name ?? 'system'
                     ]
                 );
                 

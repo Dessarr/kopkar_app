@@ -9,6 +9,7 @@ use App\Models\data_anggota;
 use App\Models\suku_bunga;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class DataPinjamanController extends Controller
@@ -187,14 +188,14 @@ class DataPinjamanController extends Controller
                         'dk' => 'K', // Kredit
                         'kas_id' => 1, // Kas utama
                         'update_data' => now(),
-                        'user_name' => auth()->user()->name ?? 'system'
+                        'user_name' => Auth::user()->name ?? 'system'
                     ]
                 );
                 
                 // 2. Insert ke tbl_trans_sp_bayar_temp dengan logika SUM
                 DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
                     [
-                        'tgl_transaksi' => \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth()->toDateString(),
+                        'tgl_transaksi' => Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth()->toDateString(),
                         'no_ktp' => $pinjaman->no_ktp
                     ],
                     [
@@ -390,7 +391,7 @@ class DataPinjamanController extends Controller
             $pinjaman->tgl_pinjam = $request->tgl_pinjam;
             $pinjaman->jumlah = $request->jumlah;
             $pinjaman->lama_angsuran = $request->lama_angsuran;
-            $pinjaman->jumlah_angsuran = $jumlahAngsuran;
+            $pinjaman->setAttribute('jumlah_angsuran', $jumlahAngsuran);
             $pinjaman->bunga = $request->bunga;
             $pinjaman->biaya_adm = $biayaAdm;
             $pinjaman->jenis_pinjaman = $request->jenis_pinjaman;
@@ -463,7 +464,7 @@ class DataPinjamanController extends Controller
             $pinjaman->tgl_pinjam = $request->tgl_pinjam;
             $pinjaman->jumlah = $request->jumlah;
             $pinjaman->lama_angsuran = $request->lama_angsuran;
-            $pinjaman->jumlah_angsuran = $jumlahAngsuran;
+            $pinjaman->setAttribute('jumlah_angsuran', $jumlahAngsuran);
             $pinjaman->bunga = $request->bunga;
             $pinjaman->biaya_adm = $biayaAdm;
             $pinjaman->jenis_pinjaman = $request->jenis_pinjaman;

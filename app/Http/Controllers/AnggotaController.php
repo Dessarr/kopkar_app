@@ -255,7 +255,7 @@ class AnggotaController extends Controller
                 } else {
                     // Path yang benar: storage/anggota/filename
                     $path = 'anggota/' . $anggota->file_pic;
-                    if (\Storage::exists($path)) {
+                    if (Storage::exists($path)) {
                         $foto_path = asset('storage/' . $path);
                     } else {
                         $foto_path = ''; // Use placeholder if file not found
@@ -399,7 +399,7 @@ class AnggotaController extends Controller
                 if (empty($row[0]) || empty($row[1]) || empty($row[2])) continue;
                 
                 try {
-                    $tgl_transaksi = Carbon::createFromFormat('d/m/Y', $row[0])->format('Y-m-d');
+                    $tgl_transaksi = Carbon::createFromFormat('d/m/Y', $row[0]);
                     $no_ktp = $row[1];
                     $jumlah_bayar = (float) $row[2];
                     
@@ -413,7 +413,7 @@ class AnggotaController extends Controller
                     $shu = new TblShu();
                     $shu->tgl_transaksi = $tgl_transaksi;
                     $shu->no_ktp = $no_ktp;
-                    $shu->jumlah_bayar = $jumlah_bayar;
+                    $shu->setAttribute('jumlah_bayar', $jumlah_bayar);
                     $shu->jns_trans = '46';
                     $shu->dk = 'K';
                     $shu->kas_id = 1;
@@ -518,7 +518,7 @@ class AnggotaController extends Controller
             $sheet->setCellValue('C' . $row, 'AG' . str_pad($shu->anggota->id ?? 0, 4, '0', STR_PAD_LEFT));
             $sheet->setCellValue('D' . $row, $shu->anggota->nama ?? '');
             $sheet->setCellValue('E' . $row, $shu->no_ktp);
-            $sheet->setCellValue('F' . $row, number_format($shu->jumlah_bayar, 0, ',', '.'));
+            $sheet->setCellValue('F' . $row, number_format((float) $shu->jumlah_bayar, 0, ',', '.'));
             $sheet->setCellValue('G' . $row, $shu->user_name);
             $row++;
         }
@@ -793,7 +793,7 @@ class AnggotaController extends Controller
                 if (empty($row[0]) || empty($row[1]) || empty($row[2]) || empty($row[3])) continue;
                 
                 try {
-                    $tgl_transaksi = Carbon::createFromFormat('d/m/Y', $row[0])->format('Y-m-d');
+                    $tgl_transaksi = Carbon::createFromFormat('d/m/Y', $row[0]);
                     $no_ktp = $row[1];
                     $jenis_id = (int) $row[2];
                     $jumlah = (float) $row[3];

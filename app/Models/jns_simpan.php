@@ -40,7 +40,7 @@ class jns_simpan extends Model
     // Accessor untuk format jumlah
     public function getJumlahFormattedAttribute()
     {
-        return 'Rp ' . number_format($this->jumlah, 0, ',', '.');
+        return 'Rp ' . number_format($this->jumlah ?? 0, 0, ',', '.');
     }
 
     // Scope untuk simpanan yang tampil

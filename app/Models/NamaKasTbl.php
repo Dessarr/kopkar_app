@@ -70,7 +70,6 @@ class NamaKasTbl extends Model
      *
      * @var bool
      */
-    public $timestamps = false;
 
     // Accessors
     public function getStatusAktifTextAttribute()

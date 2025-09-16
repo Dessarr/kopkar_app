@@ -71,26 +71,26 @@ class tbl_anggota extends Model
     // Accessor untuk format simpanan wajib
     public function getSimpananWajibFormattedAttribute()
     {
-        return 'Rp ' . number_format($this->simpanan_wajib, 0, ',', '.');
+        return 'Rp ' . number_format($this->simpanan_wajib ?? 0, 0, ',', '.');
     }
 
     // Accessor untuk format simpanan sukarela
     public function getSimpananSukarelaFormattedAttribute()
     {
-        return 'Rp ' . number_format($this->simpanan_sukarela, 0, ',', '.');
+        return 'Rp ' . number_format($this->simpanan_sukarela ?? 0, 0, ',', '.');
     }
 
     // Accessor untuk format simpanan khusus 2
     public function getSimpananKhusus2FormattedAttribute()
     {
-        return 'Rp ' . number_format($this->simpanan_khusus_2, 0, ',', '.');
+        return 'Rp ' . number_format($this->simpanan_khusus_2 ?? 0, 0, ',', '.');
     }
 
     // Accessor untuk umur
     public function getUmurAttribute()
     {
         if (!$this->tgl_lahir) return null;
-        return $this->tgl_lahir->age;
+        return $this->tgl_lahir->diffInYears(now());
     }
 
     // Scope untuk anggota aktif
