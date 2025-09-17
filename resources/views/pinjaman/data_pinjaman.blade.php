@@ -89,6 +89,17 @@
                     </select>
                 </div>
 
+                <!-- Filter Jenis Pinjaman -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Pinjaman</label>
+                    <select name="jenis_pinjaman" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">Semua Jenis</option>
+                        <option value="1" {{ request('jenis_pinjaman') == '1' ? 'selected' : '' }}>Biasa</option>
+                        <option value="2" {{ request('jenis_pinjaman') == '2' ? 'selected' : '' }}>Bank</option>
+                        <option value="3" {{ request('jenis_pinjaman') == '3' ? 'selected' : '' }}>Barang</option>
+                    </select>
+                </div>
+
                 <!-- Search Kode Transaksi -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Cari: Kode Transaksi</label>
@@ -131,11 +142,11 @@
                     class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm transition-colors duration-200">
                     <i class="fas fa-plus mr-1"></i>Tambah
                 </button>
-                <button type="button" onclick="editSelected()"
+                <button type="button" onclick="editData()"
                     class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm transition-colors duration-200">
                     <i class="fas fa-edit mr-1"></i>Edit
                 </button>
-                <button type="button" onclick="showDeleteConfirm()"
+                <button type="button" onclick="deleteData()"
                     class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm transition-colors duration-200">
                     <i class="fas fa-trash mr-1"></i>Hapus
                 </button>
@@ -165,9 +176,6 @@
                 <thead class="bg-gray-50 text-[12px] uppercase text-gray-600">
                     <tr class="w-full">
                         <th class="py-2 px-3 border text-center w-[36px]">No</th>
-                        <th class="py-2 px-3 border text-center w-[40px]">
-                            <input type="checkbox" id="selectAll" class="rounded border-gray-300">
-                        </th>
                         <th class="py-2 px-3 border text-left whitespace-nowrap w-[110px]">Kode</th>
                         <th class="py-2 px-3 border text-left w-[110px]">Tanggal Pinjam</th>
                         <th class="py-2 px-3 border text-left whitespace-nowrap w-[200px]">Nama Anggota</th>
@@ -180,14 +188,20 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @foreach($dataPinjaman as $pinjaman)
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-gray-50 cursor-pointer row-selectable" data-id="{{ $pinjaman->id }}"
+                        data-kode="{{ $pinjaman->id }}" data-tanggal="{{ $pinjaman->tgl_pinjam }}"
+                        data-anggota-id="{{ $pinjaman->anggota_id }}"
+                        data-anggota-nama="{{ optional($pinjaman->anggota)->nama }}"
+                        data-anggota-ktp="{{ optional($pinjaman->anggota)->no_ktp }}"
+                        data-jumlah="{{ $pinjaman->jumlah }}" data-lama-angsuran="{{ $pinjaman->lama_angsuran }}"
+                        data-jasa="{{ $pinjaman->bunga }}" data-jenis-pinjaman="{{ $pinjaman->jenis_pinjaman }}"
+                        data-kas-id="{{ $pinjaman->kas_id }}" data-keterangan="{{ $pinjaman->keterangan }}"
+                        data-status="{{ $pinjaman->status }}" data-lunas="{{ $pinjaman->lunas }}"
+                        data-user="{{ $pinjaman->user_name }}">
                         <td class="py-1 px-2 border text-center align-top">
                             {{ ($dataPinjaman->currentPage() - 1) * $dataPinjaman->perPage() + $loop->iteration }}
                         </td>
-                        <td class="py-1 px-2 border text-center align-top">
-                            <input type="checkbox" class="row-checkbox rounded border-gray-300"
-                                value="{{ $pinjaman->id }}">
-                        </td>
+
                         <td class="py-1 px-2 border font-medium text-gray-800 align-top">
                             <div class="truncate" title="{{ $pinjaman->id }}">{{ $pinjaman->id }}</div>
                         </td>
@@ -219,7 +233,16 @@
                                 <tr>
                                     <td class="font-semibold text-gray-700">Jenis:</td>
                                     <td class="text-gray-800">Pinjaman:
-                                        {{ $pinjaman->jenis_pinjaman == '1' ? 'Biasa' : 'Barang' }}</td>
+                                        @if($pinjaman->jenis_pinjaman == '1')
+                                        Biasa
+                                        @elseif($pinjaman->jenis_pinjaman == '2')
+                                        Bank
+                                        @elseif($pinjaman->jenis_pinjaman == '3')
+                                        Barang
+                                        @else
+                                        Tidak Diketahui
+                                        @endif
+                                    </td>
                                 </tr>
                             </table>
                         </td>
@@ -349,74 +372,130 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Left Column -->
                 <div class="space-y-4">
+                    <!-- Tanggal Pinjam -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Pinjam *</label>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="tgl_pinjam">
+                            Tanggal Pinjam *
+                        </label>
                         <input type="datetime-local" name="tgl_pinjam" id="tgl_pinjam" required
-                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                            class="form-input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
                     </div>
-
+                    <!-- Nama Anggota -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Anggota *</label>
-                        <select name="anggota_id" id="anggota_id" required
-                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                            <option value="">-- Pilih Anggota --</option>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="anggota_id">
+                            Nama Anggota *
+                        </label>
+                        <select
+                            class="form-select w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent"
+                            id="anggota_id" name="anggota_id" required>
+                            <option value="">-PILIH-</option>
                             @foreach(\App\Models\data_anggota::all() as $anggota)
                             <option value="{{ $anggota->id }}">{{ $anggota->nama }} - {{ $anggota->no_ktp }}</option>
                             @endforeach
                         </select>
                     </div>
 
+                    <!-- Jumlah Pinjaman -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Pinjaman *</label>
-                        <input type="number" name="jumlah" id="jumlah" required min="1000" step="1000"
-                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="jumlah">
+                            Jumlah Pinjaman *
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-gray-500">Rp</span>
+                            <input type="text"
+                                class="form-input w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent"
+                                id="jumlah" name="jumlah" placeholder="Masukkan nominal pinjaman" required
+                                onkeyup="formatNumber(this)">
+                        </div>
                     </div>
 
+                    <!-- Lama Angsuran -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Lama Angsuran (Bulan) *</label>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="lama_angsuran">
+                            Lama Angsuran (Bulan) *
+                        </label>
                         <input type="number" name="lama_angsuran" id="lama_angsuran" required min="1" max="60"
-                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                            class="form-input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent"
+                            placeholder="Masukkan lama angsuran">
                     </div>
 
+                    <!-- Jumlah Angsuran (Auto Calculate) -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Bunga (%) *</label>
-                        <input type="number" name="bunga" id="bunga" required min="0" max="100" step="0.1"
-                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="jumlah_angsuran">
+                            Jumlah Angsuran (Otomatis)
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-gray-500">Rp</span>
+                            <input type="text" name="jumlah_angsuran" id="jumlah_angsuran" readonly
+                                class="form-input w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+                                value="0" placeholder="Akan dihitung otomatis">
+                        </div>
+                    </div>
+
+                    <!-- Jasa (Rp) -->
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="jasa">
+                            Jasa (Rp) *
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-gray-500">Rp</span>
+                            <input type="number" name="jasa" id="jasa" required min="0" step="1000"
+                                class="form-input w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent"
+                                placeholder="Masukkan nominal jasa" value="0">
+                        </div>
                     </div>
                 </div>
 
                 <!-- Right Column -->
                 <div class="space-y-4">
+                    <!-- Jenis Pinjaman -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Pinjaman *</label>
-                        <select name="jenis_pinjaman" id="jenis_pinjaman" required
-                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                            <option value="">-- Pilih Jenis --</option>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="jenis_pinjaman">
+                            Jenis Pinjaman *
+                        </label>
+                        <select
+                            class="form-select w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent"
+                            id="jenis_pinjaman" name="jenis_pinjaman" required>
+                            <option value="">-PILIH-</option>
                             <option value="1">Biasa</option>
+                            <option value="2">Bank</option>
                             <option value="3">Barang</option>
                         </select>
                     </div>
 
+                    <!-- Ambil Dari Kas -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Ambil Dari Kas *</label>
-                        <select name="kas_id" id="kas_id" required
-                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                            <option value="">-- Pilih Kas --</option>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="kas_id">
+                            Ambil Dari Kas *
+                        </label>
+                        <select
+                            class="form-select w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent"
+                            id="kas_id" name="kas_id" required>
+                            <option value="">-PILIH-</option>
                             @foreach(\App\Models\DataKas::all() as $kas)
                             <option value="{{ $kas->id }}">{{ $kas->nama }}</option>
                             @endforeach
                         </select>
                     </div>
 
+
+                    <!-- Keterangan -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
-                        <textarea name="keterangan" id="keterangan" rows="3"
-                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"></textarea>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="keterangan">
+                            Keterangan *
+                        </label>
+                        <textarea
+                            class="form-textarea w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent"
+                            id="keterangan" name="keterangan" rows="4" placeholder="Masukkan keterangan"
+                            required></textarea>
+                        <p class="text-sm text-gray-600 mt-1">*Harus diisi</p>
                     </div>
 
-                    <!-- Photo placeholder -->
+                    <!-- Photo -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Photo</label>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="photo">
+                            Photo
+                        </label>
                         <div
                             class="w-full h-32 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center">
                             <span class="text-gray-500 text-sm">Photo akan ditampilkan di sini</span>
@@ -425,13 +504,13 @@
                 </div>
             </div>
 
-            <div class="flex justify-end space-x-3 mt-6">
+            <div class="flex justify-end mt-6">
                 <button type="button" onclick="closeModal()"
-                    class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm transition-colors duration-200">
+                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg mr-3 transition duration-200">
                     <i class="fas fa-times mr-1"></i>Batal
                 </button>
                 <button type="submit"
-                    class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm transition-colors duration-200">
+                    class="bg-[#14AE5C] text-white px-4 py-2 rounded-lg hover:bg-[#14AE5C]/80 transition duration-200">
                     <i class="fas fa-check mr-1"></i>Simpan
                 </button>
             </div>
@@ -486,6 +565,8 @@
 </div>
 
 <script>
+// Global variable untuk menyimpan data row yang dipilih
+let selectedRowData = null;
 let selectedRows = [];
 
 // Date filter functionality
@@ -531,8 +612,104 @@ document.getElementById('dateFilter').addEventListener('change', function() {
     }
 });
 
+// Add click event listener for row selection
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.row-selectable')) {
+        const row = e.target.closest('.row-selectable');
+        selectRow(row, row.dataset.id);
+    }
+});
+
+// Function untuk select row (click to edit)
+function selectRow(row, id) {
+    // Remove highlight dari semua row
+    document.querySelectorAll('tbody tr').forEach(r => {
+        r.classList.remove('bg-yellow-100', 'border-yellow-300');
+        r.classList.add('hover:bg-gray-50');
+    });
+
+    // Add highlight ke row yang dipilih
+    row.classList.remove('hover:bg-gray-50');
+    row.classList.add('bg-yellow-100', 'border-yellow-300');
+
+    // Simpan data row yang dipilih
+    selectedRowData = {
+        id: row.dataset.id,
+        kode: row.dataset.kode,
+        tanggal: row.dataset.tanggal,
+        anggota_id: row.dataset.anggotaId,
+        anggota_nama: row.dataset.anggotaNama,
+        anggota_ktp: row.dataset.anggotaKtp,
+        jumlah: row.dataset.jumlah,
+        lama_angsuran: row.dataset.lamaAngsuran,
+        jasa: row.dataset.jasa,
+        jenis_pinjaman: row.dataset.jenisPinjaman,
+        kas_id: row.dataset.kasId,
+        keterangan: row.dataset.keterangan,
+        status: row.dataset.status,
+        lunas: row.dataset.lunas,
+        user: row.dataset.user
+    };
+
+    // Update tombol berdasarkan status lunas
+    updateButtonStates();
+}
+
+// Function untuk update state tombol berdasarkan data yang dipilih
+function updateButtonStates() {
+    const editBtn = document.querySelector('button[onclick="editData()"]');
+    const deleteBtn = document.querySelector('button[onclick="deleteData()"]');
+
+    if (!selectedRowData) {
+        // Reset tombol jika tidak ada data terpilih
+        if (editBtn) {
+            editBtn.disabled = true;
+            editBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            editBtn.classList.remove('hover:bg-blue-600');
+        }
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            deleteBtn.classList.remove('hover:bg-red-600');
+        }
+        return;
+    }
+
+    // Update tombol Edit
+    if (editBtn) {
+        if (selectedRowData.lunas === 'Lunas') {
+            editBtn.disabled = true;
+            editBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            editBtn.classList.remove('hover:bg-blue-600');
+            editBtn.title = 'Pinjaman yang sudah lunas tidak dapat diedit';
+        } else {
+            editBtn.disabled = false;
+            editBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            editBtn.classList.add('hover:bg-blue-600');
+            editBtn.title = 'Edit data pinjaman';
+        }
+    }
+
+    // Update tombol Delete
+    if (deleteBtn) {
+        if (selectedRowData.lunas === 'Lunas') {
+            deleteBtn.disabled = true;
+            deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            deleteBtn.classList.remove('hover:bg-red-600');
+            deleteBtn.title = 'Pinjaman yang sudah lunas tidak dapat dihapus';
+        } else {
+            deleteBtn.disabled = false;
+            deleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            deleteBtn.classList.add('hover:bg-red-600');
+            deleteBtn.title = 'Hapus data pinjaman';
+        }
+    }
+}
+
 // Select all functionality
-document.getElementById('selectAll').addEventListener('change', function() {
+const selectAllElement = document.getElementById('selectAll');
+if (selectAllElement) {
+    selectAllElement.addEventListener('change', function() {
     const checkboxes = document.querySelectorAll('.row-checkbox');
     checkboxes.forEach(checkbox => {
         checkbox.checked = this.checked;
@@ -543,6 +720,9 @@ document.getElementById('selectAll').addEventListener('change', function() {
         }
     });
 });
+} else {
+    console.log('SelectAll element not found - skipping select all functionality');
+}
 
 // Individual row selection
 document.addEventListener('change', function(e) {
@@ -556,32 +736,58 @@ document.addEventListener('change', function(e) {
         // Update select all checkbox
         const allCheckboxes = document.querySelectorAll('.row-checkbox');
         const checkedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
-        document.getElementById('selectAll').checked = allCheckboxes.length === checkedCheckboxes.length;
+        const selectAllElement = document.getElementById('selectAll');
+        if (selectAllElement) {
+            selectAllElement.checked = allCheckboxes.length === checkedCheckboxes.length;
+        }
     }
 });
 
 // Modal functions
 function openModal(type, id = null) {
+    console.log('openModal() called with type:', type, 'id:', id);
+
     const modal = document.getElementById('pinjamanModal');
     const form = document.getElementById('pinjamanForm');
     const title = document.getElementById('modalTitle');
     const methodInput = document.getElementById('formMethod');
 
+    // Hapus warning yang ada
+    const existingWarning = document.querySelector('.bg-yellow-50');
+    if (existingWarning) {
+        existingWarning.remove();
+    }
+
     if (type === 'create') {
         title.textContent = 'Form Tambah Pinjaman';
         form.action = '{{ route("pinjaman.data_pinjaman.store") }}';
         methodInput.value = 'POST';
+        form.dataset.mode = 'create';
+        delete form.dataset.pinjamanId;
         form.reset();
         // Set default date to now
-        document.getElementById('tgl_pinjam').value = new Date().toISOString().slice(0, 16);
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const datetimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+        document.getElementById('tgl_pinjam').value = datetimeString;
+
+        // Reset jumlah angsuran untuk create
+        document.getElementById('jumlah_angsuran').value = '0';
     } else if (type === 'edit' && id) {
+        console.log('Setting up edit modal for ID:', id);
         title.textContent = 'Edit Data Pinjaman';
         form.action = `/pinjaman/data_pinjaman/${id}`;
         methodInput.value = 'PUT';
-        // Load data for editing (you'll need to implement this)
-        loadPinjamanData(id);
+        form.dataset.mode = 'edit';
+        form.dataset.pinjamanId = id;
+        // Note: loadPinjamanData will be called separately
     }
 
+    console.log('Showing modal...');
     modal.classList.remove('hidden');
 }
 
@@ -597,131 +803,252 @@ function closeDeleteConfirmModal() {
     document.getElementById('deleteConfirmModal').classList.add('hidden');
 }
 
-function showDeleteConfirm() {
-    if (selectedRows.length === 0) {
-        showWarning('Maaf, Data harus dipilih terlebih dahulu');
+// CRUD functions
+function editData() {
+    console.log('editData() called', selectedRowData);
+
+    if (!selectedRowData) {
+        alert('Pilih data yang akan diedit terlebih dahulu!');
         return;
     }
 
-    const message =
-        `Yakin ingin menghapus ${selectedRows.length} data yang dipilih? Data yang sudah dihapus tidak dapat dikembalikan.`;
-    document.getElementById('deleteConfirmMessage').textContent = message;
-    document.getElementById('deleteConfirmModal').classList.remove('hidden');
+    // Cek apakah pinjaman sudah lunas
+    if (selectedRowData.lunas === 'Sudah') {
+        alert('Pinjaman yang sudah lunas tidak dapat diedit!');
+        return;
+    }
+
+    // Load data pinjaman dari server dan buka modal
+    console.log('Loading data for ID:', selectedRowData.id);
+    loadPinjamanData(selectedRowData.id);
 }
 
-function confirmDelete() {
-    // Hide modal first
-    closeDeleteConfirmModal();
+// Load data pinjaman untuk edit
+function loadPinjamanData(id) {
+    console.log('loadPinjamanData() called with ID:', id);
 
-    // Show loading state
-    const deleteBtn = event.target;
-    const originalText = deleteBtn.innerHTML;
-    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Menghapus...';
-    deleteBtn.disabled = true;
+    fetch(`/pinjaman/data_pinjaman/${id}/data`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Response from server:', data);
 
-    // Debug logging
-    console.log('Selected rows:', selectedRows);
-    console.log('Selected rows type:', typeof selectedRows);
-    console.log('Selected rows length:', selectedRows.length);
+            if (data.success) {
+                console.log('Opening modal for edit...');
+                // Buka modal edit terlebih dahulu
+                openModal('edit', id);
 
-    // Create form data for bulk delete request
-    const formData = new FormData();
-    formData.append('_token', '{{ csrf_token() }}');
-    formData.append('ids', JSON.stringify(selectedRows));
+                // Populate form dengan data dari server
+                const pinjaman = data.data;
+                const form = document.getElementById('pinjamanForm');
 
-    console.log('FormData ids:', formData.get('ids'));
+                // Format tanggal untuk input datetime-local
+                const tanggal = new Date(pinjaman.tgl_pinjam);
+                const formattedDate = tanggal.toISOString().slice(0, 16);
 
-    // Send bulk delete request
-    fetch('{{ route("pinjaman.data_pinjaman.bulk_destroy") }}', {
+                // Tunggu modal terbuka dulu, lalu isi form
+                setTimeout(() => {
+                    document.getElementById('tgl_pinjam').value = formattedDate;
+                    document.getElementById('anggota_id').value = pinjaman.anggota_id;
+
+                    // Format jumlah pinjaman dengan pemisah ribuan
+                    const jumlahFormatted = parseInt(pinjaman.jumlah).toLocaleString('id-ID');
+                    document.getElementById('jumlah').value = jumlahFormatted;
+                    console.log('Set jumlah input to:', jumlahFormatted, 'from:', pinjaman.jumlah);
+
+                    document.getElementById('lama_angsuran').value = pinjaman.lama_angsuran;
+                    document.getElementById('jasa').value = pinjaman.jasa || '0';
+                    document.getElementById('jenis_pinjaman').value = pinjaman.jenis_pinjaman;
+                    document.getElementById('kas_id').value = pinjaman.kas_id;
+                    document.getElementById('keterangan').value = pinjaman.keterangan || '';
+
+                    // Simpan data original untuk validasi perubahan kritis
+                    form.dataset.original_tgl_pinjam = formattedDate;
+                    form.dataset.original_anggota_id = pinjaman.anggota_id;
+                    form.dataset.original_jumlah = pinjaman.jumlah;
+                    form.dataset.original_lama_angsuran = pinjaman.lama_angsuran;
+                    form.dataset.original_jasa = pinjaman.jasa;
+                    form.dataset.original_jenis_pinjaman = pinjaman.jenis_pinjaman;
+                    form.dataset.original_kas_id = pinjaman.kas_id;
+                    form.dataset.original_keterangan = pinjaman.keterangan || '';
+
+                    // Auto calculate jumlah angsuran
+                    const jumlahPinjaman = parseInt(pinjaman.jumlah);
+                    const lamaAngsuran = parseInt(pinjaman.lama_angsuran);
+                    console.log('Load data - Jumlah Pinjaman:', jumlahPinjaman, 'Lama Angsuran:',
+                        lamaAngsuran);
+
+                    if (lamaAngsuran && jumlahPinjaman && lamaAngsuran > 0) {
+                        const jumlahAngsuran = jumlahPinjaman / lamaAngsuran;
+                        const roundedAngsuran = Math.round(jumlahAngsuran);
+                        const formattedAngsuran = roundedAngsuran.toLocaleString('id-ID');
+                        document.getElementById('jumlah_angsuran').value = formattedAngsuran;
+                        console.log('Load data - Calculated angsuran:', formattedAngsuran);
+                    } else {
+                        document.getElementById('jumlah_angsuran').value = '0';
+                        console.log('Load data - Reset angsuran to 0');
+                    }
+
+                    // Trigger auto-calculation untuk memastikan event listener aktif
+                    setTimeout(() => {
+                        const jumlahInput = document.getElementById('jumlah');
+                        const lamaInput = document.getElementById('lama_angsuran');
+
+                        // Trigger input event untuk memicu auto-calculation
+                        if (jumlahInput && lamaInput) {
+                            jumlahInput.dispatchEvent(new Event('input', {
+                                bubbles: true
+                            }));
+                        }
+                    }, 200);
+
+                    // Tampilkan warning jika ada pembayaran
+                    if (pinjaman.status === 'berjalan') {
+                        showEditWarning();
+                    }
+                }, 100);
+            } else {
+                alert('Gagal memuat data pinjaman: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat memuat data pinjaman');
+        });
+}
+
+// Tampilkan warning untuk edit
+function showEditWarning() {
+    const warningDiv = document.createElement('div');
+    warningDiv.className = 'bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4';
+    warningDiv.innerHTML = `
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-triangle text-yellow-600 mt-1 mr-2"></i>
+            <div>
+                <h4 class="text-sm font-medium text-yellow-800">⚠️ Peringatan Edit Pinjaman</h4>
+                <p class="text-sm text-yellow-700 mt-1">
+                    Pinjaman ini sudah berjalan. Perubahan pada jumlah, lama angsuran, atau bunga akan mempengaruhi jadwal angsuran dan billing data.
+                </p>
+            </div>
+        </div>
+    `;
+
+    // Insert warning sebelum form
+    const form = document.getElementById('pinjamanForm');
+    form.parentNode.insertBefore(warningDiv, form);
+}
+
+function deleteData() {
+    if (!selectedRowData) {
+        alert('Pilih data yang akan dihapus terlebih dahulu!');
+        return;
+    }
+
+    // Cek apakah pinjaman sudah lunas
+    if (selectedRowData.lunas === 'Lunas') {
+        alert(
+            '🔒 Pinjaman yang sudah lunas tidak dapat dihapus!\n\nData pinjaman lunas harus dipertahankan untuk keperluan audit dan laporan keuangan.'
+        );
+        return;
+    }
+
+    if (confirm(`Apakah Anda yakin ingin menghapus data pinjaman ID: ${selectedRowData.kode}?`)) {
+        // Kirim request delete
+        const deleteUrl = `/pinjaman/data_pinjaman/${selectedRowData.id}/delete`;
+        fetch(deleteUrl, {
             method: 'POST',
-            body: formData,
             headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
             }
         })
         .then(response => {
             console.log('Response status:', response.status);
             console.log('Response headers:', response.headers);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Cek content type
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
             return response.json();
+                } else {
+                    // Jika bukan JSON, coba parse sebagai text
+                    return response.text().then(text => {
+                        console.log('Response text:', text);
+                        throw new Error('Server returned non-JSON response: ' + text.substring(0, 100));
+                    });
+                }
         })
         .then(data => {
             console.log('Response data:', data);
-
-            // Reset button state
-            deleteBtn.innerHTML = originalText;
-            deleteBtn.disabled = false;
-
             if (data.success) {
-                // Show success message
-                showWarning(data.message);
-
-                // Remove successfully deleted rows from table
-                if (data.success_count > 0) {
-                    selectedRows.forEach(id => {
-                        const row = document.querySelector(`input[value="${id}"]`);
-                        if (row) {
-                            const tableRow = row.closest('tr');
-                            if (tableRow) {
-                                tableRow.remove();
-                            }
-                        }
-                    });
-                }
-
-                // Clear selection
-                selectedRows = [];
-                document.getElementById('selectAll').checked = false;
-                document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
-
-                // Show detailed errors if any
-                if (data.error_count > 0 && data.errors && data.errors.length > 0) {
-                    console.log('Errors during deletion:', data.errors);
-                }
+                    let message = 'Data berhasil dihapus';
+                    if (data.details) {
+                        message += '\n\nDetail penghapusan:';
+                        if (data.details.tempo_deleted > 0) message +=
+                            `\n- ${data.details.tempo_deleted} jadwal angsuran`;
+                        if (data.details.billing_deleted > 0) message +=
+                            `\n- ${data.details.billing_deleted} data billing`;
+                        if (data.details.trans_kas_deleted > 0) message +=
+                            `\n- ${data.details.trans_kas_deleted} transaksi kas`;
+                        if (data.details.stok_updated) message += '\n- Stok barang dikembalikan';
+                    }
+                    alert(message);
+                    location.reload();
             } else {
-                showWarning(data.message || 'Gagal menghapus data yang dipilih.');
+                    alert('Gagal menghapus data: ' + (data.message || 'Unknown error'));
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-
-            // Reset button state
-            deleteBtn.innerHTML = originalText;
-            deleteBtn.disabled = false;
-
-            // Show more detailed error message
-            let errorMessage = 'Terjadi kesalahan saat menghapus data.';
-            if (error.message) {
-                errorMessage += ' Detail: ' + error.message;
-            }
-            showWarning(errorMessage);
-        });
-}
-
-function showWarning(message) {
-    document.getElementById('warningMessage').textContent = message;
-    document.getElementById('warningModal').classList.remove('hidden');
-}
-
-// Action functions
-function editSelected() {
-    if (selectedRows.length === 0) {
-        showWarning('Maaf, Data harus dipilih terlebih dahulu');
-        return;
+                console.error('Error details:', error);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                alert('Terjadi kesalahan saat menghapus data: ' + error.message);
+            });
     }
-
-    if (selectedRows.length > 1) {
-        showWarning('Maaf, hanya bisa memilih satu data untuk diedit');
-        return;
-    }
-
-    openModal('edit', selectedRows[0]);
 }
-
-
 
 function uploadData() {
     // Implement upload functionality
     alert('Fitur upload akan diimplementasikan');
+}
+
+// Function untuk bulk operations (jika diperlukan)
+function editSelected() {
+    if (selectedRows.length === 0) {
+        alert('Maaf, Data harus dipilih terlebih dahulu');
+        return;
+    }
+
+    if (selectedRows.length > 1) {
+        alert('Maaf, hanya bisa memilih satu data untuk diedit');
+        return;
+    }
+
+    // Cari data berdasarkan ID yang dipilih
+    const selectedId = selectedRows[0];
+    const row = document.querySelector(`tr[data-id="${selectedId}"]`);
+    if (row) {
+        selectRow(row, selectedId);
+        editData();
+    }
+}
+
+function showDeleteConfirm() {
+    if (selectedRows.length === 0) {
+        alert('Maaf, Data harus dipilih terlebih dahulu');
+        return;
+    }
+
+    const message =
+        `Yakin ingin menghapus ${selectedRows.length} data yang dipilih? Data yang sudah dihapus tidak dapat dikembalikan.`;
+    if (confirm(message)) {
+        // Implement bulk delete jika diperlukan
+        alert('Fitur bulk delete akan diimplementasikan');
+    }
 }
 
 function exportPdf() {
@@ -735,45 +1062,258 @@ function exportPdf() {
     form.removeChild(exportInput);
 }
 
-function loadPinjamanData(id) {
-    // Load data for editing via AJAX
-    fetch(`/pinjaman/data_pinjaman/${id}/data`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert('Error: ' + data.error);
+// Format number dengan pemisah ribuan
+function formatNumber(input) {
+    // Hapus semua karakter non-digit
+    let value = input.value.replace(/\D/g, '');
+
+    // Format dengan pemisah ribuan
+    if (value) {
+        value = parseInt(value).toLocaleString('id-ID');
+    }
+
+    input.value = value;
+}
+
+// Function untuk mengkonversi format number ke angka murni
+function parseNumber(formattedNumber) {
+    if (!formattedNumber) return 0;
+
+    // Hapus semua karakter non-digit kecuali koma untuk desimal
+    let cleanNumber = formattedNumber.toString().replace(/[^\d,]/g, '');
+
+    // Ganti koma dengan titik untuk parsing desimal
+    cleanNumber = cleanNumber.replace(',', '.');
+
+    // Parse sebagai float untuk handle desimal, lalu convert ke int
+    const parsed = parseFloat(cleanNumber) || 0;
+
+    console.log('parseNumber input:', formattedNumber, 'output:', Math.round(parsed));
+    return Math.round(parsed);
+}
+
+// Form submission untuk pinjaman - Handle CREATE dan UPDATE
+document.getElementById('pinjamanForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    // Validasi sederhana seperti project lama
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+
+    // Konversi jumlah dari format dengan pemisah ribuan ke angka murni
+    if (data.jumlah) {
+        data.jumlah = parseNumber(data.jumlah);
+    }
+
+    // Validasi jumlah > 0 (seperti project lama)
+    if (!data.jumlah || data.jumlah <= 0) {
+        alert('Jumlah pinjaman harus lebih dari 0');
                 return;
             }
 
-            // Fill form fields with data
-            document.getElementById('anggota_id').value = data.anggota_id;
-            document.getElementById('tgl_pinjam').value = data.tgl_pinjam.replace(' ', 'T');
-            document.getElementById('jumlah').value = data.jumlah;
-            document.getElementById('lama_angsuran').value = data.lama_angsuran;
-            document.getElementById('bunga').value = data.bunga;
-            document.getElementById('jenis_pinjaman').value = data.jenis_pinjaman;
-            document.getElementById('kas_id').value = data.kas_id;
-            document.getElementById('keterangan').value = data.keterangan || '';
+    // Tentukan method dan URL berdasarkan mode (create/edit)
+    const isEdit = this.dataset.mode === 'edit';
+    const method = isEdit ? 'PUT' : 'POST';
+    const url = isEdit ? `/pinjaman/data_pinjaman/${this.dataset.pinjamanId}` : this.action;
+
+    // Tampilkan konfirmasi untuk edit dengan perubahan kritis
+    if (isEdit) {
+        const criticalFields = ['jumlah', 'lama_angsuran', 'jasa', 'tgl_pinjam'];
+        const hasCriticalChanges = criticalFields.some(field => {
+            const originalValue = this.dataset[`original_${field}`];
+            return originalValue && originalValue !== data[field];
+        });
+
+        if (hasCriticalChanges) {
+            if (!confirm(
+                    '⚠️ Anda mengubah data kritis (jumlah, lama angsuran, jasa, atau tanggal).\n\nPerubahan ini akan mempengaruhi jadwal angsuran dan billing data.\n\nApakah Anda yakin ingin melanjutkan?'
+                )) {
+                return;
+            }
+        }
+    }
+
+    // Submit data dengan fetch API
+    fetch(url, {
+            method: method,
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const message = isEdit ? 'Data berhasil diupdate' : 'Data berhasil disimpan';
+                if (data.critical_changes && Object.keys(data.critical_changes).length > 0) {
+                    alert(message +
+                        '\n\n⚠️ Data tempo dan billing telah di-regenerate karena ada perubahan kritis.'
+                    );
+                } else {
+                    alert(message);
+                }
+                closeModal();
+                location.reload();
+            } else {
+                alert('Gagal menyimpan data: ' + data.message);
+            }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Gagal memuat data pinjaman');
+            alert('Terjadi kesalahan saat menyimpan data');
         });
-}
+});
 
 // Auto-calculate installment amount
-document.addEventListener('input', function(e) {
-    if (e.target.name === 'jumlah' || e.target.name === 'lama_angsuran') {
-        const jumlah = document.getElementById('jumlah').value;
-        const lamaAngsuran = document.getElementById('lama_angsuran').value;
+function calculateInstallmentAmount() {
+    console.log('Auto-calculating installment amount...');
 
-        if (jumlah && lamaAngsuran) {
-            const angsuranPerBulan = jumlah / lamaAngsuran;
-            // You could display this in a readonly field if needed
-            console.log('Angsuran per bulan:', angsuranPerBulan);
+    // Ambil nilai dari input field
+    const jumlahInput = document.getElementById('jumlah');
+    const lamaInput = document.getElementById('lama_angsuran');
+
+    if (!jumlahInput || !lamaInput) {
+        console.log('Input fields not found');
+        return;
+    }
+
+    // Parse nilai dengan benar
+    const jumlahPinjaman = parseNumber(jumlahInput.value);
+    const lamaAngsuran = parseInt(lamaInput.value);
+
+    console.log('Raw Jumlah Input:', jumlahInput.value);
+    console.log('Parsed Jumlah Pinjaman:', jumlahPinjaman);
+    console.log('Raw Lama Input:', lamaInput.value);
+    console.log('Parsed Lama Angsuran:', lamaAngsuran);
+
+    if (lamaAngsuran && jumlahPinjaman && lamaAngsuran > 0) {
+        const jumlahAngsuran = jumlahPinjaman / lamaAngsuran;
+        const roundedAngsuran = Math.round(jumlahAngsuran);
+        const formattedAngsuran = roundedAngsuran.toLocaleString('id-ID');
+
+        const angsuranField = document.getElementById('jumlah_angsuran');
+        if (angsuranField) {
+            angsuranField.value = formattedAngsuran;
+            console.log('✅ Field updated successfully!');
+            console.log('Calculation: ', jumlahPinjaman, ' / ', lamaAngsuran, ' = ', jumlahAngsuran);
+            console.log('Rounded: ', roundedAngsuran);
+            console.log('Formatted: ', formattedAngsuran);
+            console.log('Field value after update:', angsuranField.value);
+        } else {
+            console.log('❌ Angsuran field not found!');
+        }
+    } else {
+        const angsuranField = document.getElementById('jumlah_angsuran');
+        if (angsuranField) {
+            angsuranField.value = '0';
+            console.log('Reset installment amount to 0 - Invalid input');
         }
     }
+}
+
+// Event listener untuk auto-calculation
+document.addEventListener('input', function(e) {
+    if (e.target.name === 'jumlah' || e.target.name === 'lama_angsuran') {
+        console.log('Input event triggered for:', e.target.name);
+        calculateInstallmentAmount();
+    }
 });
+
+// Event listener untuk change event (untuk dropdown dan input number)
+document.addEventListener('change', function(e) {
+    if (e.target.name === 'jumlah' || e.target.name === 'lama_angsuran') {
+        console.log('Change event triggered for:', e.target.name);
+        calculateInstallmentAmount();
+    }
+});
+
+// Event listener khusus untuk field jumlah dan lama_angsuran
+document.addEventListener('DOMContentLoaded', function() {
+    const jumlahField = document.getElementById('jumlah');
+    const lamaField = document.getElementById('lama_angsuran');
+
+    if (jumlahField) {
+        jumlahField.addEventListener('input', function() {
+            console.log('Jumlah field input event');
+            calculateInstallmentAmount();
+        });
+        jumlahField.addEventListener('change', function() {
+            console.log('Jumlah field change event');
+            calculateInstallmentAmount();
+        });
+    }
+
+    if (lamaField) {
+        lamaField.addEventListener('input', function() {
+            console.log('Lama field input event');
+            calculateInstallmentAmount();
+        });
+        lamaField.addEventListener('change', function() {
+            console.log('Lama field change event');
+            calculateInstallmentAmount();
+        });
+    }
+
+    // Initialize button states
+    updateButtonStates();
+});
+
+// Function untuk test perhitungan manual (untuk debugging)
+function testCalculation() {
+    console.log('=== TEST CALCULATION ===');
+    const jumlahInput = document.getElementById('jumlah');
+    const lamaInput = document.getElementById('lama_angsuran');
+
+    if (jumlahInput && lamaInput) {
+        console.log('Jumlah Input Value:', jumlahInput.value);
+        console.log('Lama Input Value:', lamaInput.value);
+
+        const parsedJumlah = parseNumber(jumlahInput.value);
+        const parsedLama = parseInt(lamaInput.value);
+
+        console.log('Parsed Jumlah:', parsedJumlah);
+        console.log('Parsed Lama:', parsedLama);
+
+        if (parsedLama && parsedJumlah && parsedLama > 0) {
+            const result = parsedJumlah / parsedLama;
+            console.log('Calculation Result:', result);
+            console.log('Rounded Result:', Math.round(result));
+            console.log('Formatted Result:', Math.round(result).toLocaleString('id-ID'));
+        }
+    }
+    console.log('=== END TEST ===');
+}
+
+// Function untuk force update jumlah angsuran
+function forceUpdateAngsuran() {
+    console.log('Force updating jumlah angsuran...');
+    calculateInstallmentAmount();
+}
+
+// Function untuk manual update dengan nilai tertentu
+function manualUpdateAngsuran(jumlah, lama) {
+    console.log('Manual update - Jumlah:', jumlah, 'Lama:', lama);
+
+    if (lama && jumlah && lama > 0) {
+        const result = jumlah / lama;
+        const rounded = Math.round(result);
+        const formatted = rounded.toLocaleString('id-ID');
+
+        const angsuranField = document.getElementById('jumlah_angsuran');
+        if (angsuranField) {
+            angsuranField.value = formatted;
+            console.log('Manual update result:', formatted);
+        } else {
+            console.log('Angsuran field not found!');
+        }
+    }
+}
+
+// Expose functions to global scope for debugging
+window.testCalculation = testCalculation;
+window.forceUpdateAngsuran = forceUpdateAngsuran;
+window.manualUpdateAngsuran = manualUpdateAngsuran;
 </script>
 
 <style>

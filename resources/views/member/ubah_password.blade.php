@@ -14,8 +14,8 @@
                         <p class="text-sm text-gray-600 mt-1">Perbarui password Anda untuk keamanan akun</p>
                     </div>
                     <div class="flex items-center">
-                        <a href="{{ route('member.profile') }}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
-                            <i class="fas fa-arrow-left mr-2"></i>Kembali ke Profil
+                        <a href="{{ route('member.dashboard') }}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
+                            <i class="fas fa-arrow-left mr-2"></i>Kembali ke Dashboard
                         </a>
                     </div>
                 </div>

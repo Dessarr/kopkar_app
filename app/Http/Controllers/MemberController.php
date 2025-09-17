@@ -1955,36 +1955,6 @@ class MemberController extends Controller
             'laporan_pembayaran_pinjaman_' . $member->no_ktp . '_' . date('Y-m-d') . '.xlsx');
     }
 
-    public function profile()
-    {
-        $member = auth()->guard('member')->user();
-        return view('member.profile', compact('member'));
-    }
-
-    public function updateProfile(Request $request)
-    {
-        $request->validate([
-            'nama' => 'required|string|max:255',
-            'alamat' => 'required|string|max:500',
-            'notelp' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255'
-        ]);
-
-        try {
-            $authMember = auth()->guard('member')->user();
-            $member =Member::find($authMember->id);
-            $member->nama = $request->input('nama');
-            $member->alamat = $request->input('alamat');
-            $member->notelp = $request->input('notelp');
-            $member->email = $request->input('email');
-            $member->save();
-
-            return redirect()->route('member.profile')->with('success', 'Profil berhasil diperbarui');
-        } catch (\Exception $e) {
-            Log::error('Error in updateProfile: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
-    }
 
     public function ubahPic()
     {

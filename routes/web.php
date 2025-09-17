@@ -131,9 +131,6 @@ Route::middleware(['auth:member'])->group(function () {
     // Loan detail route
     Route::get('/member/pinjaman/{id}/detail', [MemberController::class, 'getLoanDetail'])->name('member.pinjaman.detail');
     
-    // Profile Routes
-    Route::get('/member/profile', [MemberController::class, 'profile'])->name('member.profile');
-    Route::put('/member/profile', [MemberController::class, 'updateProfile'])->name('member.profile.update');
     
     // Profile Picture Routes
     Route::get('/member/ubah-pic', [MemberController::class, 'ubahPic'])->name('member.ubah.pic');
@@ -301,8 +298,10 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/pinjaman/data_pinjaman/{id}/edit', [\App\Http\Controllers\DataPinjamanController::class, 'edit'])->name('pinjaman.data_pinjaman.edit');
     Route::put('/pinjaman/data_pinjaman/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'update'])->name('pinjaman.data_pinjaman.update');
     Route::delete('/pinjaman/data_pinjaman/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'destroy'])->name('pinjaman.data_pinjaman.destroy');
+    Route::post('/pinjaman/data_pinjaman/{id}/delete', [\App\Http\Controllers\DataPinjamanController::class, 'destroy'])->name('pinjaman.data_pinjaman.delete');
     Route::post('/pinjaman/data_pinjaman/bulk-delete', [\App\Http\Controllers\DataPinjamanController::class, 'bulkDestroy'])->name('pinjaman.data_pinjaman.bulk_destroy');
     Route::get('/pinjaman/data_pinjaman/{id}/data', [\App\Http\Controllers\DataPinjamanController::class, 'getPinjamanData'])->name('pinjaman.data_pinjaman.data');
+    Route::post('/pinjaman/data_pinjaman/{id}/revision', [\App\Http\Controllers\DataPinjamanController::class, 'createRevision'])->name('pinjaman.data_pinjaman.revision');
     Route::get('/pinjaman/nota/{id}', [\App\Http\Controllers\DataPinjamanController::class, 'nota'])->name('pinjaman.nota');
 
     // Route untuk Pengajuan Penarikan Simpanan (Admin)
