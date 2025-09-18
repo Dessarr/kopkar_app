@@ -84,121 +84,6 @@
         </button>
     </div>
 
-    <!-- Summary Cards -->
-    @if(isset($summary))
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg shadow-lg">
-            <div class="flex items-center">
-                <div class="flex-1">
-                    <div class="text-sm font-medium text-purple-100">Total Tagihan</div>
-                    <div class="text-2xl font-bold">{{ number_format($summary['total_tagihan']) }}</div>
-                </div>
-                <div class="text-purple-200">
-                    <i class="fas fa-file-invoice text-2xl"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-lg">
-            <div class="flex items-center">
-                <div class="flex-1">
-                    <div class="text-sm font-medium text-blue-100">Target Pokok</div>
-                    <div class="text-2xl font-bold">Rp {{ number_format($summary['total_target_pokok'], 0, ',', '.') }}</div>
-                </div>
-                <div class="text-blue-200">
-                    <i class="fas fa-bullseye text-2xl"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg shadow-lg">
-            <div class="flex items-center">
-                <div class="flex-1">
-                    <div class="text-sm font-medium text-green-100">Realisasi Pokok</div>
-                    <div class="text-2xl font-bold">Rp {{ number_format($summary['total_realisasi_pokok'], 0, ',', '.') }}</div>
-                </div>
-                <div class="text-green-200">
-                    <i class="fas fa-check-circle text-2xl"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-4 rounded-lg shadow-lg">
-            <div class="flex items-center">
-                <div class="flex-1">
-                    <div class="text-sm font-medium text-yellow-100">Rata-rata Koleksi</div>
-                    <div class="text-2xl font-bold">{{ number_format($summary['rata_rata_koleksi'], 1) }}%</div>
-                </div>
-                <div class="text-yellow-200">
-                    <i class="fas fa-percentage text-2xl"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    <!-- Performance Overview -->
-    @if(isset($performance))
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-star text-green-600"></i>
-                    </div>
-                </div>
-                <div class="ml-3">
-                    <div class="text-sm font-medium text-gray-500">Hari Sempurna</div>
-                    <div class="text-lg font-semibold text-gray-900">{{ $performance['hari_sempurna'] }}</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-exclamation-triangle text-red-600"></i>
-                    </div>
-                </div>
-                <div class="ml-3">
-                    <div class="text-sm font-medium text-gray-500">Hari Bermasalah</div>
-                    <div class="text-lg font-semibold text-gray-900">{{ $performance['hari_bermasalah'] }}</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-chart-line text-blue-600"></i>
-                    </div>
-                </div>
-                <div class="ml-3">
-                    <div class="text-sm font-medium text-gray-500">Tingkat Koleksi</div>
-                    <div class="text-lg font-semibold text-gray-900">{{ number_format($performance['tingkat_koleksi_keseluruhan'], 1) }}%</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-trending-up text-purple-600"></i>
-                    </div>
-                </div>
-                <div class="ml-3">
-                    <div class="text-sm font-medium text-gray-500">Trend Koleksi</div>
-                    <div class="text-lg font-semibold text-gray-900 {{ $performance['trend_koleksi'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                        {{ $performance['trend_koleksi'] >= 0 ? '+' : '' }}{{ number_format($performance['trend_koleksi'], 1) }}%
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
 
     <!-- Main Report Table -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -269,16 +154,16 @@
                 <tfoot class="bg-gray-50">
                     <tr class="font-semibold">
                         <td class="px-6 py-4 text-center" colspan="2">TOTAL</td>
-                        <td class="px-6 py-4 text-center">{{ $summary['total_tagihan'] }}</td>
-                        <td class="px-6 py-4 text-right">Rp {{ number_format($summary['total_target_pokok'], 0, ',', '.') }}</td>
-                        <td class="px-6 py-4 text-right">Rp {{ number_format($summary['total_target_bunga'], 0, ',', '.') }}</td>
+                        <td class="px-6 py-4 text-center">{{ array_sum(array_column($data, 'jml_tagihan')) }}</td>
+                        <td class="px-6 py-4 text-right">Rp {{ number_format(array_sum(array_column($data, 'target_pokok')), 0, ',', '.') }}</td>
+                        <td class="px-6 py-4 text-right">Rp {{ number_format(array_sum(array_column($data, 'target_bunga')), 0, ',', '.') }}</td>
                         <td class="px-6 py-4 text-center">{{ array_sum(array_column($data, 'tagihan_masuk')) }}</td>
-                        <td class="px-6 py-4 text-right">Rp {{ number_format($summary['total_realisasi_pokok'], 0, ',', '.') }}</td>
-                        <td class="px-6 py-4 text-right">Rp {{ number_format($summary['total_realisasi_bunga'], 0, ',', '.') }}</td>
-                        <td class="px-6 py-4 text-center">{{ $summary['total_tagihan_bermasalah'] }}</td>
-                        <td class="px-6 py-4 text-right">Rp {{ number_format($summary['total_tidak_bayar_pokok'], 0, ',', '.') }}</td>
-                        <td class="px-6 py-4 text-right">Rp {{ number_format($summary['total_tidak_bayar_bunga'], 0, ',', '.') }}</td>
-                        <td class="px-6 py-4 text-center">{{ number_format($summary['rata_rata_koleksi'], 1) }}%</td>
+                        <td class="px-6 py-4 text-right">Rp {{ number_format(array_sum(array_column($data, 'realisasi_pokok')), 0, ',', '.') }}</td>
+                        <td class="px-6 py-4 text-right">Rp {{ number_format(array_sum(array_column($data, 'realisasi_bunga')), 0, ',', '.') }}</td>
+                        <td class="px-6 py-4 text-center">{{ array_sum(array_column($data, 'tagihan_bermasalah')) }}</td>
+                        <td class="px-6 py-4 text-right">Rp {{ number_format(array_sum(array_column($data, 'tidak_bayar_pokok')), 0, ',', '.') }}</td>
+                        <td class="px-6 py-4 text-right">Rp {{ number_format(array_sum(array_column($data, 'tidak_bayar_bunga')), 0, ',', '.') }}</td>
+                        <td class="px-6 py-4 text-center">{{ number_format(!empty($data) ? array_sum(array_column($data, 'persentase_koleksi')) / count($data) : 0, 1) }}%</td>
                         <td class="px-6 py-4 text-center">BULANAN</td>
                     </tr>
                 </tfoot>
@@ -287,41 +172,6 @@
         </div>
     </div>
 
-    <!-- Recent Activities Section -->
-    @if(isset($recentActivities) && $recentActivities->count() > 0)
-    <div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900">
-                <i class="fas fa-history mr-2 text-purple-600"></i>Aktivitas Pembayaran Terbaru
-            </h3>
-            <p class="text-sm text-gray-600 mt-1">10 pembayaran terbaru dalam periode ini</p>
-        </div>
-        
-        <div class="p-6">
-            <div class="space-y-3">
-                @foreach($recentActivities as $activity)
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-credit-card text-purple-600 text-sm"></i>
-                            </div>
-                        </div>
-                        <div class="ml-3">
-                            <div class="text-sm font-medium text-gray-900">{{ $activity['anggota'] }}</div>
-                            <div class="text-sm text-gray-500">{{ $activity['id'] }} • {{ $activity['tgl_bayar'] }}</div>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-sm font-medium text-gray-900">Rp {{ number_format($activity['jumlah_bayar'], 0, ',', '.') }}</div>
-                        <div class="text-sm text-gray-500">Angsuran ke-{{ $activity['angsuran_ke'] }}</div>
-                    </div>
-                </div>
-                @endforeach
-            </div>
-        </div>
-    </div>
-    @endif
 </div>
 
 <script>
