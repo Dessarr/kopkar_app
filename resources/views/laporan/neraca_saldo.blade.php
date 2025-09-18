@@ -96,44 +96,6 @@
         </button>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-6 transform hover:scale-105 transition-all duration-200 shadow-lg">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-white bg-opacity-20">
-                    <i class="fas fa-arrow-up text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm opacity-90">Total Debet</p>
-                    <p class="text-2xl font-bold">Rp {{ number_format($data['totalDebet']) }}</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg p-6 transform hover:scale-105 transition-all duration-200 shadow-lg">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-white bg-opacity-20">
-                    <i class="fas fa-arrow-down text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm opacity-90">Total Kredit</p>
-                    <p class="text-2xl font-bold">Rp {{ number_format($data['totalKredit']) }}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-gradient-to-r {{ $data['is_balanced'] ? 'from-green-500 to-green-600' : 'from-red-500 to-red-600' }} text-white rounded-lg p-6 transform hover:scale-105 transition-all duration-200 shadow-lg">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-white bg-opacity-20">
-                    <i class="fas {{ $data['is_balanced'] ? 'fa-check-circle' : 'fa-exclamation-triangle' }} text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm opacity-90">Status Keseimbangan</p>
-                    <p class="text-2xl font-bold">{{ $data['is_balanced'] ? 'SEIMBANG' : 'TIDAK SEIMBANG' }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Main Content -->
     <div class="mb-6">
@@ -161,8 +123,6 @@
                         <td class="px-4 py-3 text-sm {{ isset($row['is_header']) && $row['is_header'] ? 'text-gray-800' : 'text-gray-900' }}">
                             @if(isset($row['is_header']) && $row['is_header'])
                                 <i class="fas fa-folder mr-2 text-blue-600"></i>
-                            @elseif(isset($row['is_kas']) && $row['is_kas'])
-                                <i class="fas fa-wallet mr-2 text-green-600"></i>
                             @else
                                 <i class="fas fa-file-invoice mr-2 text-gray-500"></i>
                             @endif
@@ -172,10 +132,10 @@
                             {{ $row['nama'] }}
                         </td>
                         <td class="px-4 py-3 text-sm text-right {{ $row['debet'] > 0 ? 'text-green-600 font-semibold' : 'text-gray-400' }}">
-                            {{ $row['debet'] > 0 ? 'Rp ' . number_format($row['debet']) : '-' }}
+                            {{ $row['debet'] > 0 ? 'Rp ' . number_format($row['debet'], 0, ',', '.') : '-' }}
                         </td>
                         <td class="px-4 py-3 text-sm text-right {{ $row['kredit'] > 0 ? 'text-red-600 font-semibold' : 'text-gray-400' }}">
-                            {{ $row['kredit'] > 0 ? 'Rp ' . number_format($row['kredit']) : '-' }}
+                            {{ $row['kredit'] > 0 ? 'Rp ' . number_format($row['kredit'], 0, ',', '.') : '-' }}
                         </td>
                     </tr>
                     @endforeach
@@ -187,10 +147,10 @@
                             <span class="font-bold text-gray-800">JUMLAH</span>
                         </td>
                         <td class="px-4 py-3 text-sm font-bold text-right text-green-600">
-                            Rp {{ number_format($data['totalDebet']) }}
+                            Rp {{ number_format($data['totalDebet'], 0, ',', '.') }}
                         </td>
                         <td class="px-4 py-3 text-sm font-bold text-right text-red-600">
-                            Rp {{ number_format($data['totalKredit']) }}
+                            Rp {{ number_format($data['totalKredit'], 0, ',', '.') }}
                         </td>
                     </tr>
                 </tfoot>
@@ -226,25 +186,6 @@
     </div>
     @endif
 
-    <!-- Summary Footer -->
-    @if(count($data['rows']) > 0)
-    <div class="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
-        <div class="flex flex-wrap justify-between items-center text-sm text-gray-600">
-            <div class="flex items-center">
-                <i class="fas fa-list mr-2 text-blue-500"></i>
-                <span class="font-medium">Total Akun:</span> {{ count($data['rows']) }} akun
-            </div>
-            <div class="flex items-center">
-                <i class="fas fa-calendar mr-2 text-purple-500"></i>
-                <span class="font-medium">Periode:</span> {{ \Carbon\Carbon::parse($tgl_dari)->format('d F Y') }} - {{ \Carbon\Carbon::parse($tgl_samp)->format('d F Y') }}
-            </div>
-            <div class="flex items-center">
-                <i class="fas fa-balance-scale mr-2 {{ $data['is_balanced'] ? 'text-green-500' : 'text-red-500' }}"></i>
-                <span class="font-medium">Status:</span> {{ $data['is_balanced'] ? 'Seimbang' : 'Tidak Seimbang' }}
-            </div>
-        </div>
-    </div>
-    @endif
 </div>
 
 <!-- JavaScript for Filter Toggle and Presets -->
@@ -341,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Print Styles -->
 <style>
 @media print {
-    .sidebar, .bg-[#14AE5C], button, a {
+    .sidebar, .bg-green-500, button, a {
         display: none !important;
     }
     

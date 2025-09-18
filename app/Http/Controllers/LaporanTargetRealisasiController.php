@@ -43,78 +43,91 @@ class LaporanTargetRealisasiController extends Controller
     }
 
     /**
-     * Get detailed loan data with proper accounting principles
+     * Get detailed loan data using v_hitung_pinjaman view
      * This implements the accounting principle for target vs realization analysis
      */
     private function getDetailPinjaman($tgl_dari, $tgl_samp)
     {
-        $pinjaman = TblPinjamanH::with('anggota')
-            ->whereDate('tgl_pinjam', '>=', $tgl_dari)
-            ->whereDate('tgl_pinjam', '<=', $tgl_samp)
-            ->orderBy('tgl_pinjam', 'asc')
+        // Get loan data from v_hitung_pinjaman view with member data
+        $loans = DB::table('v_hitung_pinjaman as v')
+            ->leftJoin('tbl_anggota as a', 'v.no_ktp', '=', 'a.no_ktp')
+            ->leftJoin('tbl_pinjaman_h as p', 'v.id', '=', 'p.id')
+            ->whereDate('v.tgl_pinjam', '>=', $tgl_dari)
+            ->whereDate('v.tgl_pinjam', '<=', $tgl_samp)
+            ->select(
+                'v.id',
+                'v.no_ktp',
+                'v.jenis_pinjaman',
+                'v.jumlah',
+                'v.lunas',
+                'v.status',
+                'v.tgl_pinjam',
+                'v.total_bayar',
+                'v.sisa_pokok',
+                'v.tagihan',
+                'p.lama_angsuran',
+                'p.jumlah_angsuran',
+                'p.bunga',
+                'p.bunga_rp',
+                'p.biaya_adm',
+                'a.nama',
+                'a.id as anggota_id',
+                'a.jabatan_id',
+                'a.departement'
+            )
+            ->orderBy('v.tgl_pinjam', 'asc')
             ->get();
-        
-        // Filter out loans without anggota relationship
-        $pinjaman = $pinjaman->filter(function($row) {
-            return $row->anggota !== null;
-        });
         
         $result = [];
         $no = 1;
         
-        // Check if there are any valid loans
-        if ($pinjaman->isEmpty()) {
-            return $result;
-        }
-        
-        foreach ($pinjaman as $row) {
-            // Get installment data
-            $angsuran = TblPinjamanD::where('pinjam_id', $row->id)->get();
+        foreach ($loans as $loan) {
+            // Get installment data for calculations
+            $angsuran = TblPinjamanD::where('pinjam_id', $loan->id)->get();
             $bln_sudah_angsur = $angsuran->count();
             
             // Calculate actual payments
-            $total_bayar = $angsuran->sum('jumlah_bayar');
             $bunga_ags = $angsuran->sum('bunga');
             $denda_rp = $angsuran->sum('denda_rp');
             
             // Calculate target vs realization
-            $pokok_angsuran = $row->pokok_angsuran ?? 0;
-            $pokok_bunga = $row->pokok_bunga ?? 0;
-            $biaya_adm = $row->biaya_adm ?? 0;
+            $pokok_angsuran = $loan->jumlah_angsuran ?? 0;
+            $pokok_bunga = $loan->bunga_rp ?? 0;
+            $biaya_adm = $loan->biaya_adm ?? 0;
             
             $target_angsuran_bulanan = $pokok_angsuran + $pokok_bunga + $biaya_adm;
-            $realisasi_pembayaran = $total_bayar + $bunga_ags + $denda_rp;
+            $realisasi_pembayaran = $loan->total_bayar + $bunga_ags + $denda_rp;
             
             // Calculate total target for entire loan period
-            $total_target = $target_angsuran_bulanan * $row->lama_angsuran;
+            $total_target = $target_angsuran_bulanan * $loan->lama_angsuran;
             
             // Calculate remaining installments
-            $sisa_angsuran = $row->lama_angsuran - $bln_sudah_angsur;
+            $sisa_angsuran = $loan->lama_angsuran - $bln_sudah_angsur;
             
             // Calculate completion percentage
             $persentase_realisasi = $total_target > 0 ? ($realisasi_pembayaran / $total_target) * 100 : 0;
             
             // Calculate remaining balance
-            $sisa_tagihan = $row->jumlah - $total_bayar;
+            $sisa_tagihan = $loan->tagihan - $loan->total_bayar;
             
             // Determine loan status
-            $status = $this->determineLoanStatus($row, $bln_sudah_angsur, $sisa_tagihan);
+            $status = $this->determineLoanStatus($loan, $bln_sudah_angsur, $sisa_tagihan);
             
             $result[] = [
                 'no' => $no++,
-                'tgl_pinjam' => $row->tgl_pinjam,
-                'nama' => $row->anggota ? $row->anggota->nama : 'N/A',
-                'id' => 'AG' . str_pad($row->anggota ? $row->anggota->id : 0, 4, '0', STR_PAD_LEFT),
-                'id_anggota' => $row->anggota ? $row->anggota->id : 0,
-                'no_ktp' => $row->anggota ? $row->anggota->no_ktp : '',
-                'jabatan' => ($row->anggota && $row->anggota->jabatan_id == 1) ? 'Pengurus' : 'Anggota',
-                'departemen' => $row->anggota ? $row->anggota->departement : '-',
+                'tgl_pinjam' => Carbon::parse($loan->tgl_pinjam),
+                'nama' => $loan->nama ? 'AG' . str_pad($loan->anggota_id, 8, '0', STR_PAD_LEFT) . '/' . $loan->nama : 'N/A',
+                'id' => 'AG' . str_pad($loan->anggota_id ?? 0, 4, '0', STR_PAD_LEFT),
+                'id_anggota' => $loan->anggota_id ?? 0,
+                'no_ktp' => $loan->no_ktp,
+                'jabatan' => ($loan->jabatan_id == 1) ? 'Pengurus' : 'Anggota',
+                'departemen' => $loan->departement ?? '-',
                 
                 // Target (Rencana) Data
-                'jumlah' => $row->jumlah ?? 0,
-                'sisa_pokok' => $row->sisa_pokok ?? 0,
-                'lama_angsuran' => $row->lama_angsuran ?? 0,
-                'bunga' => $row->bunga ?? 0,
+                'jumlah' => $loan->jumlah ?? 0,
+                'sisa_pokok' => $loan->sisa_pokok ?? 0,
+                'lama_angsuran' => $loan->lama_angsuran ?? 0,
+                'bunga' => $loan->bunga ?? 0,
                 'pokok_angsuran' => $pokok_angsuran,
                 'pokok_bunga' => $pokok_bunga,
                 'biaya_adm' => $biaya_adm,
@@ -125,9 +138,9 @@ class LaporanTargetRealisasiController extends Controller
                 'angsuran_ke' => $bln_sudah_angsur,
                 'bln_sudah_angsur' => $bln_sudah_angsur,
                 'sisa_angsuran' => $sisa_angsuran,
-                'pokok_bayar' => $total_bayar,
+                'pokok_bayar' => $loan->total_bayar,
                 'bunga_bayar' => $bunga_ags,
-                'total_bayar' => $total_bayar,
+                'total_bayar' => $loan->total_bayar,
                 'bunga_ags' => $bunga_ags,
                 'denda_rp' => $denda_rp,
                 'realisasi_pembayaran' => $realisasi_pembayaran,
@@ -140,9 +153,9 @@ class LaporanTargetRealisasiController extends Controller
                 'gap_target_realisasi' => $target_angsuran_bulanan - ($realisasi_pembayaran / max($bln_sudah_angsur, 1)),
                 
                 // Additional Info
-                'lunas' => $row->lunas ?? 'Belum Lunas',
-                'created_at' => $row->created_at ?? now(),
-                'updated_at' => $row->updated_at ?? now()
+                'lunas' => $loan->lunas ?? 'Belum',
+                'created_at' => now(),
+                'updated_at' => now()
             ];
         }
         
@@ -154,7 +167,7 @@ class LaporanTargetRealisasiController extends Controller
      */
     private function determineLoanStatus($loan, $bln_sudah_angsur, $sisa_tagihan)
     {
-        $lunas = $loan->lunas ?? 'Belum Lunas';
+        $lunas = $loan->lunas ?? 'Belum';
         $lama_angsuran = $loan->lama_angsuran ?? 0;
         
         if ($lunas == 'Lunas') {
@@ -319,33 +332,41 @@ class LaporanTargetRealisasiController extends Controller
      */
     private function getRecentLoans($tgl_dari, $tgl_samp)
     {
-        return TblPinjamanH::with('anggota')
-            ->whereDate('tgl_pinjam', '>=', $tgl_dari)
-            ->whereDate('tgl_pinjam', '<=', $tgl_samp)
-            ->orderBy('tgl_pinjam', 'desc')
+        $loans = DB::table('v_hitung_pinjaman as v')
+            ->leftJoin('tbl_anggota as a', 'v.no_ktp', '=', 'a.no_ktp')
+            ->leftJoin('tbl_pinjaman_h as p', 'v.id', '=', 'p.id')
+            ->whereDate('v.tgl_pinjam', '>=', $tgl_dari)
+            ->whereDate('v.tgl_pinjam', '<=', $tgl_samp)
+            ->select(
+                'v.id',
+                'v.jumlah',
+                'v.tgl_pinjam',
+                'v.total_bayar',
+                'v.tagihan',
+                'p.lama_angsuran',
+                'a.nama'
+            )
+            ->orderBy('v.tgl_pinjam', 'desc')
             ->limit(10)
-            ->get()
-            ->filter(function($loan) {
-                return $loan->anggota !== null;
-            })
-            ->map(function ($loan) {
-                $angsuran = TblPinjamanD::where('pinjam_id', $loan->id)->get();
-                $total_bayar = $angsuran->sum('jumlah_bayar');
-                $sisa_tagihan = $loan->jumlah - $total_bayar;
-                
-                // Determine status
-                $status = $this->determineLoanStatus($loan, $angsuran->count(), $sisa_tagihan);
-                
-                return [
-                    'id' => 'PNJ' . str_pad($loan->id, 5, '0', STR_PAD_LEFT),
-                    'anggota' => $loan->anggota ? $loan->anggota->nama : 'N/A',
-                    'jumlah' => $loan->jumlah,
-                    'tgl_pinjam' => $loan->tgl_pinjam->format('d/m/Y'),
-                    'status' => $status,
-                    'sisa_tagihan' => $sisa_tagihan,
-                    'persentase' => $loan->jumlah > 0 ? (($total_bayar / $loan->jumlah) * 100) : 0
-                ];
-            });
+            ->get();
+        
+        return $loans->map(function ($loan) {
+            $angsuran = TblPinjamanD::where('pinjam_id', $loan->id)->get();
+            $sisa_tagihan = $loan->tagihan - $loan->total_bayar;
+            
+            // Determine status
+            $status = $this->determineLoanStatus($loan, $angsuran->count(), $sisa_tagihan);
+            
+            return [
+                'id' => 'PNJ' . str_pad($loan->id, 5, '0', STR_PAD_LEFT),
+                'anggota' => $loan->nama ? 'AG' . str_pad($loan->id, 8, '0', STR_PAD_LEFT) . '/' . $loan->nama : 'N/A',
+                'jumlah' => $loan->jumlah,
+                'tgl_pinjam' => Carbon::parse($loan->tgl_pinjam)->format('d/m/Y'),
+                'status' => $status,
+                'sisa_tagihan' => $sisa_tagihan,
+                'persentase' => $loan->jumlah > 0 ? (($loan->total_bayar / $loan->jumlah) * 100) : 0
+            ];
+        });
     }
 
     /**

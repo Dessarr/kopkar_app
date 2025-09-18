@@ -20,29 +20,28 @@ class LaporanTransaksiKasController extends Controller
         $tgl_samp = $request->input('tgl_samp', date('Y-m-d'));
         $perPage = 20; // 20 data per page as specified
 
-        // Build query using tbl_trans_kas directly with joins
-        $query = DB::table('tbl_trans_kas as t')
-            ->leftJoin('nama_kas_tbl as nk1', 't.dari_kas_id', '=', 'nk1.id')
-            ->leftJoin('nama_kas_tbl as nk2', 't.untuk_kas_id', '=', 'nk2.id')
-            ->leftJoin('jns_akun as ja', 't.jns_trans', '=', 'ja.id')
+        // Build query using v_transaksi view with joins
+        $query = DB::table('v_transaksi as v')
+            ->leftJoin('nama_kas_tbl as nk1', 'v.dari_kas', '=', 'nk1.id')
+            ->leftJoin('nama_kas_tbl as nk2', 'v.untuk_kas', '=', 'nk2.id')
+            ->leftJoin('jns_akun as ja', 'v.transaksi', '=', 'ja.id')
             ->select(
-                't.id',
-                't.tgl_catat as tgl',
-                't.keterangan',
-                DB::raw('CASE WHEN t.dk = "D" THEN t.jumlah ELSE 0 END as debet'),
-                DB::raw('CASE WHEN t.dk = "K" THEN t.jumlah ELSE 0 END as kredit'),
-                't.user_name as user',
-                't.dari_kas_id as dari_kas',
-                't.untuk_kas_id as untuk_kas',
-                't.jns_trans',
-                DB::raw('CASE WHEN t.dk = "D" THEN "48" WHEN t.dk = "K" THEN "7" END as transaksi'),
+                'v.id',
+                'v.tgl',
+                'v.ket as keterangan',
+                'v.debet',
+                'v.kredit',
+                'v.user',
+                'v.dari_kas',
+                'v.untuk_kas',
+                'v.transaksi',
+                'v.nama',
                 'nk1.nama as dari_kas_nama',
                 'nk2.nama as untuk_kas_nama',
                 'ja.jns_trans as akun_transaksi'
             )
-            ->whereBetween(DB::raw('DATE(t.tgl_catat)'), [$tgl_dari, $tgl_samp])
-            ->whereIn('t.dk', ['D', 'K'])
-            ->orderBy('t.tgl_catat', 'asc');
+            ->whereBetween(DB::raw('DATE(v.tgl)'), [$tgl_dari, $tgl_samp])
+            ->orderBy('v.tgl', 'asc');
 
         // Get paginated data
         $dataTransaksi = $query->paginate($perPage);
@@ -50,30 +49,47 @@ class LaporanTransaksiKasController extends Controller
         // Calculate saldo sebelumnya (before tgl_dari)
         $saldoSebelumnya = $this->calculateSaldoSebelumnya($tgl_dari);
 
-        // Calculate running balance for each transaction
+        // Calculate running balance and process data
         $runningBalance = $saldoSebelumnya;
+        $processedData = [];
+        
         foreach ($dataTransaksi as $transaksi) {
+            // Calculate running balance
             $transaksi->saldo = $runningBalance + ($transaksi->debet - $transaksi->kredit);
             $runningBalance = $transaksi->saldo;
+            
+            // Generate transaction code
+            $kodeTransaksi = $this->generateKodeTransaksi($transaksi->transaksi, $transaksi->id);
+            
+            $processedData[] = (object) [
+                'id' => $transaksi->id,
+                'tgl' => $transaksi->tgl,
+                'keterangan' => $transaksi->keterangan,
+                'debet' => $transaksi->debet,
+                'kredit' => $transaksi->kredit,
+                'user' => $transaksi->user,
+                'dari_kas' => $transaksi->dari_kas,
+                'untuk_kas' => $transaksi->untuk_kas,
+                'transaksi' => $transaksi->transaksi,
+                'nama' => $transaksi->nama,
+                'dari_kas_nama' => $transaksi->dari_kas_nama,
+                'untuk_kas_nama' => $transaksi->untuk_kas_nama,
+                'akun_transaksi' => $transaksi->akun_transaksi,
+                'saldo' => $transaksi->saldo,
+                'kode_transaksi' => $kodeTransaksi
+            ];
         }
-
-        // Calculate totals
-        $totalDebet = $dataTransaksi->sum('debet');
-        $totalKredit = $dataTransaksi->sum('kredit');
-        $saldoAkhir = $saldoSebelumnya + ($totalDebet - $totalKredit);
 
         // Format periode text
         $periodeText = Carbon::parse($tgl_dari)->format('d/m/Y') . ' - ' . Carbon::parse($tgl_samp)->format('d/m/Y');
 
         return view('laporan.transaksi_kas', compact(
             'dataTransaksi',
+            'processedData',
             'tgl_dari',
             'tgl_samp',
             'periodeText',
-            'saldoSebelumnya',
-            'totalDebet',
-            'totalKredit',
-            'saldoAkhir'
+            'saldoSebelumnya'
         ));
     }
 
@@ -83,29 +99,28 @@ class LaporanTransaksiKasController extends Controller
         $tgl_dari = $request->input('tgl_dari', date('Y-m-d'));
         $tgl_samp = $request->input('tgl_samp', date('Y-m-d'));
 
-        // Build query using tbl_trans_kas directly with joins
-        $query = DB::table('tbl_trans_kas as t')
-            ->leftJoin('nama_kas_tbl as nk1', 't.dari_kas_id', '=', 'nk1.id')
-            ->leftJoin('nama_kas_tbl as nk2', 't.untuk_kas_id', '=', 'nk2.id')
-            ->leftJoin('jns_akun as ja', 't.jns_trans', '=', 'ja.id')
+        // Build query using v_transaksi view with joins
+        $query = DB::table('v_transaksi as v')
+            ->leftJoin('nama_kas_tbl as nk1', 'v.dari_kas', '=', 'nk1.id')
+            ->leftJoin('nama_kas_tbl as nk2', 'v.untuk_kas', '=', 'nk2.id')
+            ->leftJoin('jns_akun as ja', 'v.transaksi', '=', 'ja.id')
             ->select(
-                't.id',
-                't.tgl_catat as tgl',
-                't.keterangan',
-                DB::raw('CASE WHEN t.dk = "D" THEN t.jumlah ELSE 0 END as debet'),
-                DB::raw('CASE WHEN t.dk = "K" THEN t.jumlah ELSE 0 END as kredit'),
-                't.user_name as user',
-                't.dari_kas_id as dari_kas',
-                't.untuk_kas_id as untuk_kas',
-                't.jns_trans',
-                DB::raw('CASE WHEN t.dk = "D" THEN "48" WHEN t.dk = "K" THEN "7" END as transaksi'),
+                'v.id',
+                'v.tgl',
+                'v.ket as keterangan',
+                'v.debet',
+                'v.kredit',
+                'v.user',
+                'v.dari_kas',
+                'v.untuk_kas',
+                'v.transaksi',
+                'v.nama',
                 'nk1.nama as dari_kas_nama',
                 'nk2.nama as untuk_kas_nama',
                 'ja.jns_trans as akun_transaksi'
             )
-            ->whereBetween(DB::raw('DATE(t.tgl_catat)'), [$tgl_dari, $tgl_samp])
-            ->whereIn('t.dk', ['D', 'K'])
-            ->orderBy('t.tgl_catat', 'asc');
+            ->whereBetween(DB::raw('DATE(v.tgl)'), [$tgl_dari, $tgl_samp])
+            ->orderBy('v.tgl', 'asc');
 
         // Get all data for PDF
         $dataTransaksi = $query->get();
@@ -113,28 +128,45 @@ class LaporanTransaksiKasController extends Controller
         // Calculate saldo sebelumnya (before tgl_dari)
         $saldoSebelumnya = $this->calculateSaldoSebelumnya($tgl_dari);
 
-        // Calculate running balance for each transaction
+        // Calculate running balance and process data
         $runningBalance = $saldoSebelumnya;
+        $processedData = [];
+        
         foreach ($dataTransaksi as $transaksi) {
+            // Calculate running balance
             $transaksi->saldo = $runningBalance + ($transaksi->debet - $transaksi->kredit);
             $runningBalance = $transaksi->saldo;
+            
+            // Generate transaction code
+            $kodeTransaksi = $this->generateKodeTransaksi($transaksi->transaksi, $transaksi->id);
+            
+            $processedData[] = (object) [
+                'id' => $transaksi->id,
+                'tgl' => $transaksi->tgl,
+                'keterangan' => $transaksi->keterangan,
+                'debet' => $transaksi->debet,
+                'kredit' => $transaksi->kredit,
+                'user' => $transaksi->user,
+                'dari_kas' => $transaksi->dari_kas,
+                'untuk_kas' => $transaksi->untuk_kas,
+                'transaksi' => $transaksi->transaksi,
+                'nama' => $transaksi->nama,
+                'dari_kas_nama' => $transaksi->dari_kas_nama,
+                'untuk_kas_nama' => $transaksi->untuk_kas_nama,
+                'akun_transaksi' => $transaksi->akun_transaksi,
+                'saldo' => $transaksi->saldo,
+                'kode_transaksi' => $kodeTransaksi
+            ];
         }
-
-        // Calculate totals
-        $totalDebet = $dataTransaksi->sum('debet');
-        $totalKredit = $dataTransaksi->sum('kredit');
-        $saldoAkhir = $saldoSebelumnya + ($totalDebet - $totalKredit);
 
         // Format periode text
         $periodeText = Carbon::parse($tgl_dari)->format('d/m/Y') . ' - ' . Carbon::parse($tgl_samp)->format('d/m/Y');
 
         $pdf = Pdf::loadView('laporan.pdf.transaksi_kas', compact(
             'dataTransaksi',
+            'processedData',
             'periodeText',
-            'saldoSebelumnya',
-            'totalDebet',
-            'totalKredit',
-            'saldoAkhir'
+            'saldoSebelumnya'
         ));
 
         return $pdf->download('laporan_transaksi_kas_' . date('Ymd') . '.pdf');
@@ -146,10 +178,9 @@ class LaporanTransaksiKasController extends Controller
      */
     private function calculateSaldoSebelumnya($tgl_dari)
     {
-        $saldoSebelumnya = DB::table('tbl_trans_kas')
-            ->selectRaw('SUM(CASE WHEN dk = "D" THEN jumlah ELSE 0 END) - SUM(CASE WHEN dk = "K" THEN jumlah ELSE 0 END) as saldo')
-            ->where(DB::raw('DATE(tgl_catat)'), '<', $tgl_dari)
-            ->whereIn('dk', ['D', 'K'])
+        $saldoSebelumnya = DB::table('v_transaksi')
+            ->selectRaw('SUM(debet) - SUM(kredit) as saldo')
+            ->where(DB::raw('DATE(tgl)'), '<', $tgl_dari)
             ->value('saldo');
 
         return $saldoSebelumnya ?? 0;

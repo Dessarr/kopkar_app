@@ -19,22 +19,18 @@ class LaporanKasSimpananController extends Controller
         // Get filter parameters with default values
         $periode = $request->input('periode', date('Y-m'));
         
-        // Get all active members
-        $anggotaList = data_anggota::where('aktif', 'Y')->orderBy('nama')->get();
-        
         // Get specific savings types as per specification
         $jenisSimpanan = jns_simpan::whereIn('id', [31, 32, 40, 41, 51, 52])
             ->orderBy('urut')
             ->get();
         
-        // Get detailed savings data with proper accounting logic
-        $data = $this->getRekapSimpanan($anggotaList, $jenisSimpanan, $periode);
+        // Get detailed savings data using v_rekap_simpanan
+        $data = $this->getRekapSimpananFromView($jenisSimpanan, $periode);
         
         // Calculate summary statistics
-        $summary = $this->calculateSummary($data, $jenisSimpanan);
+        $summary = $this->calculateSummaryFromView($data, $jenisSimpanan);
         
         return view('laporan.kas_simpanan', compact(
-            'anggotaList',
             'jenisSimpanan',
             'periode',
             'data',
@@ -43,7 +39,89 @@ class LaporanKasSimpananController extends Controller
     }
 
     /**
-     * Get detailed savings data with proper accounting classification
+     * Get detailed savings data using v_rekap_simpanan view
+     * This implements the accounting principle of subsidiary ledger for savings
+     */
+    private function getRekapSimpananFromView($jenisSimpanan, $periode)
+    {
+        $result = [];
+        $tglArr = explode('-', $periode);
+        $thn = $tglArr[0];
+        $bln = $tglArr[1];
+        
+        // Group data by jenis simpanan
+        foreach ($jenisSimpanan as $jenis) {
+            $jenisData = [
+                'jenis_id' => $jenis->id,
+                'jenis_nama' => $jenis->jns_simpan,
+                'transaksi' => []
+            ];
+            
+            // Get transactions for this savings type from v_rekap_simpanan
+            $transactions = DB::table('v_rekap_simpanan')
+                ->where('jenis_id', $jenis->id)
+                ->whereYear('tgl_transaksi', $thn)
+                ->whereMonth('tgl_transaksi', $bln)
+                ->orderBy('tgl_transaksi', 'desc')
+                ->orderBy('nama')
+                ->get();
+            
+            $no = 1;
+            foreach ($transactions as $transaction) {
+                $jenisData['transaksi'][] = [
+                    'no' => $no++,
+                    'tanggal' => $transaction->tgl_transaksi,
+                    'nama' => $transaction->nama,
+                    'debet' => $transaction->Debet,
+                    'kredit' => $transaction->Kredit
+                ];
+            }
+            
+            $result[] = $jenisData;
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Calculate summary statistics from v_rekap_simpanan data
+     */
+    private function calculateSummaryFromView($data, $jenisSimpanan)
+    {
+        $summary = [
+            'total_debet' => 0,
+            'total_kredit' => 0,
+            'per_jenis' => []
+        ];
+        
+        foreach ($data as $jenisData) {
+            $totalDebet = 0;
+            $totalKredit = 0;
+            
+            foreach ($jenisData['transaksi'] as $transaksi) {
+                $totalDebet += $transaksi['debet'];
+                $totalKredit += $transaksi['kredit'];
+            }
+            
+            $summary['per_jenis'][$jenisData['jenis_id']] = [
+                'nama' => $jenisData['jenis_nama'],
+                'debet' => $totalDebet,
+                'kredit' => $totalKredit,
+                'saldo' => $totalDebet - $totalKredit,
+                'jumlah_transaksi' => count($jenisData['transaksi'])
+            ];
+            
+            $summary['total_debet'] += $totalDebet;
+            $summary['total_kredit'] += $totalKredit;
+        }
+        
+        $summary['total_saldo'] = $summary['total_debet'] - $summary['total_kredit'];
+        
+        return $summary;
+    }
+
+    /**
+     * Get detailed savings data with proper accounting classification (OLD METHOD - KEEP FOR REFERENCE)
      * This implements the accounting principle of subsidiary ledger for savings
      */
     private function getRekapSimpanan($anggotaList, $jenisSimpanan, $periode)
@@ -192,12 +270,11 @@ class LaporanKasSimpananController extends Controller
         $periode = $request->input('periode', date('Y-m'));
         
         // Get data
-        $anggotaList = data_anggota::where('aktif', 'Y')->orderBy('nama')->get();
         $jenisSimpanan = jns_simpan::whereIn('id', [31, 32, 40, 41, 51, 52])
             ->orderBy('urut')
             ->get();
-        $data = $this->getRekapSimpanan($anggotaList, $jenisSimpanan, $periode);
-        $summary = $this->calculateSummary($data, $jenisSimpanan);
+        $data = $this->getRekapSimpananFromView($jenisSimpanan, $periode);
+        $summary = $this->calculateSummaryFromView($data, $jenisSimpanan);
         
         // Format period text
         $periodeText = Carbon::createFromFormat('Y-m', $periode)->format('F Y');
@@ -219,12 +296,11 @@ class LaporanKasSimpananController extends Controller
         $periode = $request->input('periode', date('Y-m'));
         
         // Get data
-        $anggotaList = data_anggota::where('aktif', 'Y')->orderBy('nama')->get();
         $jenisSimpanan = jns_simpan::whereIn('id', [31, 32, 40, 41, 51, 52])
             ->orderBy('urut')
             ->get();
-        $data = $this->getRekapSimpanan($anggotaList, $jenisSimpanan, $periode);
-        $summary = $this->calculateSummary($data, $jenisSimpanan);
+        $data = $this->getRekapSimpananFromView($jenisSimpanan, $periode);
+        $summary = $this->calculateSummaryFromView($data, $jenisSimpanan);
         
         // Format period text
         $periodeText = Carbon::createFromFormat('Y-m', $periode)->format('F Y');

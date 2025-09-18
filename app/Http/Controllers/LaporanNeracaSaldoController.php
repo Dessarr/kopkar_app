@@ -28,8 +28,8 @@ class LaporanNeracaSaldoController extends Controller
             ->orderByRaw("LPAD(kd_aktiva, 1, 0) ASC, LPAD(kd_aktiva, 5, 1) ASC")
             ->get();
         
-        // Get neraca data with proper accounting logic
-        $data = $this->getNeracaData($kasList, $akunList, $tgl_dari, $tgl_samp);
+        // Get neraca data using v_transaksi
+        $data = $this->getNeracaDataFromView($kasList, $akunList, $tgl_dari, $tgl_samp);
         
         return view('laporan.neraca_saldo', compact(
             'kasList',
@@ -41,7 +41,143 @@ class LaporanNeracaSaldoController extends Controller
     }
 
     /**
-     * Get neraca data with proper accounting classification
+     * Get neraca data using v_transaksi view
+     * This implements the accounting principle of trial balance
+     */
+    private function getNeracaDataFromView($kasList, $akunList, $tgl_dari, $tgl_samp)
+    {
+        $result = [];
+        $no = 1;
+        $totalDebet = 0;
+        $totalKredit = 0;
+        
+        // Group accounts by category based on kd_aktiva
+        $groupedAccounts = $this->groupAccountsByCategory($akunList);
+        
+        // Process each category
+        foreach ($groupedAccounts as $category => $accounts) {
+            // Skip empty categories
+            if (empty($accounts)) {
+                continue;
+            }
+            
+            // Add category header
+            $result[] = [
+                'no' => '',
+                'nama' => $category,
+                'debet' => 0,
+                'kredit' => 0,
+                'is_header' => true,
+                'is_kas' => false
+            ];
+            
+            // Remove duplicate accounts by kd_aktiva
+            $uniqueAccounts = [];
+            $seenKdAktiva = [];
+            
+            foreach ($accounts as $akun) {
+                if (!in_array($akun->kd_aktiva, $seenKdAktiva)) {
+                    $uniqueAccounts[] = $akun;
+                    $seenKdAktiva[] = $akun->kd_aktiva;
+                }
+            }
+            
+            // Process unique accounts in this category
+            foreach ($uniqueAccounts as $akun) {
+                $akunData = $this->calculateAkunSaldoFromView($akun, $tgl_dari, $tgl_samp);
+                
+                $result[] = [
+                    'no' => $akun->kd_aktiva,
+                    'nama' => $akun->jns_trans,
+                    'debet' => $akunData['debet'],
+                    'kredit' => $akunData['kredit'],
+                    'is_header' => false,
+                    'is_kas' => false,
+                    'saldo' => $akunData['saldo']
+                ];
+                
+                $totalDebet += $akunData['debet'];
+                $totalKredit += $akunData['kredit'];
+            }
+        }
+        
+        return [
+            'rows' => $result,
+            'totalDebet' => $totalDebet,
+            'totalKredit' => $totalKredit,
+            'is_balanced' => $totalDebet == $totalKredit
+        ];
+    }
+
+    /**
+     * Group accounts by category based on kd_aktiva
+     */
+    private function groupAccountsByCategory($akunList)
+    {
+        $grouped = [];
+        
+        foreach ($akunList as $akun) {
+            $firstChar = substr($akun->kd_aktiva, 0, 1);
+            
+            // Initialize array if not exists
+            if (!isset($grouped[$firstChar])) {
+                $grouped[$firstChar] = [];
+            }
+            
+            $grouped[$firstChar][] = $akun;
+        }
+        
+        // Convert to proper category names
+        $categoryMap = [
+            'A' => 'A. AKTIVA LANCAR',
+            'B' => 'B. AKTIVA LAINNYA', 
+            'C' => 'C. AKTIVA TETAP BERWUJUD',
+            'D' => 'D. AKTIVA TETAP TIDAK BERWUJUD',
+            'E' => 'E. AKTIVA LAIN-LAIN',
+            'F' => 'F. UTANG',
+            'G' => 'G. UTANG JANGKA PENDEK',
+            'H' => 'H. UTANG JANGKA PANJANG',
+            'I' => 'I. MODAL',
+            'J' => 'J. PENDAPATAN',
+            'K' => 'K. BEBAN',
+        ];
+        
+        $result = [];
+        foreach ($grouped as $key => $accounts) {
+            $categoryName = $categoryMap[$key] ?? 'L. LAIN-LAIN';
+            $result[$categoryName] = $accounts;
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Calculate account saldo using v_transaksi view with aggregation to prevent duplicates
+     */
+    private function calculateAkunSaldoFromView($akun, $tgl_dari, $tgl_samp)
+    {
+        // Get aggregated transactions for this account from v_transaksi to prevent duplicates
+        $result = DB::table('v_transaksi')
+            ->where('transaksi', $akun->id)
+            ->whereDate('tgl', '>=', $tgl_dari)
+            ->whereDate('tgl', '<=', $tgl_samp)
+            ->selectRaw('SUM(debet) as total_debet, SUM(kredit) as total_kredit')
+            ->first();
+        
+        $totalDebet = $result->total_debet ?? 0;
+        $totalKredit = $result->total_kredit ?? 0;
+        
+        // In v_transaksi, debet and kredit are already in final format
+        // So we can use them directly without additional calculation
+        return [
+            'debet' => $totalDebet,
+            'kredit' => $totalKredit,
+            'saldo' => $totalDebet - $totalKredit
+        ];
+    }
+
+    /**
+     * Get neraca data with proper accounting classification (OLD METHOD - KEEP FOR REFERENCE)
      * This implements the accounting principle of trial balance
      */
     private function getNeracaData($kasList, $akunList, $tgl_dari, $tgl_samp)
@@ -261,7 +397,7 @@ class LaporanNeracaSaldoController extends Controller
         $akunList = jns_akun::where('aktif', 'Y')
             ->orderByRaw("LPAD(kd_aktiva, 1, 0) ASC, LPAD(kd_aktiva, 5, 1) ASC")
             ->get();
-        $data = $this->getNeracaData($kasList, $akunList, $tgl_dari, $tgl_samp);
+        $data = $this->getNeracaDataFromView($kasList, $akunList, $tgl_dari, $tgl_samp);
         
         // Format dates
         $periodeText = Carbon::parse($tgl_dari)->format('d F Y') . ' - ' . Carbon::parse($tgl_samp)->format('d F Y');
@@ -287,7 +423,7 @@ class LaporanNeracaSaldoController extends Controller
         $akunList = jns_akun::where('aktif', 'Y')
             ->orderByRaw("LPAD(kd_aktiva, 1, 0) ASC, LPAD(kd_aktiva, 5, 1) ASC")
             ->get();
-        $data = $this->getNeracaData($kasList, $akunList, $tgl_dari, $tgl_samp);
+        $data = $this->getNeracaDataFromView($kasList, $akunList, $tgl_dari, $tgl_samp);
         
         // Format dates
         $periodeText = Carbon::parse($tgl_dari)->format('d F Y') . ' - ' . Carbon::parse($tgl_samp)->format('d F Y');

@@ -20,30 +20,139 @@ class LaporanKasPinjamanController extends Controller
         $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
         $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
         
-        // Get loan data with proper accounting logic
-        $data = $this->getRekapPinjaman($tgl_dari, $tgl_samp);
+        // Get loan data using v_hitung_pinjaman
+        $data = $this->getRekapPinjamanFromView($tgl_dari, $tgl_samp);
         
-        // Get detailed loan statistics
-        $statistics = $this->getLoanStatistics($tgl_dari, $tgl_samp);
-        
-        // Get recent loan activities
-        $recentLoans = $this->getRecentLoans($tgl_dari, $tgl_samp);
-        
-        // Calculate period summary
-        $periodSummary = $this->calculatePeriodSummary($tgl_dari, $tgl_samp);
+        // Calculate summary statistics
+        $summary = $this->calculateSummaryFromView($data);
         
         return view('laporan.kas_pinjaman', compact(
             'tgl_dari',
             'tgl_samp',
             'data',
-            'statistics',
-            'recentLoans',
-            'periodSummary'
+            'summary'
         ));
     }
 
     /**
-     * Get comprehensive loan data with proper accounting principles
+     * Get comprehensive loan data using tbl_pinjaman_h and v_hitung_pinjaman
+     * This implements the accounting principle for loan management and credit risk
+     */
+    private function getRekapPinjamanFromView($tgl_dari, $tgl_samp)
+    {
+        // Get loan data from tbl_pinjaman_h with payment data from v_hitung_pinjaman
+        $loans = DB::table('tbl_pinjaman_h as p')
+            ->leftJoin('v_hitung_pinjaman as v', 'p.id', '=', 'v.id')
+            ->whereDate('p.tgl_pinjam', '>=', $tgl_dari)
+            ->whereDate('p.tgl_pinjam', '<=', $tgl_samp)
+            ->select(
+                'p.id',
+                'p.no_ktp',
+                'p.tgl_pinjam',
+                'p.lama_angsuran',
+                'p.jumlah_angsuran',
+                'p.jumlah',
+                'p.bunga',
+                'p.bunga_rp',
+                'p.biaya_adm',
+                'p.lunas',
+                'p.status',
+                'p.jenis_pinjaman',
+                'v.total_bayar',
+                'v.sisa_pokok',
+                'v.tagihan'
+            )
+            ->orderBy('p.tgl_pinjam', 'asc')
+            ->get();
+        
+        $result = [];
+        $no = 1;
+        
+        foreach ($loans as $loan) {
+            // Get member data
+            $anggota = data_anggota::where('no_ktp', $loan->no_ktp)->first();
+            
+            // Calculate remaining installments
+            $sisa_angsuran = $loan->lama_angsuran - $this->calculatePaidInstallments($loan->id);
+            
+            // Calculate remaining balance
+            $sisa_tagihan = $loan->tagihan - $loan->total_bayar;
+            
+            // Generate loan code
+            $kode_pinjam = 'TPJ' . str_pad($loan->id, 5, '0', STR_PAD_LEFT);
+            
+            $result[] = [
+                'no' => $no++,
+                'id' => $loan->id,
+                'kode_pinjam' => $kode_pinjam,
+                'tgl_pinjam' => $loan->tgl_pinjam,
+                'nama' => $anggota ? 'AG' . str_pad($anggota->id, 8, '0', STR_PAD_LEFT) . '/' . $anggota->nama : 'N/A',
+                'pokok_pinjaman' => $loan->jumlah,
+                'lama_angsuran' => $loan->lama_angsuran ?? 0,
+                'bunga' => $loan->bunga ?? 0,
+                'biaya_adm' => $loan->biaya_adm ?? 0,
+                'pokok_angsuran' => $loan->jumlah_angsuran ?? 0,
+                'bunga_pinjaman' => $loan->bunga_rp ?? 0,
+                'angsuran' => ($loan->jumlah_angsuran ?? 0) + ($loan->bunga_rp ?? 0),
+                'jumlah_bayar' => $loan->total_bayar ?? 0,
+                'sisa_angsuran' => $sisa_angsuran,
+                'sisa_tagihan' => $sisa_tagihan,
+                'status' => $loan->lunas
+            ];
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Calculate paid installments for a loan
+     */
+    private function calculatePaidInstallments($pinjamId)
+    {
+        return DB::table('tbl_pinjaman_d')
+            ->where('pinjam_id', $pinjamId)
+            ->count();
+    }
+    
+    /**
+     * Calculate summary statistics from v_hitung_pinjaman data
+     */
+    private function calculateSummaryFromView($data)
+    {
+        $total_pinjaman = 0;
+        $total_bayar = 0;
+        $total_sisa = 0;
+        $peminjam_aktif = count($data);
+        $peminjam_lunas = 0;
+        $peminjam_belum = 0;
+        
+        foreach ($data as $loan) {
+            $total_pinjaman += $loan['pokok_pinjaman'];
+            $total_bayar += $loan['jumlah_bayar'];
+            $total_sisa += $loan['sisa_tagihan'];
+            
+            if ($loan['status'] == 'Lunas') {
+                $peminjam_lunas++;
+            } else {
+                $peminjam_belum++;
+            }
+        }
+        
+        $completion_rate = $peminjam_aktif > 0 ? ($peminjam_lunas / $peminjam_aktif) * 100 : 0;
+        
+        return [
+            'total_pinjaman' => $total_pinjaman,
+            'total_bayar' => $total_bayar,
+            'total_sisa' => $total_sisa,
+            'peminjam_aktif' => $peminjam_aktif,
+            'peminjam_lunas' => $peminjam_lunas,
+            'peminjam_belum' => $peminjam_belum,
+            'completion_rate' => $completion_rate
+        ];
+    }
+
+    /**
+     * Get comprehensive loan data with proper accounting principles (OLD METHOD - KEEP FOR REFERENCE)
      * This implements the accounting principle for loan management and credit risk
      */
     private function getRekapPinjaman($tgl_dari, $tgl_samp)
@@ -192,9 +301,8 @@ class LaporanKasPinjamanController extends Controller
         $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
         
         // Get data
-        $data = $this->getRekapPinjaman($tgl_dari, $tgl_samp);
-        $statistics = $this->getLoanStatistics($tgl_dari, $tgl_samp);
-        $periodSummary = $this->calculatePeriodSummary($tgl_dari, $tgl_samp);
+        $data = $this->getRekapPinjamanFromView($tgl_dari, $tgl_samp);
+        $summary = $this->calculateSummaryFromView($data);
         
         // Format dates
         $tgl_dari_formatted = Carbon::parse($tgl_dari)->format('d F Y');
@@ -206,8 +314,7 @@ class LaporanKasPinjamanController extends Controller
             'tgl_dari_formatted',
             'tgl_samp_formatted',
             'data',
-            'statistics',
-            'periodSummary'
+            'summary'
         ));
 
         return $pdf->download('laporan_kas_pinjaman_' . $tgl_dari . '_' . $tgl_samp . '.pdf');
@@ -220,9 +327,8 @@ class LaporanKasPinjamanController extends Controller
         $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
         
         // Get data
-        $data = $this->getRekapPinjaman($tgl_dari, $tgl_samp);
-        $statistics = $this->getLoanStatistics($tgl_dari, $tgl_samp);
-        $periodSummary = $this->calculatePeriodSummary($tgl_dari, $tgl_samp);
+        $data = $this->getRekapPinjamanFromView($tgl_dari, $tgl_samp);
+        $summary = $this->calculateSummaryFromView($data);
         
         // Format dates
         $tgl_dari_formatted = Carbon::parse($tgl_dari)->format('d F Y');
@@ -258,17 +364,17 @@ class LaporanKasPinjamanController extends Controller
         
         // Fill data
         $rows = [
-            ['Pokok Pinjaman', $data['jml_pinjaman']],
-            ['Tagihan Denda', $data['jml_denda']],
-            ['Jumlah Tagihan + Denda', $data['tot_tagihan']],
-            ['Tagihan Sudah Dibayar', $data['jml_angsuran']],
-            ['Sisa Tagihan', $data['sisa_tagihan']]
+            ['Pokok Pinjaman', $summary['total_pinjaman']],
+            ['Tagihan Denda', 0], // No penalty data in current structure
+            ['Jumlah Tagihan + Denda', $summary['total_pinjaman']],
+            ['Tagihan Sudah Dibayar', $summary['total_bayar']],
+            ['Sisa Tagihan', $summary['total_sisa']]
         ];
         
         $rowNum = 5;
         $no = 1;
         foreach ($rows as $row) {
-            $percentage = $data['tot_tagihan'] > 0 ? ($row[1] / $data['tot_tagihan']) * 100 : 0;
+            $percentage = $summary['total_pinjaman'] > 0 ? ($row[1] / $summary['total_pinjaman']) * 100 : 0;
             
             $sheet->setCellValue('A' . $rowNum, $no++);
             $sheet->setCellValue('B' . $rowNum, $row[0]);
@@ -281,7 +387,7 @@ class LaporanKasPinjamanController extends Controller
         $totalRow = $rowNum + 1;
         $sheet->setCellValue('A' . $totalRow, 'TOTAL');
         $sheet->setCellValue('B' . $totalRow, 'Total Keseluruhan');
-        $sheet->setCellValue('C' . $totalRow, $data['tot_tagihan']);
+        $sheet->setCellValue('C' . $totalRow, $summary['total_pinjaman']);
         $sheet->setCellValue('D' . $totalRow, '100.00%');
         
         // Style totals
@@ -298,12 +404,10 @@ class LaporanKasPinjamanController extends Controller
         $sheet->getStyle('A' . $statsRow)->getFont()->setBold(true)->setSize(14);
         
         $statsData = [
-            ['Peminjam Aktif', $statistics['peminjam_aktif']],
-            ['Peminjam Lunas', $statistics['peminjam_lunas']],
-            ['Peminjam Belum Lunas', $statistics['peminjam_belum']],
-            ['Tingkat Pelunasan', number_format($statistics['completion_rate'], 2) . '%'],
-            ['Pinjaman Terlambat', $statistics['overdue_loans']],
-            ['Tingkat Keterlambatan', number_format($statistics['overdue_rate'], 2) . '%']
+            ['Peminjam Aktif', $summary['peminjam_aktif']],
+            ['Peminjam Lunas', $summary['peminjam_lunas']],
+            ['Peminjam Belum Lunas', $summary['peminjam_belum']],
+            ['Tingkat Pelunasan', number_format($summary['completion_rate'], 2) . '%']
         ];
         
         $statsRow++;

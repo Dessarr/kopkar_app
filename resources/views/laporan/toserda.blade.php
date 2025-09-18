@@ -13,15 +13,16 @@
                 Laporan Rugi Laba Toserda
             </h2>
             <div class="flex gap-2">
-                <a href="{{ route('laporan.toserda.export.pdf', request()->query()) }}" 
-                   class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">
+                <a href="{{ route('laporan.toserda.export.pdf', request()->query()) }}"
+                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">
                     <i class="fas fa-file-pdf mr-2"></i>Cetak Laporan
                 </a>
-                <a href="{{ route('laporan.toserda.export.excel', request()->query()) }}" 
-                   class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
+                <a href="{{ route('laporan.toserda.export.excel', request()->query()) }}"
+                    class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
                     <i class="fas fa-file-excel mr-2"></i>Export Excel
                 </a>
-                <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
+                <button onclick="window.print()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
                     <i class="fas fa-print mr-2"></i>Print
                 </button>
             </div>
@@ -34,29 +35,30 @@
             <form method="GET" action="{{ route('laporan.toserda') }}" class="flex flex-wrap gap-4 items-end">
                 <div class="flex-1 min-w-[200px]">
                     <label for="tahun" class="block text-sm font-medium text-gray-700 mb-2">Tahun</label>
-                    <select name="tahun" id="tahun" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
+                    <select name="tahun" id="tahun"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
                         @for($i = date('Y'); $i >= 2020; $i--)
-                            <option value="{{ $i }}" {{ $tahun == $i ? 'selected' : '' }}>{{ $i }}</option>
+                        <option value="{{ $i }}" {{ $tahun == $i ? 'selected' : '' }}>{{ $i }}</option>
                         @endfor
                     </select>
                 </div>
                 <div class="flex-1 min-w-[200px]">
                     <label for="tgl_dari" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Dari</label>
-                    <input type="date" id="tgl_dari" name="tgl_dari" 
-                           value="{{ $tgl_dari }}" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
+                    <input type="date" id="tgl_dari" name="tgl_dari" value="{{ $tgl_dari }}" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
                 </div>
                 <div class="flex-1 min-w-[200px]">
                     <label for="tgl_samp" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Sampai</label>
-                    <input type="date" id="tgl_samp" name="tgl_samp" 
-                           value="{{ $tgl_samp }}" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
+                    <input type="date" id="tgl_samp" name="tgl_samp" value="{{ $tgl_samp }}" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#14AE5C] focus:border-transparent">
                 </div>
                 <div class="flex gap-2">
-                    <button type="submit" class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#11994F] transition-colors duration-200">
+                    <button type="submit"
+                        class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#11994F] transition-colors duration-200">
                         <i class="fas fa-filter mr-2"></i>Filter
                     </button>
-                    <a href="{{ route('laporan.toserda') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
+                    <a href="{{ route('laporan.toserda') }}"
+                        class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
                         <i class="fas fa-refresh mr-2"></i>Hapus Filter
                     </a>
                 </div>
@@ -130,26 +132,37 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Transaksi</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                No.</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Keterangan</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Total</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        @forelse($dataPenjualan as $penjualan)
+                        @forelse($dataPenjualan as $index => $penjualan)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $penjualan->jenisAkun->nama_akun ?? 'Pendapatan' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($penjualan->TOTAL ?? 0, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ $penjualan->jns_trans ?? 'Pendapatan' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($penjualan->TOTAL ?? 0, 0, ',', '.') }}</td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">Tidak ada data pendapatan</td>
+                            <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">Tidak ada data
+                                pendapatan</td>
                         </tr>
                         @endforelse
                     </tbody>
                     <tfoot class="bg-blue-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Total Pendapatan Usaha</th>
-                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Rp {{ number_format($labaKotor->pendapatan_usaha, 0, ',', '.') }}</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">-</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Total Pendapatan Usaha
+                            </th>
+                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Rp
+                                {{ number_format($labaKotor->pendapatan_usaha, 0, ',', '.') }}</th>
                         </tr>
                     </tfoot>
                 </table>
@@ -165,39 +178,65 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Komponen</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                No.</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Keterangan</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Jumlah</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        @forelse($dataPembelian as $pembelian)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $pembelian->jenisAkun->nama_akun ?? 'Pembelian' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($pembelian->TOTAL ?? 0, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">-</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Persediaan Awal Brg Dagangan
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($labaKotor->persediaan_awal, 0, ',', '.') }}</td>
+                        </tr>
+                        @forelse($dataPembelian as $index => $pembelian)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ $pembelian->jns_trans ?? 'Pembelian' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($pembelian->TOTAL ?? 0, 0, ',', '.') }}</td>
                         </tr>
                         @empty
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Pembelian Bersih</td>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Pembelian</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp 0</td>
                         </tr>
                         @endforelse
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Persediaan Awal</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($labaKotor->persediaan_awal, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">-</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Pembelian Bersih</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($labaKotor->pembelian_bersih, 0, ',', '.') }}</td>
                         </tr>
                         <tr class="bg-orange-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">Barang Tersedia untuk Dijual</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold">Rp {{ number_format($labaKotor->barang_tersedia, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">-</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">Barang Tersedia
+                                Untuk Dijual</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold">Rp
+                                {{ number_format($labaKotor->barang_tersedia, 0, ',', '.') }}</td>
                         </tr>
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Persediaan Akhir</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($labaKotor->persediaan_akhir, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">-</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Persediaan Akhir Brng Dagangan
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($labaKotor->persediaan_akhir, 0, ',', '.') }}</td>
                         </tr>
                     </tbody>
                     <tfoot class="bg-orange-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Harga Pokok Penjualan</th>
-                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Rp {{ number_format($labaKotor->hpp, 0, ',', '.') }}</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">-</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Harga Pokok Penjualan
+                            </th>
+                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Rp
+                                {{ number_format($labaKotor->hpp, 0, ',', '.') }}</th>
                         </tr>
                     </tfoot>
                 </table>
@@ -209,7 +248,8 @@
             <div class="bg-green-50 px-6 py-4 border-b border-gray-200">
                 <div class="flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-800">LABA KOTOR</h3>
-                    <span class="text-3xl font-bold text-green-600">Rp {{ number_format($labaKotor->laba_kotor, 0, ',', '.') }}</span>
+                    <span class="text-3xl font-bold text-green-600">Rp
+                        {{ number_format($labaKotor->laba_kotor, 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>
@@ -223,26 +263,36 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Biaya</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                No.</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Keterangan</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Jumlah</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        @forelse($dataBiayaUsaha as $biaya)
+                        @forelse($dataBiayaUsaha as $index => $biaya)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $biaya->jenisAkun->nama_akun ?? 'Biaya' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($biaya->TOTAL ?? 0, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ $biaya->jns_trans ?? 'Biaya' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($biaya->TOTAL ?? 0, 0, ',', '.') }}</td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">Tidak ada data biaya usaha</td>
+                            <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">Tidak ada data biaya
+                                usaha</td>
                         </tr>
                         @endforelse
                     </tbody>
                     <tfoot class="bg-red-50">
                         <tr>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">-</th>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Total Biaya Usaha</th>
-                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Rp {{ number_format($labaUsaha->total_biaya_usaha, 0, ',', '.') }}</th>
+                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Rp
+                                {{ number_format($labaUsaha->total_biaya_usaha, 0, ',', '.') }}</th>
                         </tr>
                     </tfoot>
                 </table>
@@ -254,7 +304,8 @@
             <div class="bg-purple-50 px-6 py-4 border-b border-gray-200">
                 <div class="flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-800">LABA USAHA</h3>
-                    <span class="text-3xl font-bold text-purple-600">Rp {{ number_format($labaUsaha->laba_usaha, 0, ',', '.') }}</span>
+                    <span class="text-3xl font-bold text-purple-600">Rp
+                        {{ number_format($labaUsaha->laba_usaha, 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>
@@ -264,7 +315,8 @@
             <div class="bg-yellow-50 px-6 py-4 border-b border-gray-200">
                 <div class="flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-800">Pajak Penghasilan (12.5%)</h3>
-                    <span class="text-3xl font-bold text-yellow-600">Rp {{ number_format($pajakPenghasilan->pajak_penghasilan, 0, ',', '.') }}</span>
+                    <span class="text-3xl font-bold text-yellow-600">Rp
+                        {{ number_format($pajakPenghasilan->pajak_penghasilan, 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>
@@ -274,7 +326,8 @@
             <div class="bg-indigo-50 px-6 py-4 border-b border-gray-200">
                 <div class="flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-800">LABA USAHA SETELAH PAJAK</h3>
-                    <span class="text-3xl font-bold text-indigo-600">Rp {{ number_format($labaUsahaSetelahPajak->laba_usaha_setelah_pajak, 0, ',', '.') }}</span>
+                    <span class="text-3xl font-bold text-indigo-600">Rp
+                        {{ number_format($labaUsahaSetelahPajak->laba_usaha_setelah_pajak, 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>
@@ -288,53 +341,77 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Dana</th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Persentase</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                No.</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Keterangan</th>
+                            <th
+                                class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Persentase</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Jumlah</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Dana Anggota</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">50%</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($shuDistribution->dana_anggota, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($shuDistribution->dana_anggota, 0, ',', '.') }}</td>
                         </tr>
                         <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Dana Cadangan</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">20%</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($shuDistribution->dana_cadangan, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($shuDistribution->dana_cadangan, 0, ',', '.') }}</td>
                         </tr>
                         <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Dana Pegawai</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">10%</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($shuDistribution->dana_pegawai, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($shuDistribution->dana_pegawai, 0, ',', '.') }}</td>
                         </tr>
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Dana Pembangunan Daerah Kerja</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">4</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Dana Pembangunan Daerah Kerja
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">5%</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($shuDistribution->dana_pembangunan_daerah_kerja, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($shuDistribution->dana_pembangunan_daerah_kerja, 0, ',', '.') }}</td>
                         </tr>
                         <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Dana Sosial</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">5%</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($shuDistribution->dana_sosial, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($shuDistribution->dana_sosial, 0, ',', '.') }}</td>
                         </tr>
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Dana Kesejahteraan Pegawai</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">6</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Dana Kesejahteraan Pegawai
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">5%</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($shuDistribution->dana_kesejahteraan_pegawai, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($shuDistribution->dana_kesejahteraan_pegawai, 0, ',', '.') }}</td>
                         </tr>
                         <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">7</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Dana Pendidikan</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">5%</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($shuDistribution->dana_pendidikan, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp
+                                {{ number_format($shuDistribution->dana_pendidikan, 0, ',', '.') }}</td>
                         </tr>
                     </tbody>
                     <tfoot class="bg-teal-50">
                         <tr>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">-</th>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Total SHU</th>
                             <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900">100%</th>
-                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Rp {{ number_format($shuDistribution->total_shu, 0, ',', '.') }}</th>
+                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Rp
+                                {{ number_format($shuDistribution->total_shu, 0, ',', '.') }}</th>
                         </tr>
                     </tfoot>
                 </table>
@@ -346,32 +423,37 @@
 <!-- Print Styles -->
 <style>
 @media print {
-    .bg-blue-600, .bg-green-500, .bg-purple-500, .bg-orange-500 {
+
+    .bg-blue-600,
+    .bg-green-500,
+    .bg-purple-500,
+    .bg-orange-500 {
         background-color: #f3f4f6 !important;
         color: #000 !important;
     }
-    
+
     .bg-gradient-to-r {
         background: #f3f4f6 !important;
         color: #000 !important;
     }
-    
-    .shadow-lg, .shadow-md {
+
+    .shadow-lg,
+    .shadow-md {
         box-shadow: none !important;
     }
-    
+
     .rounded-lg {
         border-radius: 0 !important;
     }
-    
+
     .border {
         border: 1px solid #000 !important;
     }
-    
+
     .text-white {
         color: #000 !important;
     }
-    
+
     .hover\:bg-gray-50:hover {
         background-color: transparent !important;
     }
@@ -386,22 +468,22 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('tgl_dari').value = year + '-01-01';
         document.getElementById('tgl_samp').value = year + '-12-31';
     });
-    
+
     // Validate date range
     document.getElementById('tgl_dari').addEventListener('change', function() {
         const tglDari = new Date(this.value);
         const tglSamp = new Date(document.getElementById('tgl_samp').value);
-        
+
         if (tglDari > tglSamp) {
             alert('Tanggal dari tidak boleh lebih besar dari tanggal sampai');
             this.value = document.getElementById('tgl_samp').value;
         }
     });
-    
+
     document.getElementById('tgl_samp').addEventListener('change', function() {
         const tglDari = new Date(document.getElementById('tgl_dari').value);
         const tglSamp = new Date(this.value);
-        
+
         if (tglSamp < tglDari) {
             alert('Tanggal sampai tidak boleh lebih kecil dari tanggal dari');
             this.value = document.getElementById('tgl_dari').value;

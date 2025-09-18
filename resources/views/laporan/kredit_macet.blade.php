@@ -14,11 +14,12 @@
             </h1>
             <p class="text-red-100 mt-1">Laporan pinjaman yang telah melewati jatuh tempo pembayaran</p>
         </div>
-        <button onclick="toggleCollapse()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all duration-200">
+        <button onclick="toggleCollapse()"
+            class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all duration-200">
             <i class="fas fa-chevron-up mr-2"></i>Collapse
         </button>
-            </div>
-            </div>
+    </div>
+</div>
 
 <!-- Control Panel -->
 <div id="control-panel" class="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -28,79 +29,85 @@
             <label for="periode" class="block text-sm font-medium text-gray-700 mb-2">
                 <i class="fas fa-calendar-alt mr-2 text-blue-500"></i>Periode
             </label>
-            <input type="month" id="periode" name="periode" value="{{ $periode }}" 
-                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent">
-            </div>
-        <div class="flex items-end">
-            <button type="button" onclick="submitFilter()" class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#11994F] transition-colors duration-200">
-                <i class="fas fa-search mr-2"></i>Cari
-                </button>
+            <input type="month" id="periode" name="periode" value="{{ $periode }}"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent">
         </div>
         <div class="flex items-end">
-                <a href="{{ route('laporan.kredit.macet') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
+            <button type="button" onclick="submitFilter()"
+                class="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#11994F] transition-colors duration-200">
+                <i class="fas fa-search mr-2"></i>Cari
+            </button>
+        </div>
+        <div class="flex items-end">
+            <a href="{{ route('laporan.kredit.macet') }}"
+                class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200">
                 <i class="fas fa-refresh mr-2"></i>Hapus Filter
-                </a>
-            </div>
+            </a>
+        </div>
     </div>
 
     <!-- Export Buttons -->
     <div class="flex flex-wrap gap-2">
-        <a href="{{ route('laporan.kredit.macet.export.pdf') }}?periode={{ $periode }}" 
-           class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">
+        <a href="{{ route('laporan.kredit.macet.export.pdf') }}?periode={{ $periode }}"
+            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">
             <i class="fas fa-file-pdf mr-2"></i>Cetak Laporan
         </a>
     </div>
-    </div>
+</div>
 
-    <!-- Summary Cards -->
+<!-- Summary Cards -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-    <div class="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg p-6 shadow-lg" title="Jumlah total pinjaman yang telah melewati jatuh tempo">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-white bg-opacity-20">
-                    <i class="fas fa-exclamation-triangle text-2xl"></i>
-                </div>
-                <div class="ml-4">
+    <div class="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg p-6 shadow-lg"
+        title="Jumlah total pinjaman yang telah melewati jatuh tempo">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-white bg-opacity-20">
+                <i class="fas fa-exclamation-triangle text-2xl"></i>
+            </div>
+            <div class="ml-4">
                 <p class="text-sm opacity-90">Total Kredit Macet</p>
                 <p class="text-2xl font-bold">{{ $dataPinjaman->total() }}</p>
-                </div>
             </div>
         </div>
-        
-    <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg p-6 shadow-lg" title="Total nilai tagihan dari semua kredit macet">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-white bg-opacity-20">
-                    <i class="fas fa-money-bill-wave text-2xl"></i>
-                </div>
-                <div class="ml-4">
+    </div>
+
+    <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg p-6 shadow-lg"
+        title="Total nilai tagihan dari semua kredit macet">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-white bg-opacity-20">
+                <i class="fas fa-money-bill-wave text-2xl"></i>
+            </div>
+            <div class="ml-4">
                 <p class="text-sm opacity-90">Total Tagihan</p>
-                <p class="text-2xl font-bold">Rp {{ number_format($totalTagihan) }}</p>
-                </div>
+                <p class="text-2xl font-bold">Rp {{ number_format($totalTagihan, 0, ',', '.') }}</p>
             </div>
         </div>
-        
-    <div class="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-6 shadow-lg" title="Total pembayaran yang telah diterima">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-white bg-opacity-20">
+    </div>
+
+    <div class="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-6 shadow-lg"
+        title="Total pembayaran yang telah diterima">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-white bg-opacity-20">
                 <i class="fas fa-check-circle text-2xl"></i>
-                </div>
-                <div class="ml-4">
+            </div>
+            <div class="ml-4">
                 <p class="text-sm opacity-90">Total Dibayar</p>
-                <p class="text-2xl font-bold">Rp {{ number_format($totalDibayar) }}</p>
-                </div>
+                <p class="text-2xl font-bold">Rp {{ number_format($totalDibayar, 0, ',', '.') }}</p>
             </div>
         </div>
-        
-    <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg p-6 shadow-lg" title="Sisa tagihan yang belum dibayar">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-white bg-opacity-20">
+    </div>
+
+    <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg p-6 shadow-lg"
+        title="Sisa tagihan yang belum dibayar">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-white bg-opacity-20">
                 <i class="fas fa-balance-scale text-2xl"></i>
-                </div>
-                <div class="ml-4">
+            </div>
+            <div class="ml-4">
                 <p class="text-sm opacity-90">Sisa Tagihan</p>
-                <p class="text-2xl font-bold">Rp {{ number_format($totalSisa) }}</p>
-                </div>
+                <p class="text-2xl font-bold">Rp {{ number_format($totalSisa, 0, ',', '.') }}</p>
             </div>
         </div>
+    </div>
 </div>
 
 <!-- Main Content -->
@@ -118,7 +125,7 @@
     </div>
 
     <!-- Data Table -->
-        <div class="overflow-x-auto">
+    <div class="overflow-x-auto">
         <table class="min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
             <thead class="bg-gradient-to-r from-red-50 to-red-100">
                 <tr>
@@ -149,29 +156,15 @@
                     <th class="px-4 py-3 text-right text-xs font-medium text-red-700 uppercase tracking-wider">
                         <i class="fas fa-exclamation-triangle mr-1"></i>Sisa Tagihan
                     </th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                @forelse($dataPinjaman as $index => $pinjaman)
-                @php
-                    // Calculate total tagihan (tagihan + denda)
-                    $totalTagihan = $pinjaman->tagihan + $pinjaman->denda_rp;
-                    
-                    // Get total payment from tbl_pinjaman_d
-                    $totalBayar = \App\Models\TblPinjamanD::where('pinjam_id', $pinjaman->id)
-                        ->sum('jumlah_bayar');
-                    
-                    $sisaTagihan = $totalTagihan - $totalBayar;
-                    
-                    // Format kode pinjam as TPJ + 5 digits
-                    $kodePinjam = 'TPJ' . str_pad($pinjaman->id, 5, '0', STR_PAD_LEFT);
-                    
-                    // Calculate days overdue
-                    $daysOverdue = \Carbon\Carbon::now()->diffInDays(\Carbon\Carbon::parse($pinjaman->tempo), false);
-                    @endphp
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @forelse($processedData as $index => $pinjaman)
                 <tr class="hover:bg-red-50 transition-colors duration-200">
-                    <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ $dataPinjaman->firstItem() + $index }}</td>
-                    <td class="px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 rounded px-2 py-1">{{ $kodePinjam }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ $dataPinjaman->firstItem() + $index }}
+                    </td>
+                    <td class="px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 rounded px-2 py-1">
+                        {{ $pinjaman->kode_pinjam }}</td>
                     <td class="px-4 py-3 text-sm text-gray-900">
                         <div class="flex items-center">
                             <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
@@ -183,22 +176,22 @@
                             </div>
                         </div>
                     </td>
-                        <td class="px-4 py-3 text-sm text-gray-900">
+                    <td class="px-4 py-3 text-sm text-gray-900">
                         <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
                             {{ \Carbon\Carbon::parse($pinjaman->tgl_pinjam)->format('d/m/Y') }}
-                            </span>
-                        </td>
+                        </span>
+                    </td>
                     <td class="px-4 py-3 text-sm text-gray-900">
                         <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
                             {{ \Carbon\Carbon::parse($pinjaman->tempo)->format('d/m/Y') }}
-                                </span>
-                        @if($daysOverdue > 0)
+                        </span>
+                        @if($pinjaman->days_overdue > 0)
                         <div class="text-xs text-red-600 mt-1">
                             <i class="fas fa-exclamation-triangle mr-1"></i>
-                            {{ $daysOverdue }} hari terlambat
+                            {{ $pinjaman->days_overdue }} hari terlambat
                         </div>
-                            @endif
-                        </td>
+                        @endif
+                    </td>
                     <td class="px-4 py-3 text-sm text-center text-gray-900">
                         <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
                             {{ $pinjaman->lama_angsuran }} bulan
@@ -206,55 +199,55 @@
                     </td>
                     <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
                         <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">
-                            Rp {{ number_format($totalTagihan) }}
+                            Rp {{ number_format($pinjaman->total_tagihan, 0, ',', '.') }}
                         </span>
                     </td>
                     <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
                         <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                            Rp {{ number_format($totalBayar) }}
+                            Rp {{ number_format($pinjaman->total_bayar, 0, ',', '.') }}
                         </span>
                     </td>
-                        <td class="px-4 py-3 text-sm font-bold text-red-600 text-right">
+                    <td class="px-4 py-3 text-sm font-bold text-red-600 text-right">
                         <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">
-                            Rp {{ number_format($sisaTagihan) }}
+                            Rp {{ number_format($pinjaman->sisa_tagihan, 0, ',', '.') }}
                         </span>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
+                    </td>
+                </tr>
+                @empty
+                <tr>
                     <td colspan="9" class="px-4 py-12 text-center text-gray-500">
                         <div class="flex flex-col items-center">
                             <i class="fas fa-check-circle text-6xl text-green-400 mb-4"></i>
                             <h3 class="text-lg font-medium text-gray-900 mb-2">Tidak Ada Kredit Macet</h3>
                             <p class="text-gray-500">Semua pinjaman dalam periode ini telah dibayar tepat waktu</p>
                         </div>
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
             <tfoot class="bg-gradient-to-r from-gray-50 to-gray-100">
                 <tr>
                     <td colspan="6" class="px-4 py-3 text-sm font-bold text-gray-900 text-right">
                         <i class="fas fa-calculator mr-2"></i>Jumlah Total:
                     </td>
                     <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right">
-                        <span class="bg-orange-200 text-orange-900 px-3 py-1 rounded">
-                            Rp {{ number_format($totalTagihan) }}
+                        <span class="bg-orange-200 text-orange-900 px-3 py-1 rounded whitespace-nowrap">
+                            Rp {{ number_format($totalTagihan, 0, ',', '.') }}
                         </span>
                     </td>
                     <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right">
-                        <span class="bg-green-200 text-green-900 px-3 py-1 rounded">
-                            Rp {{ number_format($totalDibayar) }}
+                        <span class="bg-green-200 text-green-900 px-3 py-1 rounded whitespace-nowrap">
+                            Rp {{ number_format($totalDibayar, 0, ',', '.') }}
                         </span>
                     </td>
                     <td class="px-4 py-3 text-sm font-bold text-red-600 text-right">
-                        <span class="bg-red-200 text-red-900 px-3 py-1 rounded">
-                            Rp {{ number_format($totalSisa) }}
+                        <span class="bg-red-200 text-red-900 px-3 py-1 rounded whitespace-nowrap">
+                            Rp {{ number_format($totalSisa, 0, ',', '.') }}
                         </span>
                     </td>
                 </tr>
             </tfoot>
-            </table>
+        </table>
     </div>
 
     <!-- Pagination -->
@@ -263,20 +256,23 @@
         {{ $dataPinjaman->appends(request()->query())->links() }}
     </div>
     @endif
-    </div>
+</div>
 
 <!-- Information Panel -->
 <div class="mt-6 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-6">
     <div class="flex items-start">
         <div class="flex-shrink-0">
             <i class="fas fa-info-circle text-2xl text-yellow-600"></i>
-            </div>
+        </div>
         <div class="ml-4">
             <h3 class="text-lg font-medium text-yellow-800 mb-2">Informasi Penting</h3>
             <div class="text-sm text-yellow-700 space-y-2">
-                <p><strong>Definisi Kredit Macet:</strong> Pinjaman yang telah melewati tanggal jatuh tempo pembayaran dan belum dilunasi.</p>
-                <p><strong>Dampak:</strong> Kredit macet dapat mempengaruhi kesehatan keuangan koperasi dan memerlukan tindakan penanganan khusus.</p>
-                <p><strong>Rekomendasi:</strong> Segera lakukan follow-up kepada anggota yang memiliki kredit macet untuk melakukan pembayaran.</p>
+                <p><strong>Definisi Kredit Macet:</strong> Pinjaman yang telah melewati tanggal jatuh tempo pembayaran
+                    dan belum dilunasi.</p>
+                <p><strong>Dampak:</strong> Kredit macet dapat mempengaruhi kesehatan keuangan koperasi dan memerlukan
+                    tindakan penanganan khusus.</p>
+                <p><strong>Rekomendasi:</strong> Segera lakukan follow-up kepada anggota yang memiliki kredit macet
+                    untuk melakukan pembayaran.</p>
             </div>
         </div>
     </div>
@@ -288,7 +284,7 @@ function toggleCollapse() {
     const panel = document.getElementById('control-panel');
     const button = document.querySelector('button[onclick="toggleCollapse()"]');
     const icon = button.querySelector('i');
-    
+
     if (panel.style.display === 'none') {
         panel.style.display = 'block';
         icon.className = 'fas fa-chevron-up mr-2';
@@ -303,25 +299,25 @@ function toggleCollapse() {
 function submitFilter() {
     // Get current values from the input fields
     const periode = document.getElementById('periode').value;
-    
+
     // Add loading state
     const button = event.target;
     const originalText = button.innerHTML;
     button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
     button.disabled = true;
-    
+
     // Build the URL with parameters
     let url = '{{ route("laporan.kredit.macet") }}';
     const params = new URLSearchParams();
-    
+
     if (periode) {
         params.append('periode', periode);
     }
-    
+
     if (params.toString()) {
         url += '?' + params.toString();
     }
-    
+
     // Redirect to the filtered URL with delay for better UX
     setTimeout(() => {
         window.location.href = url;
@@ -344,9 +340,12 @@ document.getElementById('periode').addEventListener('keypress', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     const table = document.querySelector('table');
     if (table && table.rows.length > 1) {
-        table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        table.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
     }
-    
+
     // Add hover effects for better UX
     const rows = document.querySelectorAll('tbody tr');
     rows.forEach(row => {
@@ -354,7 +353,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.style.transform = 'scale(1.01)';
             this.style.transition = 'transform 0.2s ease';
         });
-        
+
         row.addEventListener('mouseleave', function() {
             this.style.transform = 'scale(1)';
         });
@@ -369,6 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
         opacity: 0;
         transform: translateY(-20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -380,6 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
         opacity: 1;
         transform: translateY(0);
     }
+
     to {
         opacity: 0;
         transform: translateY(-20px);
@@ -410,9 +411,11 @@ document.addEventListener('DOMContentLoaded', function() {
     0% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.05);
     }
+
     100% {
         transform: scale(1);
     }
@@ -432,6 +435,7 @@ tbody tr {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -439,31 +443,49 @@ tbody tr {
 }
 
 /* Stagger animation for table rows */
-tbody tr:nth-child(1) { animation-delay: 0.1s; }
-tbody tr:nth-child(2) { animation-delay: 0.2s; }
-tbody tr:nth-child(3) { animation-delay: 0.3s; }
-tbody tr:nth-child(4) { animation-delay: 0.4s; }
-tbody tr:nth-child(5) { animation-delay: 0.5s; }
+tbody tr:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+tbody tr:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+tbody tr:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+tbody tr:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+tbody tr:nth-child(5) {
+    animation-delay: 0.5s;
+}
 </style>
 
 <!-- Print Styles -->
 <style>
 @media print {
-    .sidebar, .bg-[#14AE5C], button, a {
+
+    .sidebar,
+    .bg-green-500,
+    button,
+    a {
         display: none !important;
     }
-    
+
     .bg-white {
         box-shadow: none !important;
     }
-    
+
     table {
         page-break-inside: avoid;
     }
-    
+
     .mb-6 {
         margin-bottom: 1.5rem !important;
     }
 }
 </style>
-@endsection 
+@endsection

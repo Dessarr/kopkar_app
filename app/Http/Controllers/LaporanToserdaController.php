@@ -294,18 +294,22 @@ class LaporanToserdaController extends Controller
     // Private methods for data retrieval and calculations
     private function getDataPenjualan($tgl_dari, $tgl_samp)
     {
-        return View_Penjualan::select('jns_trans', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'TOTAL')
+        // Aggregasi data penjualan per jenis transaksi untuk menghindari banyak row
+        return View_Penjualan::select('jns_trans', DB::raw('SUM(TOTAL) as TOTAL'))
             ->with('jenisAkun')
             ->whereBetween('tgl_catat', [$tgl_dari, $tgl_samp])
+            ->groupBy('jns_trans')
             ->get();
     }
 
     private function getDataPembelian($tgl_dari, $tgl_samp)
     {
-        return View_Pembelian::select('kode_trans', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'TOTAL')
+        // Aggregasi data pembelian per jenis transaksi untuk menghindari banyak row
+        return View_Pembelian::select('jns_trans', DB::raw('SUM(TOTAL) as TOTAL'))
             ->with('jenisAkun')
             ->whereBetween('tgl_catat', [$tgl_dari, $tgl_samp])
             ->whereIn('kode_trans', [117, 118, 119, 120]) // Kode akun pembelian barang dagangan
+            ->groupBy('jns_trans')
             ->get();
     }
 
@@ -318,9 +322,11 @@ class LaporanToserdaController extends Controller
 
     private function getDataBiayaUsaha($tgl_dari, $tgl_samp)
     {
-        return View_BiayaUsaha::select('jns_trans', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'TOTAL')
+        // Aggregasi data biaya usaha per jenis transaksi untuk menghindari banyak row
+        return View_BiayaUsaha::select('jns_trans', DB::raw('SUM(TOTAL) as TOTAL'))
             ->with('jenisAkun')
             ->whereBetween('tgl_catat', [$tgl_dari, $tgl_samp])
+            ->groupBy('jns_trans')
             ->get();
     }
 

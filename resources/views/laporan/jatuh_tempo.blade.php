@@ -83,20 +83,10 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    @forelse($dataPinjaman as $index => $pinjaman)
-                    @php
-                        // Calculate tagihan (angsuran pokok + bunga + biaya admin)
-                        $angsuranPokok = $pinjaman->jumlah / $pinjaman->lama_angsuran;
-                        $angsuranBunga = $pinjaman->bunga_rp / $pinjaman->lama_angsuran;
-                        $totalTagihan = $angsuranPokok + $angsuranBunga + $pinjaman->biaya_adm;
-                        
-                        $totalBayar = \App\Models\TblPinjamanD::where('pinjam_id', $pinjaman->id)->sum('jumlah_bayar');
-                        $sisaTagihan = $totalTagihan - $totalBayar;
-                        $kodePinjam = 'TPJ' . str_pad($pinjaman->id, 5, '0', STR_PAD_LEFT);
-                    @endphp
+                    @forelse($processedData as $index => $pinjaman)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 text-sm text-gray-900">{{ $dataPinjaman->firstItem() + $index }}</td>
-                        <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $kodePinjam }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $pinjaman->kode_pinjam }}</td>
                         <td class="px-4 py-3 text-sm text-gray-900">
                             {{ $pinjaman->no_ktp }} - {{ $pinjaman->nama_anggota }}
                         </td>
@@ -107,10 +97,10 @@
                             </span>
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-900">{{ $pinjaman->lama_angsuran }} bulan</td>
-                        <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">Rp {{ number_format($totalTagihan) }}</td>
-                        <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">Rp {{ number_format($totalBayar) }}</td>
-                        <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right {{ $sisaTagihan > 0 ? 'text-red-600' : 'text-green-600' }}">
-                            Rp {{ number_format($sisaTagihan) }}
+                        <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">Rp {{ number_format($pinjaman->tagihan, 0, ',', '.') }}</td>
+                        <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">Rp {{ number_format($pinjaman->total_bayar, 0, ',', '.') }}</td>
+                        <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right {{ $pinjaman->sisa_tagihan > 0 ? 'text-red-600' : 'text-green-600' }}">
+                            Rp {{ number_format($pinjaman->sisa_tagihan, 0, ',', '.') }}
                         </td>
                     </tr>
                     @empty
@@ -125,9 +115,9 @@
                 <tfoot class="bg-gray-100">
                     <tr>
                         <td colspan="6" class="px-4 py-3 text-sm font-bold text-gray-900 text-right">Jumlah Total:</td>
-                        <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right">Rp {{ number_format($totalTagihan) }}</td>
-                        <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right">Rp {{ number_format($totalDibayar) }}</td>
-                        <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right">Rp {{ number_format($totalSisa) }}</td>
+                        <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right">Rp {{ number_format($totalTagihan, 0, ',', '.') }}</td>
+                        <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right">Rp {{ number_format($totalDibayar, 0, ',', '.') }}</td>
+                        <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right">Rp {{ number_format($totalSisa, 0, ',', '.') }}</td>
                     </tr>
                 </tfoot>
             </table>
@@ -204,7 +194,7 @@ document.getElementById('search').addEventListener('keypress', function(e) {
 <!-- Print Styles -->
 <style>
 @media print {
-    .sidebar, .bg-[#3B82F6], button, a {
+    .sidebar, .bg-blue-600, button, a {
         display: none !important;
     }
     

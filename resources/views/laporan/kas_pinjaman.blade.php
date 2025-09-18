@@ -85,59 +85,6 @@
         </button>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-6 transform hover:scale-105 transition-all duration-200 shadow-lg">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-white bg-opacity-20">
-                    <i class="fas fa-users text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm opacity-90">Peminjam Aktif</p>
-                    <p class="text-2xl font-bold">{{ number_format($statistics['peminjam_aktif']) }}</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-6 transform hover:scale-105 transition-all duration-200 shadow-lg">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-white bg-opacity-20">
-                    <i class="fas fa-check-circle text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm opacity-90">Peminjam Lunas</p>
-                    <p class="text-2xl font-bold">{{ number_format($statistics['peminjam_lunas']) }}</p>
-                    <p class="text-xs opacity-75">{{ number_format($statistics['completion_rate'], 1) }}% completion</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg p-6 transform hover:scale-105 transition-all duration-200 shadow-lg">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-white bg-opacity-20">
-                    <i class="fas fa-clock text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm opacity-90">Belum Lunas</p>
-                    <p class="text-2xl font-bold">{{ number_format($statistics['peminjam_belum']) }}</p>
-                    <p class="text-xs opacity-75">{{ number_format($statistics['overdue_rate'], 1) }}% overdue</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg p-6 transform hover:scale-105 transition-all duration-200 shadow-lg">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-white bg-opacity-20">
-                    <i class="fas fa-percentage text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm opacity-90">Tingkat Pelunasan</p>
-                    <p class="text-2xl font-bold">{{ number_format($statistics['completion_rate'], 1) }}%</p>
-                    <p class="text-xs opacity-75">Collection rate</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Main Content -->
     <div class="mb-6">
@@ -148,194 +95,103 @@
             <strong>Periode:</strong> {{ \Carbon\Carbon::parse($tgl_dari)->format('d F Y') }} s/d {{ \Carbon\Carbon::parse($tgl_samp)->format('d F Y') }}
         </p>
         
-        <!-- Financial Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm opacity-90">Total Pinjaman</p>
-                        <p class="text-2xl font-bold">Rp {{ number_format($data['jml_pinjaman']) }}</p>
-                    </div>
-                    <i class="fas fa-hand-holding-usd text-3xl opacity-50"></i>
-                </div>
-            </div>
-            
-            <div class="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm opacity-90">Sudah Dibayar</p>
-                        <p class="text-2xl font-bold">Rp {{ number_format($data['jml_angsuran']) }}</p>
-                        <p class="text-xs opacity-75">{{ number_format($data['collection_rate'], 1) }}% collected</p>
-                    </div>
-                    <i class="fas fa-check-circle text-3xl opacity-50"></i>
-                </div>
-            </div>
-            
-            <div class="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm opacity-90">Sisa Tagihan</p>
-                        <p class="text-2xl font-bold">Rp {{ number_format($data['sisa_tagihan']) }}</p>
-                        <p class="text-xs opacity-75">Outstanding</p>
-                    </div>
-                    <i class="fas fa-exclamation-triangle text-3xl opacity-50"></i>
-                </div>
-            </div>
-        </div>
-
+        @if(count($data) > 0)
         <!-- Main Report Table -->
         <div class="overflow-x-auto bg-white rounded-lg shadow-lg">
             <table class="min-w-full border border-gray-200">
                 <thead class="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                     <tr>
-                        <th class="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">No</th>
-                        <th class="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">Keterangan</th>
-                        <th class="px-6 py-4 text-right text-xs font-medium uppercase tracking-wider">Jumlah (Rp)</th>
-                        <th class="px-6 py-4 text-center text-xs font-medium uppercase tracking-wider">Persentase</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">No</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Tanggal Pinjam</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Nama</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Pokok Pinjaman</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider">Lama Angsuran (Bulan)</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider">Bunga (%)</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider">Biaya Adm</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Pokok Angsuran (Bulan)</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Bunga Pinjaman (Bulan)</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Angsuran (Bulan)</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Jumlah Bayar</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider">Sisa Angsuran (Bulan)</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Sisa Tagihan</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider">Status</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    <tr class="hover:bg-gray-50 transition-colors duration-200">
-                        <td class="px-6 py-4 text-sm font-medium text-gray-900">1</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">
-                            <div class="flex items-center">
-                                <i class="fas fa-hand-holding-usd text-blue-500 mr-2"></i>
-                                Pokok Pinjaman
-                            </div>
+                    @foreach($data as $loan)
+                    <tr class="hover:bg-blue-50 transition-colors duration-200 {{ $loan['status'] == 'Lunas' ? 'bg-green-50' : '' }}">
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ $loan['no'] }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ \Carbon\Carbon::parse($loan['tgl_pinjam'])->format('d M Y') }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $loan['nama'] }}</td>
+                        <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">
+                            {{ number_format($loan['pokok_pinjaman'], 0, ',', '.') }}
                         </td>
-                        <td class="px-6 py-4 text-sm text-right font-semibold text-gray-900">
-                            Rp {{ number_format($data['jml_pinjaman']) }}
+                        <td class="px-4 py-3 text-sm text-center text-gray-900">{{ $loan['lama_angsuran'] }}</td>
+                        <td class="px-4 py-3 text-sm text-center text-gray-900">{{ $loan['bunga'] }}</td>
+                        <td class="px-4 py-3 text-sm text-center text-gray-900">{{ $loan['biaya_adm'] }}</td>
+                        <td class="px-4 py-3 text-sm text-right text-gray-900">
+                            {{ number_format($loan['pokok_angsuran'], 0, ',', '.') }}
                         </td>
-                        <td class="px-6 py-4 text-sm text-center text-blue-600 font-semibold">
-                            {{ $data['tot_tagihan'] > 0 ? number_format(($data['jml_pinjaman'] / $data['tot_tagihan']) * 100, 1) : 0 }}%
+                        <td class="px-4 py-3 text-sm text-right text-gray-900">
+                            {{ number_format($loan['bunga_pinjaman'], 0, ',', '.') }}
                         </td>
-                    </tr>
-                    
-                    <tr class="hover:bg-gray-50 transition-colors duration-200">
-                        <td class="px-6 py-4 text-sm font-medium text-gray-900">2</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">
-                            <div class="flex items-center">
-                                <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
-                                Tagihan Denda
-                            </div>
+                        <td class="px-4 py-3 text-sm text-right text-gray-900">
+                            {{ number_format($loan['angsuran'], 0, ',', '.') }}
                         </td>
-                        <td class="px-6 py-4 text-sm text-right font-semibold text-red-600">
-                            Rp {{ number_format($data['jml_denda']) }}
+                        <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">
+                            {{ number_format($loan['jumlah_bayar'], 0, ',', '.') }}
                         </td>
-                        <td class="px-6 py-4 text-sm text-center text-red-600 font-semibold">
-                            {{ $data['tot_tagihan'] > 0 ? number_format(($data['jml_denda'] / $data['tot_tagihan']) * 100, 1) : 0 }}%
+                        <td class="px-4 py-3 text-sm text-center {{ $loan['sisa_angsuran'] < 0 ? 'text-red-600 font-semibold' : 'text-gray-900' }}">
+                            {{ $loan['sisa_angsuran'] }}
                         </td>
-                    </tr>
-                    
-                    <tr class="bg-gray-100 hover:bg-gray-200 transition-colors duration-200">
-                        <td class="px-6 py-4 text-sm font-bold text-gray-900"></td>
-                        <td class="px-6 py-4 text-sm font-bold text-gray-900">
-                            <div class="flex items-center">
-                                <i class="fas fa-calculator text-gray-600 mr-2"></i>
-                                Jumlah Tagihan + Denda
-                            </div>
+                        <td class="px-4 py-3 text-sm text-right {{ $loan['sisa_tagihan'] < 0 ? 'text-red-600 font-semibold' : 'text-gray-900' }}">
+                            {{ number_format($loan['sisa_tagihan'], 0, ',', '.') }}
                         </td>
-                        <td class="px-6 py-4 text-sm text-right font-bold text-gray-900">
-                            Rp {{ number_format($data['tot_tagihan']) }}
-                        </td>
-                        <td class="px-6 py-4 text-sm text-center text-gray-600 font-bold">100.0%</td>
-                    </tr>
-                    
-                    <tr class="hover:bg-gray-50 transition-colors duration-200">
-                        <td class="px-6 py-4 text-sm font-medium text-gray-900">3</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">
-                            <div class="flex items-center">
-                                <i class="fas fa-check-circle text-green-500 mr-2"></i>
-                                Tagihan Sudah Dibayar
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-right font-semibold text-green-600">
-                            Rp {{ number_format($data['jml_angsuran']) }}
-                        </td>
-                        <td class="px-6 py-4 text-sm text-center text-green-600 font-semibold">
-                            {{ $data['tot_tagihan'] > 0 ? number_format(($data['jml_angsuran'] / $data['tot_tagihan']) * 100, 1) : 0 }}%
+                        <td class="px-4 py-3 text-sm text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $loan['status'] == 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                {{ $loan['status'] }}
+                            </span>
                         </td>
                     </tr>
-                    
-                    <tr class="bg-green-100 hover:bg-green-200 transition-colors duration-200">
-                        <td class="px-6 py-4 text-sm font-bold text-gray-900">4</td>
-                        <td class="px-6 py-4 text-sm font-bold text-gray-900">
-                            <div class="flex items-center">
-                                <i class="fas fa-exclamation-circle text-green-600 mr-2"></i>
-                                Sisa Tagihan
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-right font-bold text-green-700">
-                            Rp {{ number_format($data['sisa_tagihan']) }}
-                        </td>
-                        <td class="px-6 py-4 text-sm text-center text-green-700 font-bold">
-                            {{ $data['tot_tagihan'] > 0 ? number_format(($data['sisa_tagihan'] / $data['tot_tagihan']) * 100, 1) : 0 }}%
-                        </td>
-                    </tr>
+                    @endforeach
                 </tbody>
+                <tfoot class="bg-gradient-to-r from-gray-100 to-gray-200">
+                    <tr>
+                        <td class="px-4 py-3 text-sm font-bold text-gray-900" colspan="3">
+                            <i class="fas fa-calculator mr-2 text-gray-600"></i>
+                            <span class="font-bold text-gray-800">TOTAL</span>
+                        </td>
+                        <td class="px-4 py-3 text-sm font-bold text-right text-gray-900">
+                            {{ number_format($summary['total_pinjaman'], 0, ',', '.') }}
+                        </td>
+                        <td class="px-4 py-3 text-sm font-bold text-center text-gray-900" colspan="6">
+                            <!-- Empty cells for alignment -->
+                        </td>
+                        <td class="px-4 py-3 text-sm font-bold text-right text-gray-900">
+                            {{ number_format($summary['total_bayar'], 0, ',', '.') }}
+                        </td>
+                        <td class="px-4 py-3 text-sm font-bold text-center text-gray-900">
+                            <!-- Empty cell for alignment -->
+                        </td>
+                        <td class="px-4 py-3 text-sm font-bold text-right text-gray-900">
+                            {{ number_format($summary['total_sisa'], 0, ',', '.') }}
+                        </td>
+                        <td class="px-4 py-3 text-sm font-bold text-center text-gray-900">
+                            <!-- Empty cell for alignment -->
+                        </td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
-
-        <!-- Recent Loans Section -->
-        @if(count($recentLoans) > 0)
-        <div class="mt-8">
-            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-history text-blue-500 mr-2"></i>
-                Pinjaman Terbaru
-            </h4>
-            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Pinjaman</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Anggota</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($recentLoans as $loan)
-                            <tr class="hover:bg-gray-50 transition-colors duration-200">
-                                <td class="px-6 py-4 text-sm font-mono text-blue-600">{{ $loan['id'] }}</td>
-                                <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $loan['anggota'] }}</td>
-                                <td class="px-6 py-4 text-sm text-right font-semibold text-gray-900">
-                                    Rp {{ number_format($loan['jumlah']) }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-center text-gray-500">{{ $loan['tgl_pinjam'] }}</td>
-                                <td class="px-6 py-4 text-sm text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $loan['status_badge'] == 'success' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
-                                        {{ $loan['status'] }}
-                                    </span>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        @else
+        <div class="text-center py-12 bg-gray-50 rounded-lg">
+            <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Tidak ada data pinjaman</h3>
+            <p class="text-gray-500">Tidak ada transaksi pinjaman untuk periode <strong>{{ \Carbon\Carbon::parse($tgl_dari)->format('d F Y') }} - {{ \Carbon\Carbon::parse($tgl_samp)->format('d F Y') }}</strong></p>
         </div>
         @endif
     </div>
 
-    <!-- Summary Footer -->
-    <div class="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
-        <div class="flex flex-wrap justify-between items-center text-sm text-gray-600">
-            <div class="flex items-center">
-                <i class="fas fa-calendar mr-2 text-blue-500"></i>
-                <span class="font-medium">Periode:</span> {{ \Carbon\Carbon::parse($tgl_dari)->format('d F Y') }} - {{ \Carbon\Carbon::parse($tgl_samp)->format('d F Y') }}
-            </div>
-            <div class="flex items-center">
-                <i class="fas fa-users mr-2 text-green-500"></i>
-                <span class="font-medium">Total Peminjam:</span> {{ number_format($statistics['peminjam_aktif']) }} anggota
-            </div>
-            <div class="flex items-center">
-                <i class="fas fa-percentage mr-2 text-purple-500"></i>
-                <span class="font-medium">Tingkat Pelunasan:</span> {{ number_format($statistics['completion_rate'], 1) }}%
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- JavaScript for Filter Toggle and Presets -->
@@ -420,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Print Styles -->
 <style>
 @media print {
-    .sidebar, .bg-[#14AE5C], button, a {
+    .sidebar, .bg-green-500, button, a {
         display: none !important;
     }
     

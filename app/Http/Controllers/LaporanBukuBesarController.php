@@ -18,111 +18,132 @@ class LaporanBukuBesarController extends Controller
     {
         // Get filter parameters with default values
         $periode = $request->input('periode', date('Y-m'));
-        $kasId = $request->input('kas_id', null);
         
         // Get all active kas accounts
         $kasList = NamaKasTbl::where('aktif', 'Y')->get();
         
-        $data = [];
-        $selectedKas = null;
-        $saldoAwal = 0;
-        $totalDebet = 0;
-        $totalKredit = 0;
-        $saldoAkhir = 0;
+        $processedData = [];
+        $totalSaldoKeseluruhan = 0;
         
-        if ($kasId) {
-            $selectedKas = $kasList->where('id', $kasId)->first();
-            
-            // Parse periode
-            $tglArr = explode('-', $periode);
-            $thn = $tglArr[0];
-            $bln = $tglArr[1];
-            
-            // Calculate saldo awal (before the selected period)
-            $saldoAwal = $this->calculateSaldoAwal($kasId, $thn, $bln);
-            
-            // Get transactions for the selected period
-            $transaksi = $this->getTransaksiKas($kasId, $thn, $bln);
-            
-            // Process transactions with running balance
-            $data = $this->prosesTransaksi($transaksi, $kasId, $saldoAwal);
-            
-            // Calculate totals
-            $totalDebet = collect($data)->sum('debet');
-            $totalKredit = collect($data)->sum('kredit');
-            $saldoAkhir = $saldoAwal + ($totalDebet - $totalKredit);
+        // Parse periode
+        $tglArr = explode('-', $periode);
+        $thn = $tglArr[0];
+        $bln = $tglArr[1];
+        
+        // Process data for each kas account
+        foreach ($kasList as $kas) {
+            $kasData = $this->processKasData($kas, $thn, $bln);
+            if (!empty($kasData['transaksi'])) {
+                $processedData[] = $kasData;
+                $totalSaldoKeseluruhan += $kasData['saldo_akhir'];
+            }
         }
         
         return view('laporan.buku_besar', compact(
             'kasList',
-            'selectedKas',
+            'processedData',
             'periode',
-            'data',
-            'saldoAwal',
-            'totalDebet',
-            'totalKredit',
-            'saldoAkhir'
+            'totalSaldoKeseluruhan'
         ));
     }
 
     /**
-     * Calculate saldo awal (balance before the selected period)
-     * This implements the accounting principle of running balance
+     * Process data for a specific kas account
+     */
+    private function processKasData($kas, $tahun, $bulan)
+    {
+        $kasId = $kas->id;
+        
+        // Calculate saldo awal using v_transaksi
+        $saldoAwal = $this->calculateSaldoAwal($kasId, $tahun, $bulan);
+        
+        // Get transactions for the selected period using v_transaksi
+        $transaksi = $this->getTransaksiFromView($kasId, $tahun, $bulan);
+        
+        // Process transactions with running balance
+        $processedTransaksi = $this->prosesTransaksiFromView($transaksi, $kasId, $saldoAwal);
+        
+        // Calculate totals
+        $totalDebet = collect($processedTransaksi)->sum('debet');
+        $totalKredit = collect($processedTransaksi)->sum('kredit');
+        $saldoAkhir = $saldoAwal + ($totalDebet - $totalKredit);
+        
+        return [
+            'kas' => $kas,
+            'transaksi' => $processedTransaksi,
+            'saldo_awal' => $saldoAwal,
+            'total_debet' => $totalDebet,
+            'total_kredit' => $totalKredit,
+            'saldo_akhir' => $saldoAkhir
+        ];
+    }
+
+    /**
+     * Calculate saldo awal using v_transaksi view
      */
     private function calculateSaldoAwal($kasId, $tahun, $bulan)
     {
-        $saldoAwal = DB::table('tbl_trans_kas')
+        $saldoAwal = DB::table('v_transaksi')
             ->selectRaw('
-                SUM(CASE WHEN untuk_kas_id = ? THEN jumlah ELSE 0 END) - 
-                SUM(CASE WHEN dari_kas_id = ? THEN jumlah ELSE 0 END) as saldo
+                SUM(CASE WHEN untuk_kas = ? THEN debet ELSE 0 END) - 
+                SUM(CASE WHEN dari_kas = ? THEN kredit ELSE 0 END) as saldo
             ', [$kasId, $kasId])
             ->where(function($query) use ($tahun, $bulan) {
-                $query->whereYear('tgl_catat', '<', $tahun)
+                $query->whereYear('tgl', '<', $tahun)
                       ->orWhere(function($q) use ($tahun, $bulan) {
-                          $q->whereYear('tgl_catat', $tahun)
-                            ->whereMonth('tgl_catat', '<', $bulan);
+                          $q->whereYear('tgl', $tahun)
+                            ->whereMonth('tgl', '<', $bulan);
                       });
             })
-            ->whereIn('dk', ['D', 'K'])
+            ->where(function($q) use ($kasId) {
+                $q->where('dari_kas', $kasId)
+                  ->orWhere('untuk_kas', $kasId);
+            })
             ->value('saldo');
 
         return $saldoAwal ?? 0;
     }
 
     /**
-     * Get transactions for specific kas and period
+     * Get transactions from v_transaksi view for specific kas and period
      */
-    private function getTransaksiKas($kasId, $tahun, $bulan)
+    private function getTransaksiFromView($kasId, $tahun, $bulan)
     {
-        return DB::table('tbl_trans_kas as t')
-            ->leftJoin('jns_akun as ja', 't.jns_trans', '=', 'ja.id')
+        return DB::table('v_transaksi as v')
+            ->leftJoin('jns_akun as ja', 'v.transaksi', '=', 'ja.id')
+            ->leftJoin('nama_kas_tbl as nk_dari', 'v.dari_kas', '=', 'nk_dari.id')
+            ->leftJoin('nama_kas_tbl as nk_untuk', 'v.untuk_kas', '=', 'nk_untuk.id')
             ->select(
-                't.id',
-                't.tgl_catat',
-                't.keterangan',
-                't.jumlah',
-                't.dari_kas_id',
-                't.untuk_kas_id',
-                't.dk',
-                'ja.jns_trans as jenis_transaksi'
+                'v.tbl',
+                'v.id',
+                'v.tgl',
+                'v.nama',
+                'v.debet',
+                'v.kredit',
+                'v.dari_kas',
+                'v.untuk_kas',
+                'v.transaksi',
+                'v.ket',
+                'v.user',
+                'ja.jns_trans as jenis_transaksi',
+                'nk_dari.nama as dari_kas_nama',
+                'nk_untuk.nama as untuk_kas_nama'
             )
             ->where(function($q) use ($kasId) {
-                $q->where('t.dari_kas_id', $kasId)
-                  ->orWhere('t.untuk_kas_id', $kasId);
+                $q->where('v.dari_kas', $kasId)
+                  ->orWhere('v.untuk_kas', $kasId);
             })
-            ->whereYear('t.tgl_catat', $tahun)
-            ->whereMonth('t.tgl_catat', $bulan)
-            ->whereIn('t.dk', ['D', 'K'])
-            ->orderBy('t.tgl_catat', 'asc')
-            ->orderBy('t.id', 'asc')
-                ->get();
+            ->whereYear('v.tgl', $tahun)
+            ->whereMonth('v.tgl', $bulan)
+            ->orderBy('v.tgl', 'asc')
+            ->orderBy('v.id', 'asc')
+            ->get();
     }
 
     /**
-     * Process transactions with running balance calculation
-     * This implements the accounting principle of double-entry bookkeeping
+     * Process transactions from v_transaksi with running balance calculation
      */
-    private function prosesTransaksi($transaksi, $kasId, $saldoAwal)
+    private function prosesTransaksiFromView($transaksi, $kasId, $saldoAwal)
     {
         $result = [];
         $runningBalance = $saldoAwal;
@@ -133,13 +154,13 @@ class LaporanBukuBesarController extends Controller
             $kredit = 0;
             
             // Determine debet/kredit based on transaction direction
-            if ($row->untuk_kas_id == $kasId) {
+            if ($row->untuk_kas == $kasId) {
                 // Money coming into this kas account
-                $debet = $row->jumlah;
+                $debet = $row->debet;
             }
-            if ($row->dari_kas_id == $kasId) {
+            if ($row->dari_kas == $kasId) {
                 // Money going out of this kas account
-                $kredit = $row->jumlah;
+                $kredit = $row->kredit;
             }
             
             // Update running balance
@@ -147,12 +168,16 @@ class LaporanBukuBesarController extends Controller
             
             $result[] = [
                 'no' => $no++,
-                'tanggal' => $row->tgl_catat,
+                'tanggal' => $row->tgl,
                 'jenis_transaksi' => $row->jenis_transaksi ?? 'N/A',
-                'keterangan' => $row->keterangan,
+                'keterangan' => $row->ket,
+                'nama' => $row->nama,
                 'debet' => $debet,
                 'kredit' => $kredit,
-                'saldo' => $runningBalance
+                'saldo' => $runningBalance,
+                'tbl' => $row->tbl,
+                'dari_kas_nama' => $row->dari_kas_nama,
+                'untuk_kas_nama' => $row->untuk_kas_nama
             ];
         }
         
@@ -163,82 +188,64 @@ class LaporanBukuBesarController extends Controller
     {
         // Get filter parameters
         $periode = $request->input('periode', date('Y-m'));
-        $kasId = $request->input('kas_id');
         
-        if (!$kasId) {
-            return redirect()->back()->with('error', 'Pilih kas terlebih dahulu');
-        }
+        // Get all active kas accounts
+        $kasList = NamaKasTbl::where('aktif', 'Y')->get();
         
-        $kas = NamaKasTbl::find($kasId);
-        if (!$kas) {
-            return redirect()->back()->with('error', 'Kas tidak ditemukan');
-        }
+        $processedData = [];
+        $totalSaldoKeseluruhan = 0;
         
         // Parse periode
         $tglArr = explode('-', $periode);
         $thn = $tglArr[0];
         $bln = $tglArr[1];
         
-        // Calculate saldo awal
-        $saldoAwal = $this->calculateSaldoAwal($kasId, $thn, $bln);
-        
-        // Get transactions
-        $transaksi = $this->getTransaksiKas($kasId, $thn, $bln);
-        $data = $this->prosesTransaksi($transaksi, $kasId, $saldoAwal);
-        
-        // Calculate totals
-        $totalDebet = collect($data)->sum('debet');
-        $totalKredit = collect($data)->sum('kredit');
-        $saldoAkhir = $saldoAwal + ($totalDebet - $totalKredit);
+        // Process data for each kas account
+        foreach ($kasList as $kas) {
+            $kasData = $this->processKasData($kas, $thn, $bln);
+            if (!empty($kasData['transaksi'])) {
+                $processedData[] = $kasData;
+                $totalSaldoKeseluruhan += $kasData['saldo_akhir'];
+            }
+        }
         
         // Format periode text
         $periodeText = Carbon::createFromFormat('Y-m', $periode)->format('F Y');
         
         $pdf = Pdf::loadView('laporan.pdf.buku_besar', compact(
-            'kas',
+            'processedData',
             'periode',
             'periodeText',
-            'data',
-            'saldoAwal',
-            'totalDebet',
-            'totalKredit',
-            'saldoAkhir'
+            'totalSaldoKeseluruhan'
         ));
 
-        return $pdf->download('laporan_buku_besar_' . $kas->nama . '_' . $periode . '.pdf');
+        return $pdf->download('laporan_buku_besar_' . $periode . '.pdf');
     }
 
     public function exportExcel(Request $request)
     {
         // Get filter parameters
         $periode = $request->input('periode', date('Y-m'));
-        $kasId = $request->input('kas_id');
         
-        if (!$kasId) {
-            return redirect()->back()->with('error', 'Pilih kas terlebih dahulu');
-        }
+        // Get all active kas accounts
+        $kasList = NamaKasTbl::where('aktif', 'Y')->get();
         
-        $kas = NamaKasTbl::find($kasId);
-        if (!$kas) {
-            return redirect()->back()->with('error', 'Kas tidak ditemukan');
-        }
+        $processedData = [];
+        $totalSaldoKeseluruhan = 0;
         
         // Parse periode
         $tglArr = explode('-', $periode);
         $thn = $tglArr[0];
         $bln = $tglArr[1];
         
-        // Calculate saldo awal
-        $saldoAwal = $this->calculateSaldoAwal($kasId, $thn, $bln);
-        
-        // Get transactions
-        $transaksi = $this->getTransaksiKas($kasId, $thn, $bln);
-        $data = $this->prosesTransaksi($transaksi, $kasId, $saldoAwal);
-        
-        // Calculate totals
-        $totalDebet = collect($data)->sum('debet');
-        $totalKredit = collect($data)->sum('kredit');
-        $saldoAkhir = $saldoAwal + ($totalDebet - $totalKredit);
+        // Process data for each kas account
+        foreach ($kasList as $kas) {
+            $kasData = $this->processKasData($kas, $thn, $bln);
+            if (!empty($kasData['transaksi'])) {
+                $processedData[] = $kasData;
+                $totalSaldoKeseluruhan += $kasData['saldo_akhir'];
+            }
+        }
         
         // Format periode text
         $periodeText = Carbon::createFromFormat('Y-m', $periode)->format('F Y');
@@ -249,68 +256,86 @@ class LaporanBukuBesarController extends Controller
         
         // Set title
         $sheet->setCellValue('A1', 'LAPORAN BUKU BESAR');
-        $sheet->mergeCells('A1:G1');
+        $sheet->mergeCells('A1:H1');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
         $sheet->getStyle('A1')->getAlignment()->setHorizontal('center');
         
-        // Set kas and period info
-        $sheet->setCellValue('A2', 'Kas: ' . $kas->nama);
-        $sheet->setCellValue('A3', 'Periode: ' . $periodeText);
-        $sheet->setCellValue('A4', 'Saldo Awal: Rp ' . number_format($saldoAwal));
+        // Set period info
+        $sheet->setCellValue('A2', 'Periode: ' . $periodeText);
+        $sheet->setCellValue('A3', 'Total Saldo Keseluruhan: Rp ' . number_format($totalSaldoKeseluruhan));
         
-        // Set headers
-        $sheet->setCellValue('A6', 'No');
-        $sheet->setCellValue('B6', 'Tanggal');
-        $sheet->setCellValue('C6', 'Jenis Transaksi');
-        $sheet->setCellValue('D6', 'Keterangan');
-        $sheet->setCellValue('E6', 'Debet');
-        $sheet->setCellValue('F6', 'Kredit');
-        $sheet->setCellValue('G6', 'Saldo');
+        $currentRow = 5;
         
-        // Style headers
-        $headerRange = 'A6:G6';
-        $sheet->getStyle($headerRange)->getFont()->setBold(true);
-        $sheet->getStyle($headerRange)->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('E5E7EB');
-        
-        // Fill data
-        $rowNum = 7;
-        foreach ($data as $row) {
-            $sheet->setCellValue('A' . $rowNum, $row['no']);
-            $sheet->setCellValue('B' . $rowNum, Carbon::parse($row['tanggal'])->format('d/m/Y'));
-            $sheet->setCellValue('C' . $rowNum, $row['jenis_transaksi']);
-            $sheet->setCellValue('D' . $rowNum, $row['keterangan']);
-            $sheet->setCellValue('E' . $rowNum, $row['debet']);
-            $sheet->setCellValue('F' . $rowNum, $row['kredit']);
-            $sheet->setCellValue('G' . $rowNum, $row['saldo']);
-            $rowNum++;
+        // Process each kas account
+        foreach ($processedData as $kasData) {
+            $kas = $kasData['kas'];
+            $transaksi = $kasData['transaksi'];
+            
+            // Set kas header
+            $sheet->setCellValue('A' . $currentRow, $kas->nama);
+            $sheet->mergeCells('A' . $currentRow . ':H' . $currentRow);
+            $sheet->getStyle('A' . $currentRow)->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A' . $currentRow)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('E5E7EB');
+            $currentRow++;
+            
+            // Set headers
+            $sheet->setCellValue('A' . $currentRow, 'No');
+            $sheet->setCellValue('B' . $currentRow, 'Tanggal');
+            $sheet->setCellValue('C' . $currentRow, 'Jenis Transaksi');
+            $sheet->setCellValue('D' . $currentRow, 'Keterangan');
+            $sheet->setCellValue('E' . $currentRow, 'Nama');
+            $sheet->setCellValue('F' . $currentRow, 'Debet');
+            $sheet->setCellValue('G' . $currentRow, 'Kredit');
+            $sheet->setCellValue('H' . $currentRow, 'Saldo');
+            
+            // Style headers
+            $headerRange = 'A' . $currentRow . ':H' . $currentRow;
+            $sheet->getStyle($headerRange)->getFont()->setBold(true);
+            $sheet->getStyle($headerRange)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('D1D5DB');
+            $currentRow++;
+            
+            // Fill data
+            foreach ($transaksi as $row) {
+                $sheet->setCellValue('A' . $currentRow, $row['no']);
+                $sheet->setCellValue('B' . $currentRow, Carbon::parse($row['tanggal'])->format('d/m/Y'));
+                $sheet->setCellValue('C' . $currentRow, $row['jenis_transaksi']);
+                $sheet->setCellValue('D' . $currentRow, $row['keterangan']);
+                $sheet->setCellValue('E' . $currentRow, $row['nama']);
+                $sheet->setCellValue('F' . $currentRow, $row['debet']);
+                $sheet->setCellValue('G' . $currentRow, $row['kredit']);
+                $sheet->setCellValue('H' . $currentRow, $row['saldo']);
+                $currentRow++;
+            }
+            
+            // Add totals for this kas
+            $sheet->setCellValue('A' . $currentRow, 'TOTAL ' . $kas->nama);
+            $sheet->setCellValue('F' . $currentRow, $kasData['total_debet']);
+            $sheet->setCellValue('G' . $currentRow, $kasData['total_kredit']);
+            $sheet->setCellValue('H' . $currentRow, $kasData['saldo_akhir']);
+            
+            // Style totals
+            $totalRange = 'A' . $currentRow . ':H' . $currentRow;
+            $sheet->getStyle($totalRange)->getFont()->setBold(true);
+            $sheet->getStyle($totalRange)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('F3F4F6');
+            $currentRow += 2; // Add space between kas accounts
         }
         
-        // Add totals
-        $totalRow = $rowNum + 1;
-        $sheet->setCellValue('A' . $totalRow, 'TOTAL');
-        $sheet->setCellValue('E' . $totalRow, $totalDebet);
-        $sheet->setCellValue('F' . $totalRow, $totalKredit);
-        $sheet->setCellValue('G' . $totalRow, $saldoAkhir);
-        
-        // Style totals
-        $totalRange = 'A' . $totalRow . ':G' . $totalRow;
-        $sheet->getStyle($totalRange)->getFont()->setBold(true);
-        $sheet->getStyle($totalRange)->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('F3F4F6');
-        
         // Auto size columns
-        foreach (range('A', 'G') as $col) {
+        foreach (range('A', 'H') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
         
         // Format currency columns
-        $sheet->getStyle('E7:G' . $totalRow)->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('F5:H' . $currentRow)->getNumberFormat()->setFormatCode('#,##0');
         
         $writer = new Xlsx($spreadsheet);
-        $filename = 'laporan_buku_besar_' . str_replace(' ', '_', $kas->nama) . '_' . $periode . '.xlsx';
+        $filename = 'laporan_buku_besar_' . $periode . '.xlsx';
         
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="' . $filename . '"');
