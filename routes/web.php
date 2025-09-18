@@ -606,7 +606,6 @@ Route::prefix('toserda')->group(function () {
     Route::prefix('laporan')->group(function () {
         Route::get('/rekapitulasi', [\App\Http\Controllers\LaporanRekapitulasiController::class, 'index'])->name('laporan.rekapitulasi');
         Route::get('/rekapitulasi/export/pdf', [\App\Http\Controllers\LaporanRekapitulasiController::class, 'exportPdf'])->name('laporan.rekapitulasi.export.pdf');
-        Route::get('/rekapitulasi/export/excel', [\App\Http\Controllers\LaporanRekapitulasiController::class, 'exportExcel'])->name('laporan.rekapitulasi.export.excel');
     });
 
     // Route Laporan Saldo Kas

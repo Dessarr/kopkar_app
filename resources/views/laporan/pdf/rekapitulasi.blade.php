@@ -439,16 +439,16 @@
             <tfoot>
                 <tr class="total-row">
                     <td colspan="2" class="text-center text-bold">TOTAL</td>
-                    <td class="text-center text-bold">{{ $summary['total_tagihan'] }}</td>
-                    <td class="text-right text-bold">Rp {{ number_format($summary['total_target_pokok'], 0, ',', '.') }}</td>
-                    <td class="text-right text-bold">Rp {{ number_format($summary['total_target_bunga'], 0, ',', '.') }}</td>
+                    <td class="text-center text-bold">{{ array_sum(array_column($data, 'jml_tagihan')) }}</td>
+                    <td class="text-right text-bold">Rp {{ number_format(array_sum(array_column($data, 'target_pokok')), 0, ',', '.') }}</td>
+                    <td class="text-right text-bold">Rp {{ number_format(array_sum(array_column($data, 'target_bunga')), 0, ',', '.') }}</td>
                     <td class="text-center text-bold">{{ array_sum(array_column($data, 'tagihan_masuk')) }}</td>
-                    <td class="text-right text-bold">Rp {{ number_format($summary['total_realisasi_pokok'], 0, ',', '.') }}</td>
-                    <td class="text-right text-bold">Rp {{ number_format($summary['total_realisasi_bunga'], 0, ',', '.') }}</td>
-                    <td class="text-center text-bold">{{ $summary['total_tagihan_bermasalah'] }}</td>
-                    <td class="text-right text-bold">Rp {{ number_format($summary['total_tidak_bayar_pokok'], 0, ',', '.') }}</td>
-                    <td class="text-right text-bold">Rp {{ number_format($summary['total_tidak_bayar_bunga'], 0, ',', '.') }}</td>
-                    <td class="text-center text-bold">{{ number_format($summary['rata_rata_koleksi'], 1) }}%</td>
+                    <td class="text-right text-bold">Rp {{ number_format(array_sum(array_column($data, 'realisasi_pokok')), 0, ',', '.') }}</td>
+                    <td class="text-right text-bold">Rp {{ number_format(array_sum(array_column($data, 'realisasi_bunga')), 0, ',', '.') }}</td>
+                    <td class="text-center text-bold">{{ array_sum(array_column($data, 'tagihan_bermasalah')) }}</td>
+                    <td class="text-right text-bold">Rp {{ number_format(array_sum(array_column($data, 'tidak_bayar_pokok')), 0, ',', '.') }}</td>
+                    <td class="text-right text-bold">Rp {{ number_format(array_sum(array_column($data, 'tidak_bayar_bunga')), 0, ',', '.') }}</td>
+                    <td class="text-center text-bold">{{ number_format(!empty($data) ? array_sum(array_column($data, 'persentase_koleksi')) / count($data) : 0, 1) }}%</td>
                     <td class="text-center text-bold">BULANAN</td>
                 </tr>
             </tfoot>
