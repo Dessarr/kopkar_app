@@ -35,6 +35,18 @@ class LaporanToserdaController extends Controller
         $labaUsahaSetelahPajak = $this->calculateLabaUsahaSetelahPajak($labaUsaha, $pajakPenghasilan);
         $shuDistribution = $this->calculateShuDistribution($labaUsahaSetelahPajak);
 
+        // Summary data for cards
+        $summary = [
+            'total_pendapatan' => $labaKotor->pendapatan_usaha,
+            'total_hpp' => $labaKotor->hpp,
+            'laba_kotor' => $labaKotor->laba_kotor,
+            'total_biaya_usaha' => $labaUsaha->total_biaya_usaha,
+            'laba_usaha' => $labaUsaha->laba_usaha,
+            'pajak_penghasilan' => $pajakPenghasilan->pajak_penghasilan,
+            'laba_usaha_setelah_pajak' => $labaUsahaSetelahPajak->laba_usaha_setelah_pajak,
+            'total_shu' => $shuDistribution->total_shu
+        ];
+
         return view('laporan.toserda', compact(
             'dataPenjualan',
             'dataPembelian', 
@@ -45,6 +57,7 @@ class LaporanToserdaController extends Controller
             'pajakPenghasilan',
             'labaUsahaSetelahPajak',
             'shuDistribution',
+            'summary',
             'tgl_dari',
             'tgl_samp',
             'tahun'
@@ -69,6 +82,18 @@ class LaporanToserdaController extends Controller
         $labaUsahaSetelahPajak = $this->calculateLabaUsahaSetelahPajak($labaUsaha, $pajakPenghasilan);
         $shuDistribution = $this->calculateShuDistribution($labaUsahaSetelahPajak);
 
+        // Summary data for cards
+        $summary = [
+            'total_pendapatan' => $labaKotor->pendapatan_usaha,
+            'total_hpp' => $labaKotor->hpp,
+            'laba_kotor' => $labaKotor->laba_kotor,
+            'total_biaya_usaha' => $labaUsaha->total_biaya_usaha,
+            'laba_usaha' => $labaUsaha->laba_usaha,
+            'pajak_penghasilan' => $pajakPenghasilan->pajak_penghasilan,
+            'laba_usaha_setelah_pajak' => $labaUsahaSetelahPajak->laba_usaha_setelah_pajak,
+            'total_shu' => $shuDistribution->total_shu
+        ];
+
         $pdf = Pdf::loadView('laporan.pdf.toserda', compact(
             'dataPenjualan',
             'dataPembelian',
@@ -79,6 +104,7 @@ class LaporanToserdaController extends Controller
             'pajakPenghasilan',
             'labaUsahaSetelahPajak',
             'shuDistribution',
+            'summary',
             'tgl_dari',
             'tgl_samp',
             'tahun'
@@ -384,4 +410,4 @@ class LaporanToserdaController extends Controller
             'laba_usaha_setelah_pajak' => $laba
         ];
     }
-} 
+}

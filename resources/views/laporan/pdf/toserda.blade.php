@@ -9,9 +9,9 @@
             font-family: Arial, sans-serif;
             font-size: 12px;
             line-height: 1.4;
+            color: #333;
             margin: 0;
             padding: 20px;
-            color: #333;
         }
         
         .header {
@@ -22,57 +22,54 @@
         }
         
         .header h1 {
-            font-size: 18px;
+            font-size: 24px;
             font-weight: bold;
             margin: 0 0 10px 0;
-            text-transform: uppercase;
+            color: #1e40af;
         }
         
         .header h2 {
-            font-size: 16px;
-            font-weight: bold;
-            margin: 0 0 5px 0;
-        }
-        
-        .header p {
-            font-size: 12px;
+            font-size: 18px;
+            font-weight: normal;
             margin: 0;
+            color: #666;
         }
         
         .period {
             text-align: center;
-            margin-bottom: 20px;
-            font-weight: bold;
+            margin-bottom: 30px;
+            font-size: 14px;
+            color: #666;
         }
         
         .section {
             margin-bottom: 25px;
+            page-break-inside: avoid;
         }
         
         .section-title {
-            font-size: 14px;
+            background-color: #f3f4f6;
+            padding: 10px 15px;
             font-weight: bold;
-            background-color: #f5f5f5;
-            padding: 8px;
-            border: 1px solid #ddd;
-            margin-bottom: 10px;
-            text-transform: uppercase;
+            font-size: 14px;
+            border: 1px solid #d1d5db;
+            margin-bottom: 0;
         }
         
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         
         th, td {
-            border: 1px solid #ddd;
-            padding: 6px 8px;
+            padding: 8px 12px;
             text-align: left;
+            border: 1px solid #d1d5db;
         }
         
         th {
-            background-color: #f8f9fa;
+            background-color: #f9fafb;
             font-weight: bold;
             font-size: 11px;
             text-transform: uppercase;
@@ -94,72 +91,114 @@
             font-weight: bold;
         }
         
-        .bg-gray {
-            background-color: #f8f9fa;
+        .total-row {
+            background-color: #f3f4f6;
+            font-weight: bold;
         }
         
-        .summary-box {
-            border: 2px solid #333;
+        .highlight-box {
+            background-color: #f0f9ff;
+            border: 2px solid #0ea5e9;
             padding: 15px;
             margin: 15px 0;
-            background-color: #f9f9f9;
+            text-align: center;
         }
         
-        .summary-title {
-            font-size: 14px;
+        .highlight-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #0369a1;
+        }
+        
+        .highlight-box .amount {
+            font-size: 20px;
             font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 10px;
+            color: #0369a1;
         }
         
-        .summary-amount {
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .summary-card h4 {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+        
+        .summary-card .amount {
             font-size: 16px;
             font-weight: bold;
-            text-align: right;
-        }
-        
-        .positive {
-            color: #28a745;
-        }
-        
-        .negative {
-            color: #dc3545;
-        }
-        
-        .neutral {
-            color: #333;
-        }
-        
-        .page-break {
-            page-break-before: always;
+            color: #1e293b;
         }
         
         .footer {
-            margin-top: 30px;
+            margin-top: 40px;
             text-align: center;
             font-size: 10px;
             color: #666;
-            border-top: 1px solid #ddd;
+            border-top: 1px solid #d1d5db;
             padding-top: 10px;
+        }
+        
+        @media print {
+            body {
+                margin: 0;
+                padding: 15px;
+            }
+            
+            .page-break {
+                page-break-before: always;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Header -->
     <div class="header">
-        <h1>Laporan Rugi Laba</h1>
-        <h2>Toserda (Toko Serba Ada)</h2>
-        <p>Koperasi Pegawai Republik Indonesia</p>
+        <h1>LAPORAN RUGI LABA TOSERDA</h1>
+        <h2>Koperasi Serba Usaha</h2>
     </div>
     
     <!-- Period -->
     <div class="period">
-        Periode: {{ \Carbon\Carbon::parse($tgl_dari)->format('d F Y') }} - {{ \Carbon\Carbon::parse($tgl_samp)->format('d F Y') }}
+        <strong>Periode: {{ \Carbon\Carbon::parse($tgl_dari)->format('d F Y') }} - {{ \Carbon\Carbon::parse($tgl_samp)->format('d F Y') }}</strong>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <h4>Total Pendapatan</h4>
+            <div class="amount">Rp {{ number_format($summary['total_pendapatan'], 0, ',', '.') }}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Laba Kotor</h4>
+            <div class="amount">Rp {{ number_format($summary['laba_kotor'], 0, ',', '.') }}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Laba Usaha</h4>
+            <div class="amount">Rp {{ number_format($summary['laba_usaha'], 0, ',', '.') }}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Total SHU</h4>
+            <div class="amount">Rp {{ number_format($summary['total_shu'], 0, ',', '.') }}</div>
+        </div>
     </div>
     
     <!-- Pendapatan Usaha -->
     <div class="section">
-        <div class="section-title">Pendapatan Usaha</div>
+        <h3 class="section-title">PENDAPATAN USAHA</h3>
         <table>
             <thead>
                 <tr>
@@ -171,24 +210,26 @@
                 @forelse($dataPenjualan as $penjualan)
                 <tr>
                     <td>{{ $penjualan->jenisAkun->nama_akun ?? 'Pendapatan' }}</td>
-                    <td class="text-right">{{ number_format($penjualan->TOTAL ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($penjualan->TOTAL ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 @empty
                 <tr>
                     <td colspan="2" class="text-center">Tidak ada data pendapatan</td>
                 </tr>
                 @endforelse
-                <tr class="bg-gray font-bold">
-                    <td>Total Pendapatan Usaha</td>
-                    <td class="text-right">{{ number_format($labaKotor->pendapatan_usaha, 0, ',', '.') }}</td>
-                </tr>
             </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td>Total Pendapatan Usaha</td>
+                    <td class="text-right">Rp {{ number_format($labaKotor->pendapatan_usaha, 0, ',', '.') }}</td>
+                </tr>
+            </tfoot>
         </table>
     </div>
     
     <!-- Harga Pokok Penjualan -->
     <div class="section">
-        <div class="section-title">Harga Pokok Penjualan</div>
+        <h3 class="section-title">HARGA POKOK PENJUALAN</h3>
         <table>
             <thead>
                 <tr>
@@ -200,45 +241,45 @@
                 @forelse($dataPembelian as $pembelian)
                 <tr>
                     <td>{{ $pembelian->jenisAkun->nama_akun ?? 'Pembelian' }}</td>
-                    <td class="text-right">{{ number_format($pembelian->TOTAL ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($pembelian->TOTAL ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 @empty
                 <tr>
                     <td>Pembelian Bersih</td>
-                    <td class="text-right">0</td>
+                    <td class="text-right">Rp 0</td>
                 </tr>
                 @endforelse
                 <tr>
                     <td>Persediaan Awal</td>
-                    <td class="text-right">{{ number_format($labaKotor->persediaan_awal, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($labaKotor->persediaan_awal, 0, ',', '.') }}</td>
                 </tr>
-                <tr class="bg-gray">
-                    <td class="font-bold">Barang Tersedia untuk Dijual</td>
-                    <td class="text-right font-bold">{{ number_format($labaKotor->barang_tersedia, 0, ',', '.') }}</td>
+                <tr class="total-row">
+                    <td>Barang Tersedia untuk Dijual</td>
+                    <td class="text-right">Rp {{ number_format($labaKotor->barang_tersedia, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>Persediaan Akhir</td>
-                    <td class="text-right">{{ number_format($labaKotor->persediaan_akhir, 0, ',', '.') }}</td>
-                </tr>
-                <tr class="bg-gray font-bold">
-                    <td>Harga Pokok Penjualan</td>
-                    <td class="text-right">{{ number_format($labaKotor->hpp, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($labaKotor->persediaan_akhir, 0, ',', '.') }}</td>
                 </tr>
             </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td>Harga Pokok Penjualan</td>
+                    <td class="text-right">Rp {{ number_format($labaKotor->hpp, 0, ',', '.') }}</td>
+                </tr>
+            </tfoot>
         </table>
     </div>
     
     <!-- Laba Kotor -->
-    <div class="summary-box">
-        <div class="summary-title">Laba Kotor</div>
-        <div class="summary-amount {{ $labaKotor->laba_kotor >= 0 ? 'positive' : 'negative' }}">
-            {{ number_format($labaKotor->laba_kotor, 0, ',', '.') }}
-        </div>
+    <div class="highlight-box">
+        <h3>LABA KOTOR</h3>
+        <div class="amount">Rp {{ number_format($labaKotor->laba_kotor, 0, ',', '.') }}</div>
     </div>
     
     <!-- Biaya-Biaya Usaha -->
     <div class="section">
-        <div class="section-title">Biaya-Biaya Usaha</div>
+        <h3 class="section-title">BIAYA-BIAYA USAHA</h3>
         <table>
             <thead>
                 <tr>
@@ -250,48 +291,44 @@
                 @forelse($dataBiayaUsaha as $biaya)
                 <tr>
                     <td>{{ $biaya->jenisAkun->nama_akun ?? 'Biaya' }}</td>
-                    <td class="text-right">{{ number_format($biaya->TOTAL ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($biaya->TOTAL ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 @empty
                 <tr>
                     <td colspan="2" class="text-center">Tidak ada data biaya usaha</td>
                 </tr>
                 @endforelse
-                <tr class="bg-gray font-bold">
-                    <td>Total Biaya Usaha</td>
-                    <td class="text-right">{{ number_format($labaUsaha->total_biaya_usaha, 0, ',', '.') }}</td>
-                </tr>
             </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td>Total Biaya Usaha</td>
+                    <td class="text-right">Rp {{ number_format($labaUsaha->total_biaya_usaha, 0, ',', '.') }}</td>
+                </tr>
+            </tfoot>
         </table>
     </div>
     
     <!-- Laba Usaha -->
-    <div class="summary-box">
-        <div class="summary-title">Laba Usaha</div>
-        <div class="summary-amount {{ $labaUsaha->laba_usaha >= 0 ? 'positive' : 'negative' }}">
-            {{ number_format($labaUsaha->laba_usaha, 0, ',', '.') }}
-        </div>
+    <div class="highlight-box">
+        <h3>LABA USAHA</h3>
+        <div class="amount">Rp {{ number_format($labaUsaha->laba_usaha, 0, ',', '.') }}</div>
     </div>
     
     <!-- Pajak Penghasilan -->
-    <div class="summary-box">
-        <div class="summary-title">Pajak Penghasilan (12.5%)</div>
-        <div class="summary-amount neutral">
-            {{ number_format($pajakPenghasilan->pajak_penghasilan, 0, ',', '.') }}
-        </div>
+    <div class="highlight-box">
+        <h3>Pajak Penghasilan (12.5%)</h3>
+        <div class="amount">Rp {{ number_format($pajakPenghasilan->pajak_penghasilan, 0, ',', '.') }}</div>
     </div>
     
     <!-- Laba Usaha Setelah Pajak -->
-    <div class="summary-box">
-        <div class="summary-title">Laba Usaha Setelah Pajak</div>
-        <div class="summary-amount {{ $labaUsahaSetelahPajak->laba_usaha_setelah_pajak >= 0 ? 'positive' : 'negative' }}">
-            {{ number_format($labaUsahaSetelahPajak->laba_usaha_setelah_pajak, 0, ',', '.') }}
-        </div>
+    <div class="highlight-box">
+        <h3>LABA USAHA SETELAH PAJAK</h3>
+        <div class="amount">Rp {{ number_format($labaUsahaSetelahPajak->laba_usaha_setelah_pajak, 0, ',', '.') }}</div>
     </div>
     
     <!-- SHU Yang Dibagikan -->
     <div class="section">
-        <div class="section-title">SHU Yang Dibagikan</div>
+        <h3 class="section-title">SHU YANG DIBAGIKAN</h3>
         <table>
             <thead>
                 <tr>
@@ -304,51 +341,53 @@
                 <tr>
                     <td>Dana Anggota</td>
                     <td class="text-center">50%</td>
-                    <td class="text-right">{{ number_format($shuDistribution->dana_anggota, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($shuDistribution->dana_anggota, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>Dana Cadangan</td>
                     <td class="text-center">20%</td>
-                    <td class="text-right">{{ number_format($shuDistribution->dana_cadangan, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($shuDistribution->dana_cadangan, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>Dana Pegawai</td>
                     <td class="text-center">10%</td>
-                    <td class="text-right">{{ number_format($shuDistribution->dana_pegawai, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($shuDistribution->dana_pegawai, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>Dana Pembangunan Daerah Kerja</td>
                     <td class="text-center">5%</td>
-                    <td class="text-right">{{ number_format($shuDistribution->dana_pembangunan_daerah_kerja, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($shuDistribution->dana_pembangunan_daerah_kerja, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>Dana Sosial</td>
                     <td class="text-center">5%</td>
-                    <td class="text-right">{{ number_format($shuDistribution->dana_sosial, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($shuDistribution->dana_sosial, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>Dana Kesejahteraan Pegawai</td>
                     <td class="text-center">5%</td>
-                    <td class="text-right">{{ number_format($shuDistribution->dana_kesejahteraan_pegawai, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($shuDistribution->dana_kesejahteraan_pegawai, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>Dana Pendidikan</td>
                     <td class="text-center">5%</td>
-                    <td class="text-right">{{ number_format($shuDistribution->dana_pendidikan, 0, ',', '.') }}</td>
-                </tr>
-                <tr class="bg-gray font-bold">
-                    <td>Total SHU</td>
-                    <td class="text-center">100%</td>
-                    <td class="text-right">{{ number_format($shuDistribution->total_shu, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($shuDistribution->dana_pendidikan, 0, ',', '.') }}</td>
                 </tr>
             </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td>Total SHU</td>
+                    <td class="text-center">100%</td>
+                    <td class="text-right">Rp {{ number_format($shuDistribution->total_shu, 0, ',', '.') }}</td>
+                </tr>
+            </tfoot>
         </table>
     </div>
     
     <!-- Footer -->
     <div class="footer">
         <p>Laporan ini dibuat secara otomatis pada {{ date('d F Y H:i:s') }}</p>
-        <p>Koperasi Pegawai Republik Indonesia - Sistem Informasi Manajemen Koperasi</p>
+        <p>Koperasi Serba Usaha - Sistem Informasi Manajemen Koperasi</p>
     </div>
 </body>
 </html>
