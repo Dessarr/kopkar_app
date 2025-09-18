@@ -9,8 +9,6 @@ use App\Models\jns_simpan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class LaporanKasSimpananController extends Controller
 {
@@ -94,6 +92,9 @@ class LaporanKasSimpananController extends Controller
             'per_jenis' => []
         ];
         
+        // Get unique members count
+        $uniqueMembers = [];
+        
         foreach ($data as $jenisData) {
             $totalDebet = 0;
             $totalKredit = 0;
@@ -101,6 +102,11 @@ class LaporanKasSimpananController extends Controller
             foreach ($jenisData['transaksi'] as $transaksi) {
                 $totalDebet += $transaksi['debet'];
                 $totalKredit += $transaksi['kredit'];
+                
+                // Collect unique members by name (since anggota_id is not available)
+                if (!in_array($transaksi['nama'], $uniqueMembers)) {
+                    $uniqueMembers[] = $transaksi['nama'];
+                }
             }
             
             $summary['per_jenis'][$jenisData['jenis_id']] = [
@@ -115,7 +121,12 @@ class LaporanKasSimpananController extends Controller
             $summary['total_kredit'] += $totalKredit;
         }
         
+        // Add missing fields for PDF view
         $summary['total_saldo'] = $summary['total_debet'] - $summary['total_kredit'];
+        $summary['total_anggota'] = count($uniqueMembers);
+        $summary['total_simpanan'] = $summary['total_debet']; // Simpanan = debet
+        $summary['total_penarikan'] = $summary['total_kredit']; // Penarikan = kredit
+        $summary['saldo_bersih'] = $summary['total_saldo'];
         
         return $summary;
     }
@@ -290,133 +301,4 @@ class LaporanKasSimpananController extends Controller
         return $pdf->download('laporan_kas_simpanan_' . $periode . '.pdf');
     }
 
-    public function exportExcel(Request $request)
-    {
-        // Get filter parameters
-        $periode = $request->input('periode', date('Y-m'));
-        
-        // Get data
-        $jenisSimpanan = jns_simpan::whereIn('id', [31, 32, 40, 41, 51, 52])
-            ->orderBy('urut')
-            ->get();
-        $data = $this->getRekapSimpananFromView($jenisSimpanan, $periode);
-        $summary = $this->calculateSummaryFromView($data, $jenisSimpanan);
-        
-        // Format period text
-        $periodeText = Carbon::createFromFormat('Y-m', $periode)->format('F Y');
-        
-        // Create Excel file
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        
-        // Set title
-        $sheet->setCellValue('A1', 'LAPORAN KAS SIMPANAN');
-        $sheet->mergeCells('A1:' . chr(67 + count($jenisSimpanan) * 3) . '1');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal('center');
-        
-        // Set period info
-        $sheet->setCellValue('A2', 'Periode: ' . $periodeText);
-        $sheet->mergeCells('A2:' . chr(67 + count($jenisSimpanan) * 3) . '2');
-        $sheet->getStyle('A2')->getAlignment()->setHorizontal('center');
-        
-        // Set headers
-        $sheet->setCellValue('A4', 'No');
-        $sheet->setCellValue('B4', 'ID Anggota');
-        $sheet->setCellValue('C4', 'Nama Anggota');
-        $sheet->setCellValue('D4', 'Jabatan');
-        $sheet->setCellValue('E4', 'Departemen');
-        
-        $col = 6;
-        foreach ($jenisSimpanan as $jenis) {
-            $sheet->setCellValue(chr(64 + $col) . '4', $jenis->jns_simpan . ' (Setoran)');
-            $sheet->setCellValue(chr(64 + $col + 1) . '4', $jenis->jns_simpan . ' (Penarikan)');
-            $sheet->setCellValue(chr(64 + $col + 2) . '4', $jenis->jns_simpan . ' (Saldo)');
-            $col += 3;
-        }
-        
-        $sheet->setCellValue(chr(64 + $col) . '4', 'Total Setoran');
-        $sheet->setCellValue(chr(64 + $col + 1) . '4', 'Total Penarikan');
-        $sheet->setCellValue(chr(64 + $col + 2) . '4', 'Saldo Bersih');
-        
-        // Style headers
-        $headerRange = 'A4:' . chr(64 + $col + 2) . '4';
-        $sheet->getStyle($headerRange)->getFont()->setBold(true);
-        $sheet->getStyle($headerRange)->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('E5E7EB');
-        
-        // Fill data
-        $rowNum = 5;
-        foreach ($data as $row) {
-            $sheet->setCellValue('A' . $rowNum, $row['no']);
-            $sheet->setCellValue('B' . $rowNum, $row['id']);
-            $sheet->setCellValue('C' . $rowNum, $row['nama']);
-            $sheet->setCellValue('D' . $rowNum, $row['jabatan']);
-            $sheet->setCellValue('E' . $rowNum, $row['departemen']);
-            
-            $col = 6;
-            foreach ($jenisSimpanan as $jenis) {
-                if (isset($row[$jenis->id])) {
-                    $sheet->setCellValue(chr(64 + $col) . $rowNum, $row[$jenis->id]['debet']);
-                    $sheet->setCellValue(chr(64 + $col + 1) . $rowNum, $row[$jenis->id]['kredit']);
-                    $sheet->setCellValue(chr(64 + $col + 2) . $rowNum, $row[$jenis->id]['saldo']);
-                } else {
-                    $sheet->setCellValue(chr(64 + $col) . $rowNum, 0);
-                    $sheet->setCellValue(chr(64 + $col + 1) . $rowNum, 0);
-                    $sheet->setCellValue(chr(64 + $col + 2) . $rowNum, 0);
-                }
-                $col += 3;
-            }
-            
-            $sheet->setCellValue(chr(64 + $col) . $rowNum, $row['total_simpanan']);
-            $sheet->setCellValue(chr(64 + $col + 1) . $rowNum, $row['total_penarikan']);
-            $sheet->setCellValue(chr(64 + $col + 2) . $rowNum, $row['saldo_bersih']);
-            
-            $rowNum++;
-        }
-        
-        // Add totals row
-        $totalRow = $rowNum + 1;
-        $sheet->setCellValue('A' . $totalRow, 'TOTAL');
-        $sheet->mergeCells('A' . $totalRow . ':E' . $totalRow);
-        
-        $col = 6;
-        foreach ($jenisSimpanan as $jenis) {
-            $sheet->setCellValue(chr(64 + $col) . $totalRow, $summary['per_jenis'][$jenis->id]['debet']);
-            $sheet->setCellValue(chr(64 + $col + 1) . $totalRow, $summary['per_jenis'][$jenis->id]['kredit']);
-            $sheet->setCellValue(chr(64 + $col + 2) . $totalRow, $summary['per_jenis'][$jenis->id]['saldo']);
-            $col += 3;
-        }
-        
-        $sheet->setCellValue(chr(64 + $col) . $totalRow, $summary['total_simpanan']);
-        $sheet->setCellValue(chr(64 + $col + 1) . $totalRow, $summary['total_penarikan']);
-        $sheet->setCellValue(chr(64 + $col + 2) . $totalRow, $summary['saldo_bersih']);
-        
-        // Style totals
-        $totalRange = 'A' . $totalRow . ':' . chr(64 + $col + 2) . $totalRow;
-        $sheet->getStyle($totalRange)->getFont()->setBold(true);
-        $sheet->getStyle($totalRange)->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('D1D5DB');
-        
-        // Auto size columns
-        foreach (range('A', chr(64 + $col + 2)) as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
-        
-        // Format currency columns
-        $currencyRange = 'F5:' . chr(64 + $col + 2) . $totalRow;
-        $sheet->getStyle($currencyRange)->getNumberFormat()->setFormatCode('#,##0');
-        
-        $writer = new Xlsx($spreadsheet);
-        $filename = 'laporan_kas_simpanan_' . $periode . '.xlsx';
-        
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
-        
-        $writer->save('php://output');
-        exit;
-    }
 }

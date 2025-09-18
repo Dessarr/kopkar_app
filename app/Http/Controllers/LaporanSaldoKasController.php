@@ -7,8 +7,6 @@ use App\Models\NamaKasTbl;
 use App\Models\transaksi_kas;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Illuminate\Support\Facades\DB;
 
 class LaporanSaldoKasController extends Controller
@@ -83,7 +81,10 @@ class LaporanSaldoKasController extends Controller
                 'no' => $no++,
                 'id' => $kas->id,
                 'nama' => $kas->nama,
-                'saldo' => $saldo
+                'debet' => $debet,
+                'kredit' => $kredit,
+                'saldo' => $saldo,
+                'status' => $saldo >= 0 ? 'Surplus' : 'Defisit'
             ];
             $total_saldo += $saldo;
         }
@@ -115,111 +116,4 @@ class LaporanSaldoKasController extends Controller
         return $pdf->download('laporan_saldo_kas_'.$periode.'.pdf');
     }
 
-    public function exportExcel(Request $request)
-    {
-        $periode = $request->input('periode', date('Y-m'));
-        
-        // Get detailed data using v_transaksi
-        $data = $this->getSaldoKasFromView($periode);
-        
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        
-        // Set title
-        $sheet->setCellValue('A1', 'LAPORAN SALDO KAS');
-        $sheet->setCellValue('A2', 'Koperasi Karyawan');
-        $sheet->setCellValue('A3', 'Periode: ' . Carbon::parse($periode . '-01')->format('M Y'));
-        $sheet->setCellValue('A4', 'Dicetak pada: ' . Carbon::now()->format('d M Y H:i:s'));
-        $sheet->mergeCells('A1:F1');
-        $sheet->mergeCells('A2:F2');
-        $sheet->mergeCells('A3:F3');
-        $sheet->mergeCells('A4:F4');
-        
-        // Style title
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A3')->getFont()->setSize(12);
-        $sheet->getStyle('A4')->getFont()->setSize(10);
-        
-        // Summary section
-        $rowNum = 6;
-        $sheet->setCellValue('A'.$rowNum, 'RINGKASAN LAPORAN');
-        $sheet->mergeCells('A'.$rowNum.':B'.$rowNum);
-        $sheet->getStyle('A'.$rowNum)->getFont()->setBold(true);
-        
-        $total_debet = array_sum(array_column($data['rows'], 'debet'));
-        $total_kredit = array_sum(array_column($data['rows'], 'kredit'));
-        $total_saldo_akhir = $data['total'] + $data['saldo_sblm'];
-        
-        $rowNum++;
-        $sheet->setCellValue('A'.$rowNum, 'Total Saldo Akhir:');
-        $sheet->setCellValue('B'.$rowNum, 'Rp ' . number_format($total_saldo_akhir, 0, ',', '.'));
-        $sheet->setCellValue('A'.($rowNum+1), 'Total Debet:');
-        $sheet->setCellValue('B'.($rowNum+1), 'Rp ' . number_format($total_debet, 0, ',', '.'));
-        $sheet->setCellValue('A'.($rowNum+2), 'Total Kredit:');
-        $sheet->setCellValue('B'.($rowNum+2), 'Rp ' . number_format($total_kredit, 0, ',', '.'));
-        $sheet->setCellValue('A'.($rowNum+3), 'Saldo Periode Sebelumnya:');
-        $sheet->setCellValue('B'.($rowNum+3), 'Rp ' . number_format($data['saldo_sblm'], 0, ',', '.'));
-        
-        // Set headers
-        $headers = ['No', 'Nama Kas', 'Saldo'];
-        $col = 1;
-        $startRow = $rowNum + 5;
-        foreach ($headers as $header) {
-            $sheet->setCellValueByColumnAndRow($col, $startRow, $header);
-            $col++;
-        }
-        
-        // Style headers
-        $sheet->getStyle('A'.$startRow.':C'.$startRow)->getFont()->setBold(true);
-        $sheet->getStyle('A'.$startRow.':C'.$startRow)->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setARGB('FFE0E0E0');
-        
-        // Add data
-        $rowNum = $startRow + 1;
-        foreach ($data['rows'] as $row) {
-            $sheet->setCellValue('A'.$rowNum, $row['no']);
-            $sheet->setCellValue('B'.$rowNum, $row['nama']);
-            $sheet->setCellValue('C'.$rowNum, $row['saldo']);
-            $rowNum++;
-        }
-        
-        // Add summary rows
-        if (count($data['rows']) > 0) {
-            $sheet->setCellValue('A'.$rowNum, 'SALDO PERIODE SEBELUMNYA');
-            $sheet->mergeCells('A'.$rowNum.':B'.$rowNum);
-            $sheet->setCellValue('C'.$rowNum, $data['saldo_sblm']);
-            $rowNum++;
-            $sheet->setCellValue('A'.$rowNum, 'JUMLAH');
-            $sheet->mergeCells('A'.$rowNum.':B'.$rowNum);
-            $sheet->setCellValue('C'.$rowNum, $data['total']);
-            $rowNum++;
-            $sheet->setCellValue('A'.$rowNum, 'TOTAL SALDO');
-            $sheet->mergeCells('A'.$rowNum.':B'.$rowNum);
-            $sheet->setCellValue('C'.$rowNum, $data['total'] + $data['saldo_sblm']);
-            
-            // Style summary rows
-            $sheet->getStyle('A'.($rowNum-2).':C'.$rowNum)->getFont()->setBold(true);
-            $sheet->getStyle('A'.($rowNum-2).':C'.$rowNum)->getFill()
-                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                ->getStartColor()->setARGB('FFFFE0B2');
-        }
-        
-        
-        // Auto-size columns
-        foreach (range('A', 'C') as $column) {
-            $sheet->getColumnDimension($column)->setAutoSize(true);
-        }
-        
-        $writer = new Xlsx($spreadsheet);
-        $filename = 'laporan_saldo_kas_'.$periode.'.xlsx';
-        
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="'.$filename.'"');
-        header('Cache-Control: max-age=0');
-        
-        $writer->save('php://output');
-        exit;
-    }
 } 

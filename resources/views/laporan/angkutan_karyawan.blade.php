@@ -17,13 +17,6 @@
                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">
                     <i class="fas fa-file-pdf mr-2"></i>Cetak Laporan
                 </a>
-                <a href="{{ route('laporan.angkutan.karyawan.export.excel', request()->query()) }}" 
-                   class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
-                    <i class="fas fa-file-excel mr-2"></i>Export Excel
-                </a>
-                <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
-                    <i class="fas fa-print mr-2"></i>Print
-                </button>
             </div>
         </div>
     </div>
@@ -187,8 +180,8 @@
                         @forelse($dataPendapatan as $index => $item)
                     <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->no_polisi }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($item->TOTAL, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->no_polisi ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($item->TOTAL ?? 0, 0, ',', '.') }}</td>
                     </tr>
                     @empty
                     <tr>
@@ -226,8 +219,8 @@
                         @forelse($dataBiayaOperasional as $index => $item)
                     <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->jns_trans }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($item->TOTAL, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->jns_trans ?? 'Biaya Operasional' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($item->TOTAL ?? 0, 0, ',', '.') }}</td>
                         </tr>
                         @empty
                         <tr>
@@ -265,8 +258,8 @@
                         @forelse($dataBiayaAdmin as $index => $item)
                     <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->jns_trans }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($item->TOTAL, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->jns_trans ?? 'Biaya Administrasi' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp {{ number_format($item->TOTAL ?? 0, 0, ',', '.') }}</td>
                         </tr>
                         @empty
                         <tr>

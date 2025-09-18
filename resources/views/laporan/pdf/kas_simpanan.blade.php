@@ -366,55 +366,66 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($data as $row)
-                <tr>
-                    <td>{{ $row['no'] }}</td>
-                    <td class="member-id">{{ $row['id'] }}</td>
-                    <td style="font-weight: bold;">{{ $row['nama'] }}</td>
-                    <td>
-                        <span class="role-badge {{ $row['jabatan'] == 'Pengurus' ? 'role-pengurus' : 'role-anggota' }}">
-                            {{ $row['jabatan'] }}
-                        </span>
-                    </td>
-                    <td>{{ $row['departemen'] }}</td>
-                    @foreach($jenisSimpanan as $jenis)
-                    <td class="text-center">
-                        @if(isset($row[$jenis->id]))
-                        <div class="savings-detail">
-                            <div class="savings-amount positive">
-                                Rp {{ number_format($row[$jenis->id]['debet']) }}
-                            </div>
-                            <div class="savings-amount negative">
-                                Rp {{ number_format($row[$jenis->id]['kredit']) }}
-                            </div>
-                            <div class="savings-label">
-                                Saldo: Rp {{ number_format($row[$jenis->id]['saldo']) }}
-                            </div>
-                            @if($row[$jenis->id]['transaksi_count'] > 0)
-                            <div class="savings-label" style="color: #2563eb;">
-                                {{ $row[$jenis->id]['transaksi_count'] }} trans
-                            </div>
-                            @endif
-                        </div>
-                        @else
-                        <div style="color: #9ca3af;">-</div>
-                        @endif
-                    </td>
-                    @endforeach
-                    <td class="text-center">
-                        <div class="savings-detail">
-                            <div class="savings-amount positive">
-                                Rp {{ number_format($row['total_simpanan']) }}
-                            </div>
-                            <div class="savings-amount negative">
-                                Rp {{ number_format($row['total_penarikan']) }}
-                            </div>
-                            <div class="savings-label" style="font-weight: bold; {{ $row['saldo_bersih'] >= 0 ? 'color: #059669;' : 'color: #dc2626;' }}">
-                                Saldo: Rp {{ number_format($row['saldo_bersih']) }}
-                            </div>
-                        </div>
-                    </td>
-                </tr>
+                @foreach($data as $jenisData)
+                    @if(count($jenisData['transaksi']) > 0)
+                        <!-- Savings Type Header -->
+                        <tr style="background-color: #f0f9ff; font-weight: bold;">
+                            <td colspan="{{ 5 + count($jenisSimpanan) + 1 }}" style="padding: 8px 12px; border: 1px solid #d1d5db; color: #1e40af;">
+                                <i class="fas fa-piggy-bank" style="margin-right: 8px;"></i>
+                                {{ $jenisData['jenis_nama'] }}
+                            </td>
+                        </tr>
+                        
+                        @foreach($jenisData['transaksi'] as $transaksi)
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; font-size: 11px;">{{ $transaksi['no'] }}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; font-size: 11px;">{{ \Carbon\Carbon::parse($transaksi['tanggal'])->format('d/m/Y') }}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; font-size: 11px; font-weight: bold;">{{ $transaksi['nama'] }}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; font-size: 11px; text-align: right; color: {{ $transaksi['debet'] > 0 ? '#059669' : '#9ca3af' }};">
+                                {{ $transaksi['debet'] > 0 ? 'Rp ' . number_format($transaksi['debet']) : '-' }}
+                            </td>
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; font-size: 11px; text-align: right; color: {{ $transaksi['kredit'] > 0 ? '#dc2626' : '#9ca3af' }};">
+                                {{ $transaksi['kredit'] > 0 ? 'Rp ' . number_format($transaksi['kredit']) : '-' }}
+                            </td>
+                            
+                            <!-- Empty cells for other savings types -->
+                            @for($i = 0; $i < count($jenisSimpanan) - 1; $i++)
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; font-size: 11px; text-align: center; color: #9ca3af;">-</td>
+                            @endfor
+                            
+                            <!-- Total column -->
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; font-size: 11px; text-align: right; font-weight: bold; color: {{ ($transaksi['debet'] - $transaksi['kredit']) >= 0 ? '#059669' : '#dc2626' }};">
+                                Rp {{ number_format($transaksi['debet'] - $transaksi['kredit']) }}
+                            </td>
+                        </tr>
+                        @endforeach
+                        
+                        <!-- Subtotal for this savings type -->
+                        <tr style="background-color: #f3f4f6; font-weight: bold;">
+                            <td colspan="3" style="padding: 8px 12px; border: 1px solid #d1d5db; color: #374151;">
+                                TOTAL {{ $jenisData['jenis_nama'] }}
+                            </td>
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; text-align: right; color: #059669;">
+                                Rp {{ number_format($summary['per_jenis'][$jenisData['jenis_id']]['debet']) }}
+                            </td>
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; text-align: right; color: #dc2626;">
+                                Rp {{ number_format($summary['per_jenis'][$jenisData['jenis_id']]['kredit']) }}
+                            </td>
+                            
+                            <!-- Empty cells for other savings types -->
+                            @for($i = 0; $i < count($jenisSimpanan) - 1; $i++)
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; text-align: center; color: #9ca3af;">-</td>
+                            @endfor
+                            
+                            <!-- Subtotal column -->
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; text-align: right; color: {{ $summary['per_jenis'][$jenisData['jenis_id']]['saldo'] >= 0 ? '#059669' : '#dc2626' }};">
+                                Rp {{ number_format($summary['per_jenis'][$jenisData['jenis_id']]['saldo']) }}
+                            </td>
+                        </tr>
+                        
+                        <!-- Add spacing between savings types -->
+                        <tr><td colspan="{{ 5 + count($jenisSimpanan) + 1 }}" style="padding: 8px; border: none;"></td></tr>
+                    @endif
                 @endforeach
             </tbody>
             <tfoot>

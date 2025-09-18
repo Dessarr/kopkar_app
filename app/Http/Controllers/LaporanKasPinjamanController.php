@@ -8,8 +8,6 @@ use App\Models\TblPinjamanD;
 use App\Models\data_anggota;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Illuminate\Support\Facades\DB;
 
 class LaporanKasPinjamanController extends Controller
@@ -308,132 +306,30 @@ class LaporanKasPinjamanController extends Controller
         $tgl_dari_formatted = Carbon::parse($tgl_dari)->format('d F Y');
         $tgl_samp_formatted = Carbon::parse($tgl_samp)->format('d F Y');
         
+        // Create statistics array for PDF view
+        $statistics = [
+            'peminjam_aktif' => $summary['peminjam_aktif'],
+            'peminjam_lunas' => $summary['peminjam_lunas'],
+            'peminjam_belum' => $summary['peminjam_belum'],
+            'completion_rate' => $summary['completion_rate'],
+            'overdue_rate' => $summary['peminjam_aktif'] > 0 ? ($summary['peminjam_belum'] / $summary['peminjam_aktif']) * 100 : 0
+        ];
+        
+        // Pass data as recentLoans for PDF view compatibility
+        $recentLoans = $data;
+        
         $pdf = Pdf::loadView('laporan.pdf.kas_pinjaman', compact(
             'tgl_dari',
             'tgl_samp',
             'tgl_dari_formatted',
             'tgl_samp_formatted',
             'data',
-            'summary'
+            'summary',
+            'statistics',
+            'recentLoans'
         ));
 
         return $pdf->download('laporan_kas_pinjaman_' . $tgl_dari . '_' . $tgl_samp . '.pdf');
     }
 
-    public function exportExcel(Request $request)
-    {
-        // Get filter parameters
-        $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
-        $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
-        
-        // Get data
-        $data = $this->getRekapPinjamanFromView($tgl_dari, $tgl_samp);
-        $summary = $this->calculateSummaryFromView($data);
-        
-        // Format dates
-        $tgl_dari_formatted = Carbon::parse($tgl_dari)->format('d F Y');
-        $tgl_samp_formatted = Carbon::parse($tgl_samp)->format('d F Y');
-        
-        // Create Excel file
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        
-        // Set title
-        $sheet->setCellValue('A1', 'LAPORAN KAS PINJAMAN');
-        $sheet->mergeCells('A1:D1');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal('center');
-        
-        // Set period info
-        $sheet->setCellValue('A2', 'Periode: ' . $tgl_dari_formatted . ' s/d ' . $tgl_samp_formatted);
-        $sheet->mergeCells('A2:D2');
-        $sheet->getStyle('A2')->getAlignment()->setHorizontal('center');
-        
-        // Set headers
-        $sheet->setCellValue('A4', 'No');
-        $sheet->setCellValue('B4', 'Keterangan');
-        $sheet->setCellValue('C4', 'Jumlah (Rp)');
-        $sheet->setCellValue('D4', 'Persentase');
-        
-        // Style headers
-        $headerRange = 'A4:D4';
-        $sheet->getStyle($headerRange)->getFont()->setBold(true);
-        $sheet->getStyle($headerRange)->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('E5E7EB');
-        
-        // Fill data
-        $rows = [
-            ['Pokok Pinjaman', $summary['total_pinjaman']],
-            ['Tagihan Denda', 0], // No penalty data in current structure
-            ['Jumlah Tagihan + Denda', $summary['total_pinjaman']],
-            ['Tagihan Sudah Dibayar', $summary['total_bayar']],
-            ['Sisa Tagihan', $summary['total_sisa']]
-        ];
-        
-        $rowNum = 5;
-        $no = 1;
-        foreach ($rows as $row) {
-            $percentage = $summary['total_pinjaman'] > 0 ? ($row[1] / $summary['total_pinjaman']) * 100 : 0;
-            
-            $sheet->setCellValue('A' . $rowNum, $no++);
-            $sheet->setCellValue('B' . $rowNum, $row[0]);
-            $sheet->setCellValue('C' . $rowNum, $row[1]);
-            $sheet->setCellValue('D' . $rowNum, number_format($percentage, 2) . '%');
-            $rowNum++;
-        }
-        
-        // Add totals row
-        $totalRow = $rowNum + 1;
-        $sheet->setCellValue('A' . $totalRow, 'TOTAL');
-        $sheet->setCellValue('B' . $totalRow, 'Total Keseluruhan');
-        $sheet->setCellValue('C' . $totalRow, $summary['total_pinjaman']);
-        $sheet->setCellValue('D' . $totalRow, '100.00%');
-        
-        // Style totals
-        $totalRange = 'A' . $totalRow . ':D' . $totalRow;
-        $sheet->getStyle($totalRange)->getFont()->setBold(true);
-        $sheet->getStyle($totalRange)->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('D1D5DB');
-        
-        // Add statistics section
-        $statsRow = $totalRow + 3;
-        $sheet->setCellValue('A' . $statsRow, 'STATISTIK PEMINJAM');
-        $sheet->mergeCells('A' . $statsRow . ':D' . $statsRow);
-        $sheet->getStyle('A' . $statsRow)->getFont()->setBold(true)->setSize(14);
-        
-        $statsData = [
-            ['Peminjam Aktif', $summary['peminjam_aktif']],
-            ['Peminjam Lunas', $summary['peminjam_lunas']],
-            ['Peminjam Belum Lunas', $summary['peminjam_belum']],
-            ['Tingkat Pelunasan', number_format($summary['completion_rate'], 2) . '%']
-        ];
-        
-        $statsRow++;
-        foreach ($statsData as $stat) {
-            $sheet->setCellValue('A' . $statsRow, $stat[0]);
-            $sheet->setCellValue('C' . $statsRow, $stat[1]);
-            $statsRow++;
-        }
-        
-        // Auto size columns
-        foreach (range('A', 'D') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
-        
-        // Format currency columns
-        $currencyRange = 'C5:C' . $totalRow;
-        $sheet->getStyle($currencyRange)->getNumberFormat()->setFormatCode('#,##0');
-        
-        $writer = new Xlsx($spreadsheet);
-        $filename = 'laporan_kas_pinjaman_' . $tgl_dari . '_' . $tgl_samp . '.xlsx';
-        
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
-        
-        $writer->save('php://output');
-        exit;
-    }
 }

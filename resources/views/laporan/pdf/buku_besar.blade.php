@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Buku Besar - {{ $kas->nama }}</title>
+    <title>Laporan Buku Besar</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -221,16 +221,11 @@
     <!-- Header -->
     <div class="header">
         <h1>LAPORAN BUKU BESAR</h1>
-        <h2>{{ $kas->nama }}</h2>
         <p>Periode: {{ $periodeText }}</p>
     </div>
 
     <!-- Info Section -->
     <div class="info-section">
-        <div class="info-row">
-            <span class="info-label">Kas:</span>
-            <span class="info-value">{{ $kas->nama }}</span>
-        </div>
         <div class="info-row">
             <span class="info-label">Periode:</span>
             <span class="info-value">{{ $periodeText }}</span>
@@ -239,101 +234,133 @@
             <span class="info-label">Tanggal Cetak:</span>
             <span class="info-value">{{ \Carbon\Carbon::now()->format('d F Y H:i') }}</span>
         </div>
-    </div>
-
-    <!-- Summary Cards -->
-    <div class="summary-cards">
-        <div class="summary-card">
-            <h3>Saldo Awal</h3>
-            <p class="amount {{ $saldoAwal >= 0 ? 'positive' : 'negative' }}">
-                Rp {{ number_format($saldoAwal) }}
-            </p>
-        </div>
-        <div class="summary-card green">
-            <h3>Total Debet</h3>
-            <p class="amount">Rp {{ number_format($totalDebet) }}</p>
-        </div>
-        <div class="summary-card red">
-            <h3>Total Kredit</h3>
-            <p class="amount">Rp {{ number_format($totalKredit) }}</p>
-        </div>
-        <div class="summary-card purple">
-            <h3>Saldo Akhir</h3>
-            <p class="amount {{ $saldoAkhir >= 0 ? 'positive' : 'negative' }}">
-                Rp {{ number_format($saldoAkhir) }}
-            </p>
+        <div class="info-row">
+            <span class="info-label">Total Saldo Keseluruhan:</span>
+            <span class="info-value">Rp {{ number_format($totalSaldoKeseluruhan) }}</span>
         </div>
     </div>
 
-    <!-- Table Section -->
-    @if(count($data) > 0)
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>No.</th>
-                    <th>Tanggal</th>
-                    <th>Jenis Transaksi</th>
-                    <th>Keterangan</th>
-                    <th class="text-right">Debet</th>
-                    <th class="text-right">Kredit</th>
-                    <th class="text-right">Saldo</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Saldo Awal Row -->
-                <tr class="saldo-awal-row">
-                    <td colspan="6">
-                        <strong>SALDO AWAL</strong>
-                    </td>
-                    <td class="text-right {{ $saldoAwal >= 0 ? 'positive' : 'negative' }}">
-                        <strong>Rp {{ number_format($saldoAwal) }}</strong>
-                    </td>
-                </tr>
-                
-                @foreach($data as $row)
-                <tr>
-                    <td>{{ $row['no'] }}</td>
-                    <td>{{ \Carbon\Carbon::parse($row['tanggal'])->format('d/m/Y') }}</td>
-                    <td>
-                        <span class="badge">{{ $row['jenis_transaksi'] }}</span>
-                    </td>
-                    <td>{{ $row['keterangan'] }}</td>
-                    <td class="text-right {{ $row['debet'] > 0 ? 'positive' : '' }}">
-                        {{ $row['debet'] > 0 ? 'Rp ' . number_format($row['debet']) : '-' }}
-                    </td>
-                    <td class="text-right {{ $row['kredit'] > 0 ? 'negative' : '' }}">
-                        {{ $row['kredit'] > 0 ? 'Rp ' . number_format($row['kredit']) : '-' }}
-                    </td>
-                    <td class="text-right {{ $row['saldo'] >= 0 ? 'positive' : 'negative' }}">
-                        <strong>Rp {{ number_format($row['saldo']) }}</strong>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-            <tfoot>
-                <tr class="total-row">
-                    <td colspan="4">
-                        <strong>TOTAL</strong>
-                    </td>
-                    <td class="text-right positive">
-                        <strong>Rp {{ number_format($totalDebet) }}</strong>
-                    </td>
-                    <td class="text-right negative">
-                        <strong>Rp {{ number_format($totalKredit) }}</strong>
-                    </td>
-                    <td class="text-right {{ $saldoAkhir >= 0 ? 'positive' : 'negative' }}">
-                        <strong>Rp {{ number_format($saldoAkhir) }}</strong>
-                    </td>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
+    <!-- Main Content -->
+    @if(count($processedData) > 0)
+        @foreach($processedData as $kasData)
+            @php
+                $kas = $kasData['kas'];
+                $transaksi = $kasData['transaksi'];
+                $saldoAwal = $kasData['saldo_awal'];
+                $totalDebet = $kasData['total_debet'];
+                $totalKredit = $kasData['total_kredit'];
+                $saldoAkhir = $kasData['saldo_akhir'];
+            @endphp
+            
+            <!-- Kas Header -->
+            <div class="kas-header" style="background-color: #2563eb; color: white; padding: 15px; margin: 20px 0 10px 0; border-radius: 5px;">
+                <h2 style="margin: 0; font-size: 18px;">{{ $kas->nama }}</h2>
+            </div>
+
+            <!-- Summary Cards for this Kas -->
+            <div class="summary-cards" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+                <div class="summary-card" style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 5px; text-align: center;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 12px; color: #64748b;">Saldo Awal</h3>
+                    <p class="amount {{ $saldoAwal >= 0 ? 'positive' : 'negative' }}" style="margin: 0; font-size: 14px; font-weight: bold; color: {{ $saldoAwal >= 0 ? '#059669' : '#dc2626' }};">
+                        Rp {{ number_format($saldoAwal) }}
+                    </p>
+                </div>
+                <div class="summary-card green" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 5px; text-align: center;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 12px; color: #166534;">Total Debet</h3>
+                    <p class="amount" style="margin: 0; font-size: 14px; font-weight: bold; color: #059669;">Rp {{ number_format($totalDebet) }}</p>
+                </div>
+                <div class="summary-card red" style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 5px; text-align: center;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 12px; color: #991b1b;">Total Kredit</h3>
+                    <p class="amount" style="margin: 0; font-size: 14px; font-weight: bold; color: #dc2626;">Rp {{ number_format($totalKredit) }}</p>
+                </div>
+                <div class="summary-card purple" style="background-color: #faf5ff; border: 1px solid #e9d5ff; padding: 15px; border-radius: 5px; text-align: center;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 12px; color: #6b21a8;">Saldo Akhir</h3>
+                    <p class="amount {{ $saldoAkhir >= 0 ? 'positive' : 'negative' }}" style="margin: 0; font-size: 14px; font-weight: bold; color: {{ $saldoAkhir >= 0 ? '#059669' : '#dc2626' }};">
+                        Rp {{ number_format($saldoAkhir) }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Table Section for this Kas -->
+            @if(count($transaksi) > 0)
+            <div class="table-container" style="margin-bottom: 30px;">
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background-color: #f8fafc;">
+                            <th style="padding: 8px 12px; text-align: left; border: 1px solid #d1d5db; font-weight: bold; font-size: 11px;">No.</th>
+                            <th style="padding: 8px 12px; text-align: left; border: 1px solid #d1d5db; font-weight: bold; font-size: 11px;">Tanggal</th>
+                            <th style="padding: 8px 12px; text-align: left; border: 1px solid #d1d5db; font-weight: bold; font-size: 11px;">Jenis Transaksi</th>
+                            <th style="padding: 8px 12px; text-align: left; border: 1px solid #d1d5db; font-weight: bold; font-size: 11px;">Keterangan</th>
+                            <th style="padding: 8px 12px; text-align: left; border: 1px solid #d1d5db; font-weight: bold; font-size: 11px;">Nama</th>
+                            <th style="padding: 8px 12px; text-align: right; border: 1px solid #d1d5db; font-weight: bold; font-size: 11px;">Debet</th>
+                            <th style="padding: 8px 12px; text-align: right; border: 1px solid #d1d5db; font-weight: bold; font-size: 11px;">Kredit</th>
+                            <th style="padding: 8px 12px; text-align: right; border: 1px solid #d1d5db; font-weight: bold; font-size: 11px;">Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Saldo Awal Row -->
+                        <tr style="background-color: #f3f4f6;">
+                            <td colspan="7" style="padding: 8px 12px; border: 1px solid #d1d5db; font-weight: bold;">
+                                <strong>SALDO AWAL</strong>
+                            </td>
+                            <td class="text-right {{ $saldoAwal >= 0 ? 'positive' : 'negative' }}" style="padding: 8px 12px; border: 1px solid #d1d5db; text-align: right; font-weight: bold; color: {{ $saldoAwal >= 0 ? '#059669' : '#dc2626' }};">
+                                <strong>Rp {{ number_format($saldoAwal) }}</strong>
+                            </td>
+                        </tr>
+                        
+                        @foreach($transaksi as $index => $row)
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; font-size: 11px;">{{ $row['no'] }}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; font-size: 11px;">{{ \Carbon\Carbon::parse($row['tanggal'])->format('d/m/Y') }}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; font-size: 11px;">{{ $row['jenis_transaksi'] }}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; font-size: 11px;">{{ $row['keterangan'] }}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #d1d5db; font-size: 11px;">{{ $row['nama'] }}</td>
+                            <td class="text-right" style="padding: 8px 12px; border: 1px solid #d1d5db; text-align: right; font-size: 11px; color: {{ $row['debet'] > 0 ? '#059669' : '#000' }};">
+                                {{ $row['debet'] > 0 ? 'Rp ' . number_format($row['debet']) : '-' }}
+                            </td>
+                            <td class="text-right" style="padding: 8px 12px; border: 1px solid #d1d5db; text-align: right; font-size: 11px; color: {{ $row['kredit'] > 0 ? '#dc2626' : '#000' }};">
+                                {{ $row['kredit'] > 0 ? 'Rp ' . number_format($row['kredit']) : '-' }}
+                            </td>
+                            <td class="text-right {{ $row['saldo'] >= 0 ? 'positive' : 'negative' }}" style="padding: 8px 12px; border: 1px solid #d1d5db; text-align: right; font-size: 11px; font-weight: bold; color: {{ $row['saldo'] >= 0 ? '#059669' : '#dc2626' }};">
+                                <strong>Rp {{ number_format($row['saldo']) }}</strong>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr style="background-color: #f3f4f6; font-weight: bold;">
+                            <td colspan="5" style="padding: 8px 12px; border: 1px solid #d1d5db;">
+                                <strong>TOTAL {{ $kas->nama }}</strong>
+                            </td>
+                            <td class="text-right positive" style="padding: 8px 12px; border: 1px solid #d1d5db; text-align: right; color: #059669;">
+                                <strong>Rp {{ number_format($totalDebet) }}</strong>
+                            </td>
+                            <td class="text-right negative" style="padding: 8px 12px; border: 1px solid #d1d5db; text-align: right; color: #dc2626;">
+                                <strong>Rp {{ number_format($totalKredit) }}</strong>
+                            </td>
+                            <td class="text-right {{ $saldoAkhir >= 0 ? 'positive' : 'negative' }}" style="padding: 8px 12px; border: 1px solid #d1d5db; text-align: right; color: {{ $saldoAkhir >= 0 ? '#059669' : '#dc2626' }};">
+                                <strong>Rp {{ number_format($saldoAkhir) }}</strong>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            @else
+            <div class="no-data" style="text-align: center; padding: 40px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 10px 0; color: #64748b;">Tidak ada data transaksi</h3>
+                <p style="margin: 0; color: #64748b;">Tidak ada transaksi untuk kas <strong>{{ $kas->nama }}</strong> pada periode <strong>{{ $periodeText }}</strong></p>
+            </div>
+            @endif
+            
+            <!-- Add page break between kas accounts -->
+            @if(!$loop->last)
+                <div class="page-break" style="page-break-before: always;"></div>
+            @endif
+        @endforeach
     @else
-    <div class="no-data">
-        <i class="fas fa-inbox"></i>
-        <h3>Tidak ada data transaksi</h3>
-        <p>Tidak ada transaksi untuk kas <strong>{{ $kas->nama }}</strong> pada periode <strong>{{ $periodeText }}</strong></p>
+    <div class="no-data" style="text-align: center; padding: 40px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px;">
+        <h3 style="margin: 0 0 10px 0; color: #64748b;">Tidak ada data transaksi</h3>
+        <p style="margin: 0; color: #64748b;">Tidak ada data transaksi pada periode <strong>{{ $periodeText }}</strong></p>
     </div>
     @endif
 

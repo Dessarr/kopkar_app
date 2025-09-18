@@ -79,13 +79,6 @@
            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200 shadow-sm">
             <i class="fas fa-file-pdf mr-2"></i>Export PDF
         </a>
-        <a href="{{ route('laporan.pengeluaran_pinjaman.export.excel', ['tgl_dari' => $tgl_dari, 'tgl_samp' => $tgl_samp]) }}" 
-           class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200 shadow-sm">
-            <i class="fas fa-file-excel mr-2"></i>Export Excel
-        </a>
-        <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 shadow-sm">
-            <i class="fas fa-print mr-2"></i>Print
-        </button>
         <a href="{{ route('laporan.pengeluaran_pinjaman') }}" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200 shadow-sm">
             <i class="fas fa-refresh mr-2"></i>Reset Filter
         </a>

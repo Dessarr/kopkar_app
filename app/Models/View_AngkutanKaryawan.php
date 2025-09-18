@@ -8,6 +8,7 @@ class View_AngkutanKaryawan extends View_Base
     
     protected $casts = [
         'tgl_catat' => 'date',
+        'no_polisi' => 'string',
         'Jan' => 'decimal:2',
         'Feb' => 'decimal:2',
         'Mar' => 'decimal:2',

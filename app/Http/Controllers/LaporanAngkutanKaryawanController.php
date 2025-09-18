@@ -11,8 +11,6 @@ use App\Models\data_mobil;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class LaporanAngkutanKaryawanController extends Controller
 {
@@ -21,19 +19,19 @@ class LaporanAngkutanKaryawanController extends Controller
         $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
         $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
 
-        // Get data bus
-        $dataBus = $this->getDataBus($tgl_dari, $tgl_samp);
+        // Get data bus (pendapatan)
+        $dataPendapatan = $this->getDataBus($tgl_dari, $tgl_samp);
         $jmlBus = $this->getJmlBus($tgl_dari, $tgl_samp);
         $jmlBusTahun = $this->getJmlBusTahun($tgl_dari, $tgl_samp);
         $jmlBusTahunPajak = $this->getJmlBusTahunPajak($tgl_dari, $tgl_samp);
 
         // Get data operasional
-        $dataOperasional = $this->getDataOperasional($tgl_dari, $tgl_samp);
+        $dataBiayaOperasional = $this->getDataOperasional($tgl_dari, $tgl_samp);
         $jmlOperasional = $this->getJmlOperasional($tgl_dari, $tgl_samp);
         $jmlOperasionalTahun = $this->getJmlOperasionalTahun($tgl_dari, $tgl_samp);
 
         // Get data admin
-        $dataAdmin = $this->getDataAdmin($tgl_dari, $tgl_samp);
+        $dataBiayaAdmin = $this->getDataAdmin($tgl_dari, $tgl_samp);
         $jmlAdmin = $this->getJmlAdmin($tgl_dari, $tgl_samp);
         $jmlAdminTahun = $this->getJmlAdminTahun($tgl_dari, $tgl_samp);
 
@@ -43,18 +41,22 @@ class LaporanAngkutanKaryawanController extends Controller
         // Calculate SHU Distribution
         $shuDistribution = $this->calculateShuDistribution($labaUsaha);
 
+        // Create summary array for the view
+        $summary = [
+            'total_pendapatan' => $jmlBus->jml_total ?? 0,
+            'total_biaya_operasional' => $jmlOperasional->jml_total ?? 0,
+            'total_biaya_admin' => $jmlAdmin->jml_total ?? 0,
+            'total_biaya' => ($jmlOperasional->jml_total ?? 0) + ($jmlAdmin->jml_total ?? 0),
+            'laba_usaha' => $labaUsaha->laba_usaha,
+            'pajak' => ($jmlBus->jml_total ?? 0) * 0.02,
+            'pendapatan_setelah_pajak' => $labaUsaha->pendapatan_setelah_pajak
+        ];
+
         return view('laporan.angkutan_karyawan', compact(
-            'dataBus',
-            'jmlBus',
-            'jmlBusTahun',
-            'jmlBusTahunPajak',
-            'dataOperasional',
-            'jmlOperasional',
-            'jmlOperasionalTahun',
-            'dataAdmin',
-            'jmlAdmin',
-            'jmlAdminTahun',
-            'labaUsaha',
+            'dataPendapatan',
+            'dataBiayaOperasional', 
+            'dataBiayaAdmin',
+            'summary',
             'shuDistribution',
             'tgl_dari',
             'tgl_samp'
@@ -66,155 +68,42 @@ class LaporanAngkutanKaryawanController extends Controller
         $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
         $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
 
-        // Get all data
-        $dataBus = $this->getDataBus($tgl_dari, $tgl_samp);
-        $jmlBus = $this->getJmlBus($tgl_dari, $tgl_samp);
-        $jmlBusTahun = $this->getJmlBusTahun($tgl_dari, $tgl_samp);
-        $jmlBusTahunPajak = $this->getJmlBusTahunPajak($tgl_dari, $tgl_samp);
-        $dataOperasional = $this->getDataOperasional($tgl_dari, $tgl_samp);
-        $jmlOperasional = $this->getJmlOperasional($tgl_dari, $tgl_samp);
-        $jmlOperasionalTahun = $this->getJmlOperasionalTahun($tgl_dari, $tgl_samp);
-        $dataAdmin = $this->getDataAdmin($tgl_dari, $tgl_samp);
-        $jmlAdmin = $this->getJmlAdmin($tgl_dari, $tgl_samp);
-        $jmlAdminTahun = $this->getJmlAdminTahun($tgl_dari, $tgl_samp);
-
-        // Calculate Laba Usaha (Laba Bersih)
-        $labaUsaha = $this->calculateLabaUsaha($jmlBus, $jmlOperasional, $jmlAdmin);
+        // Get data for PDF
+        $dataPendapatan = $this->getDataBus($tgl_dari, $tgl_samp);
+        $dataBiayaOperasional = $this->getDataOperasional($tgl_dari, $tgl_samp);
+        $dataBiayaAdmin = $this->getDataAdmin($tgl_dari, $tgl_samp);
         
-        // Calculate SHU Distribution
+        // Get summary data
+        $jmlBus = $this->getJmlBus($tgl_dari, $tgl_samp);
+        $jmlOperasional = $this->getJmlOperasional($tgl_dari, $tgl_samp);
+        $jmlAdmin = $this->getJmlAdmin($tgl_dari, $tgl_samp);
+        $labaUsaha = $this->calculateLabaUsaha($jmlBus, $jmlOperasional, $jmlAdmin);
         $shuDistribution = $this->calculateShuDistribution($labaUsaha);
 
-        $tgl_periode_txt = Carbon::parse($tgl_dari)->format('d/m/Y') . ' - ' . Carbon::parse($tgl_samp)->format('d/m/Y');
+        // Create summary array
+        $summary = [
+            'total_pendapatan' => $jmlBus->jml_total ?? 0,
+            'total_biaya_operasional' => $jmlOperasional->jml_total ?? 0,
+            'total_biaya_admin' => $jmlAdmin->jml_total ?? 0,
+            'total_biaya' => ($jmlOperasional->jml_total ?? 0) + ($jmlAdmin->jml_total ?? 0),
+            'laba_usaha' => $labaUsaha->laba_usaha,
+            'pajak' => $labaUsaha->pajak_2_persen,
+            'pendapatan_setelah_pajak' => $labaUsaha->pendapatan_setelah_pajak
+        ];
 
         $pdf = PDF::loadView('laporan.pdf.angkutan_karyawan', compact(
-            'dataBus',
-            'jmlBus',
-            'jmlBusTahun',
-            'jmlBusTahunPajak',
-            'dataOperasional',
-            'jmlOperasional',
-            'jmlOperasionalTahun',
-            'dataAdmin',
-            'jmlAdmin',
-            'jmlAdminTahun',
-            'labaUsaha',
+            'dataPendapatan',
+            'dataBiayaOperasional', 
+            'dataBiayaAdmin',
+            'summary',
             'shuDistribution',
-            'tgl_periode_txt'
+            'tgl_dari',
+            'tgl_samp'
         ));
 
         return $pdf->download('laporan_angkutan_karyawan_' . date('Ymd') . '.pdf');
     }
 
-    public function exportExcel(Request $request)
-    {
-        $tgl_dari = $request->input('tgl_dari', date('Y') . '-01-01');
-        $tgl_samp = $request->input('tgl_samp', date('Y') . '-12-31');
-
-        // Get all data
-        $dataBus = $this->getDataBus($tgl_dari, $tgl_samp);
-        $jmlBus = $this->getJmlBus($tgl_dari, $tgl_samp);
-        $jmlBusTahun = $this->getJmlBusTahun($tgl_dari, $tgl_samp);
-        $jmlBusTahunPajak = $this->getJmlBusTahunPajak($tgl_dari, $tgl_samp);
-        $dataOperasional = $this->getDataOperasional($tgl_dari, $tgl_samp);
-        $jmlOperasional = $this->getJmlOperasional($tgl_dari, $tgl_samp);
-        $jmlOperasionalTahun = $this->getJmlOperasionalTahun($tgl_dari, $tgl_samp);
-        $dataAdmin = $this->getDataAdmin($tgl_dari, $tgl_samp);
-        $jmlAdmin = $this->getJmlAdmin($tgl_dari, $tgl_samp);
-        $jmlAdminTahun = $this->getJmlAdminTahun($tgl_dari, $tgl_samp);
-
-        $tgl_periode_txt = Carbon::parse($tgl_dari)->format('d/m/Y') . ' - ' . Carbon::parse($tgl_samp)->format('d/m/Y');
-
-        // Create Excel file
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-
-        // Set title
-        $sheet->setCellValue('A1', 'LAPORAN BUS ANGKUTAN KARYAWAN');
-        $sheet->setCellValue('A2', 'Periode: ' . $tgl_periode_txt);
-        $sheet->mergeCells('A1:N1');
-        $sheet->mergeCells('A2:N2');
-
-        // Style title
-        $sheet->getStyle('A1:A2')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A1:A2')->getAlignment()->setHorizontal('center');
-
-        // Penghasilan Jasa Sewa Bus
-        $sheet->setCellValue('A4', 'PENGHASILAN JASA SEWA BUS');
-        $sheet->mergeCells('A4:N4');
-        $sheet->getStyle('A4')->getFont()->setBold(true);
-
-        // Header table
-        $headers = ['No Polisi', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Total'];
-        $col = 'A';
-        $row = 6;
-        foreach ($headers as $header) {
-            $sheet->setCellValue($col . $row, $header);
-            $col++;
-        }
-
-        // Style header
-        $sheet->getStyle('A6:N6')->getFont()->setBold(true);
-        $sheet->getStyle('A6:N6')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('CCCCCC');
-
-        // Data bus
-        $row = 7;
-        foreach ($dataBus as $bus) {
-            $sheet->setCellValue('A' . $row, $bus->no_polisi);
-            $sheet->setCellValue('B' . $row, $bus->Jan);
-            $sheet->setCellValue('C' . $row, $bus->Feb);
-            $sheet->setCellValue('D' . $row, $bus->Mar);
-            $sheet->setCellValue('E' . $row, $bus->Apr);
-            $sheet->setCellValue('F' . $row, $bus->May);
-            $sheet->setCellValue('G' . $row, $bus->Jun);
-            $sheet->setCellValue('H' . $row, $bus->Jul);
-            $sheet->setCellValue('I' . $row, $bus->Aug);
-            $sheet->setCellValue('J' . $row, $bus->Sep);
-            $sheet->setCellValue('K' . $row, $bus->Oct);
-            $sheet->setCellValue('L' . $row, $bus->Nov);
-            $sheet->setCellValue('M' . $row, $bus->Dec);
-            $sheet->setCellValue('N' . $row, $bus->TOTAL);
-            $row++;
-        }
-
-        // Total row
-        $sheet->setCellValue('A' . $row, 'JUMLAH');
-        $sheet->setCellValue('B' . $row, $jmlBusTahun->jml_total_jan ?? 0);
-        $sheet->setCellValue('C' . $row, $jmlBusTahun->jml_total_feb ?? 0);
-        $sheet->setCellValue('D' . $row, $jmlBusTahun->jml_total_mar ?? 0);
-        $sheet->setCellValue('E' . $row, $jmlBusTahun->jml_total_apr ?? 0);
-        $sheet->setCellValue('F' . $row, $jmlBusTahun->jml_total_may ?? 0);
-        $sheet->setCellValue('G' . $row, $jmlBusTahun->jml_total_jun ?? 0);
-        $sheet->setCellValue('H' . $row, $jmlBusTahun->jml_total_jul ?? 0);
-        $sheet->setCellValue('I' . $row, $jmlBusTahun->jml_total_aug ?? 0);
-        $sheet->setCellValue('J' . $row, $jmlBusTahun->jml_total_sep ?? 0);
-        $sheet->setCellValue('K' . $row, $jmlBusTahun->jml_total_oct ?? 0);
-        $sheet->setCellValue('L' . $row, $jmlBusTahun->jml_total_nov ?? 0);
-        $sheet->setCellValue('M' . $row, $jmlBusTahun->jml_total_dec ?? 0);
-        $sheet->setCellValue('N' . $row, $jmlBus->jml_total ?? 0);
-
-        // Style total row
-        $sheet->getStyle('A' . $row . ':N' . $row)->getFont()->setBold(true);
-        $sheet->getStyle('A' . $row . ':N' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('E6E6E6');
-
-        // Auto size columns
-        foreach (range('A', 'N') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
-
-        // Set number format for currency columns
-        $sheet->getStyle('B6:N' . $row)->getNumberFormat()->setFormatCode('#,##0');
-
-        // Create file
-        $writer = new Xlsx($spreadsheet);
-        $filename = 'laporan_angkutan_karyawan_' . date('Ymd') . '.xlsx';
-
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
-
-        $writer->save('php://output');
-        exit;
-    }
 
     // Private methods for data retrieval
     private function getDataBus($tgl_dari, $tgl_samp)

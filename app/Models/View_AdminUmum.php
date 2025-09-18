@@ -8,6 +8,7 @@ class View_AdminUmum extends View_Base
     
     protected $casts = [
         'tgl_catat' => 'date',
+        'jns_trans' => 'string',
         'Jan' => 'decimal:2',
         'Feb' => 'decimal:2',
         'Mar' => 'decimal:2',

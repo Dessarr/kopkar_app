@@ -9,8 +9,6 @@ use App\Models\transaksi_kas;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class LaporanNeracaSaldoController extends Controller
 {
@@ -412,107 +410,4 @@ class LaporanNeracaSaldoController extends Controller
         return $pdf->download('laporan_neraca_saldo_' . $tgl_dari . '_' . $tgl_samp . '.pdf');
     }
 
-    public function exportExcel(Request $request)
-    {
-        // Get filter parameters
-        $tgl_dari = $request->input('tgl_dari', date('Y').'-01-01');
-        $tgl_samp = $request->input('tgl_samp', date('Y').'-12-31');
-        
-        // Get data
-        $kasList = NamaKasTbl::where('aktif', 'Y')->orderBy('id')->get();
-        $akunList = jns_akun::where('aktif', 'Y')
-            ->orderByRaw("LPAD(kd_aktiva, 1, 0) ASC, LPAD(kd_aktiva, 5, 1) ASC")
-            ->get();
-        $data = $this->getNeracaDataFromView($kasList, $akunList, $tgl_dari, $tgl_samp);
-        
-        // Format dates
-        $periodeText = Carbon::parse($tgl_dari)->format('d F Y') . ' - ' . Carbon::parse($tgl_samp)->format('d F Y');
-        
-        // Create Excel file
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        
-        // Set title
-        $sheet->setCellValue('A1', 'LAPORAN NERACA SALDO');
-        $sheet->mergeCells('A1:D1');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal('center');
-        
-        // Set period info
-        $sheet->setCellValue('A2', 'Periode: ' . $periodeText);
-        $sheet->mergeCells('A2:D2');
-        $sheet->getStyle('A2')->getAlignment()->setHorizontal('center');
-        
-        // Set headers
-        $sheet->setCellValue('A4', 'Kode Akun');
-        $sheet->setCellValue('B4', 'Nama Akun');
-        $sheet->setCellValue('C4', 'Debet');
-        $sheet->setCellValue('D4', 'Kredit');
-        
-        // Style headers
-        $headerRange = 'A4:D4';
-        $sheet->getStyle($headerRange)->getFont()->setBold(true);
-        $sheet->getStyle($headerRange)->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('E5E7EB');
-        
-        // Fill data
-        $rowNum = 5;
-        foreach ($data['rows'] as $row) {
-            $sheet->setCellValue('A' . $rowNum, $row['no']);
-            $sheet->setCellValue('B' . $rowNum, $row['nama']);
-            $sheet->setCellValue('C' . $rowNum, $row['debet']);
-            $sheet->setCellValue('D' . $rowNum, $row['kredit']);
-            
-            // Style header rows
-            if (isset($row['is_header']) && $row['is_header']) {
-                $sheet->getStyle('A' . $rowNum . ':D' . $rowNum)->getFont()->setBold(true);
-                $sheet->getStyle('A' . $rowNum . ':D' . $rowNum)->getFill()
-                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                    ->getStartColor()->setRGB('F3F4F6');
-            }
-            
-            $rowNum++;
-        }
-        
-        // Add totals
-        $totalRow = $rowNum + 1;
-        $sheet->setCellValue('A' . $totalRow, 'JUMLAH');
-        $sheet->mergeCells('A' . $totalRow . ':B' . $totalRow);
-        $sheet->setCellValue('C' . $totalRow, $data['totalDebet']);
-        $sheet->setCellValue('D' . $totalRow, $data['totalKredit']);
-        
-        // Style totals
-        $totalRange = 'A' . $totalRow . ':D' . $totalRow;
-        $sheet->getStyle($totalRange)->getFont()->setBold(true);
-        $sheet->getStyle($totalRange)->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('D1D5DB');
-        
-        // Add balance check
-        $balanceRow = $totalRow + 2;
-        $sheet->setCellValue('A' . $balanceRow, 'Status Keseimbangan:');
-        $sheet->setCellValue('B' . $balanceRow, $data['is_balanced'] ? 'SEIMBANG' : 'TIDAK SEIMBANG');
-        $sheet->getStyle('B' . $balanceRow)->getFont()->setBold(true);
-        $sheet->getStyle('B' . $balanceRow)->getFont()->getColor()
-            ->setRGB($data['is_balanced'] ? '059669' : 'DC2626');
-        
-        // Auto size columns
-        foreach (range('A', 'D') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
-        
-        // Format currency columns
-        $sheet->getStyle('C5:D' . $totalRow)->getNumberFormat()->setFormatCode('#,##0');
-        
-        $writer = new Xlsx($spreadsheet);
-        $filename = 'laporan_neraca_saldo_' . $tgl_dari . '_' . $tgl_samp . '.xlsx';
-        
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
-        
-        $writer->save('php://output');
-        exit;
-    }
 }

@@ -8,8 +8,6 @@ use App\Models\TblPinjamanD;
 use App\Models\data_anggota;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Illuminate\Support\Facades\DB;
 
 class LaporanAngsuranPinjamanController extends Controller
@@ -330,14 +328,14 @@ class LaporanAngsuranPinjamanController extends Controller
         
         // Get detailed data
         $data = $this->getDetailAngsuran($tgl_dari, $tgl_samp);
-        $summary = $this->calculateSummary($data);
-        $performance = $this->calculatePerformanceMetrics($data);
+        $summary = $this->calculateSummary($data['rows']);
+        $performance = $this->calculatePerformanceMetrics($data['rows']);
         $recentInstallments = $this->getRecentInstallments($tgl_dari, $tgl_samp);
         
         $pdf = Pdf::loadView('laporan.pdf.angsuran_pinjaman', [
             'tgl_dari' => $tgl_dari,
             'tgl_samp' => $tgl_samp,
-            'data' => $data,
+            'data' => $data['rows'],
             'summary' => $summary,
             'performance' => $performance,
             'recentInstallments' => $recentInstallments
@@ -346,186 +344,4 @@ class LaporanAngsuranPinjamanController extends Controller
         return $pdf->download('laporan_angsuran_pinjaman_'.$tgl_dari.'_'.$tgl_samp.'.pdf');
     }
 
-    public function exportExcel(Request $request)
-    {
-        $tgl_dari = $request->input('tgl_dari', date('Y').'-01-01');
-        $tgl_samp = $request->input('tgl_samp', date('Y').'-12-31');
-        
-        // Get detailed data
-        $data = $this->getDetailAngsuran($tgl_dari, $tgl_samp);
-        $summary = $this->calculateSummary($data);
-        $performance = $this->calculatePerformanceMetrics($data);
-        $recentInstallments = $this->getRecentInstallments($tgl_dari, $tgl_samp);
-        
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        
-        // Set title
-        $sheet->setCellValue('A1', 'LAPORAN ANGSURAN PINJAMAN');
-        $sheet->setCellValue('A2', 'Koperasi Karyawan');
-        $sheet->setCellValue('A3', 'Periode: ' . Carbon::parse($tgl_dari)->format('d M Y') . ' - ' . Carbon::parse($tgl_samp)->format('d M Y'));
-        $sheet->setCellValue('A4', 'Dicetak pada: ' . Carbon::now()->format('d M Y H:i:s'));
-        $sheet->mergeCells('A1:Q1');
-        $sheet->mergeCells('A2:Q2');
-        $sheet->mergeCells('A3:Q3');
-        $sheet->mergeCells('A4:Q4');
-        
-        // Style title
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A3')->getFont()->setSize(12);
-        $sheet->getStyle('A4')->getFont()->setSize(10);
-        
-        // Summary section
-        $rowNum = 6;
-        $sheet->setCellValue('A'.$rowNum, 'RINGKASAN LAPORAN');
-        $sheet->mergeCells('A'.$rowNum.':B'.$rowNum);
-        $sheet->getStyle('A'.$rowNum)->getFont()->setBold(true);
-        
-        $rowNum++;
-        $sheet->setCellValue('A'.$rowNum, 'Total Angsuran:');
-        $sheet->setCellValue('B'.$rowNum, $summary['total_angsuran']);
-        $sheet->setCellValue('A'.($rowNum+1), 'Total Pokok:');
-        $sheet->setCellValue('B'.($rowNum+1), 'Rp ' . number_format($summary['total_pokok'], 0, ',', '.'));
-        $sheet->setCellValue('A'.($rowNum+2), 'Total Bunga:');
-        $sheet->setCellValue('B'.($rowNum+2), 'Rp ' . number_format($summary['total_bunga'], 0, ',', '.'));
-        $sheet->setCellValue('A'.($rowNum+3), 'Total Denda:');
-        $sheet->setCellValue('B'.($rowNum+3), 'Rp ' . number_format($summary['total_denda'], 0, ',', '.'));
-        $sheet->setCellValue('A'.($rowNum+4), 'Total Jumlah Angsuran:');
-        $sheet->setCellValue('B'.($rowNum+4), 'Rp ' . number_format($summary['total_jumlah_angsuran'], 0, ',', '.'));
-        
-        // Status overview
-        $sheet->setCellValue('D'.$rowNum, 'STATUS ANGSURAN');
-        $sheet->mergeCells('D'.$rowNum.':E'.$rowNum);
-        $sheet->getStyle('D'.$rowNum)->getFont()->setBold(true);
-        
-        $sheet->setCellValue('D'.($rowNum+1), 'Lunas:');
-        $sheet->setCellValue('E'.($rowNum+1), $summary['angsuran_lunas']);
-        $sheet->setCellValue('D'.($rowNum+2), 'Tepat Waktu:');
-        $sheet->setCellValue('E'.($rowNum+2), $summary['angsuran_tepat_waktu']);
-        $sheet->setCellValue('D'.($rowNum+3), 'Terlambat:');
-        $sheet->setCellValue('E'.($rowNum+3), $summary['angsuran_terlambat']);
-        $sheet->setCellValue('D'.($rowNum+4), 'Belum Bayar:');
-        $sheet->setCellValue('E'.($rowNum+4), $summary['angsuran_belum_bayar']);
-        
-        // Performance metrics
-        $sheet->setCellValue('G'.$rowNum, 'METRIK KINERJA');
-        $sheet->mergeCells('G'.$rowNum.':H'.$rowNum);
-        $sheet->getStyle('G'.$rowNum)->getFont()->setBold(true);
-        
-        $sheet->setCellValue('G'.($rowNum+1), 'Rata-rata Angsuran:');
-        $sheet->setCellValue('H'.($rowNum+1), 'Rp ' . number_format($summary['rata_rata_angsuran'], 0, ',', '.'));
-        $sheet->setCellValue('G'.($rowNum+2), 'Tingkat Ketepatan Waktu:');
-        $sheet->setCellValue('H'.($rowNum+2), number_format($performance['persentase_tepat_waktu'], 2) . '%');
-        $sheet->setCellValue('G'.($rowNum+3), 'Tingkat Terlambat:');
-        $sheet->setCellValue('H'.($rowNum+3), number_format($performance['persentase_terlambat'], 2) . '%');
-        $sheet->setCellValue('G'.($rowNum+4), 'Total Pinjaman Terlunasi:');
-        $sheet->setCellValue('H'.($rowNum+4), 'Rp ' . number_format($performance['total_pinjaman_terlunasi'], 0, ',', '.'));
-        
-        // Set headers
-        $headers = [
-            'No', 'Tanggal Pinjam', 'Nama', 'ID', 'Pinjaman Awal', 'JW', '%', 
-            'Saldo Pinjaman', 'Pokok', 'Bunga', 'Denda', 'Biaya Adm', 'Jumlah', 
-            'Saldo Akhir', 'Angsuran Ke', 'Tgl. Bayar', 'Status'
-        ];
-        
-        $col = 1;
-        $startRow = $rowNum + 6;
-        foreach ($headers as $header) {
-            $sheet->setCellValueByColumnAndRow($col, $startRow, $header);
-            $col++;
-        }
-        
-        // Style headers
-        $sheet->getStyle('A'.$startRow.':Q'.$startRow)->getFont()->setBold(true);
-        $sheet->getStyle('A'.$startRow.':Q'.$startRow)->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setARGB('FFE0E0E0');
-        
-        // Add data
-        $rowNum = $startRow + 1;
-        foreach ($data as $row) {
-            $sheet->setCellValue('A'.$rowNum, $row['no']);
-            $sheet->setCellValue('B'.$rowNum, Carbon::parse($row['tgl_pinjam'])->format('d/m/Y'));
-            $sheet->setCellValue('C'.$rowNum, $row['nama']);
-            $sheet->setCellValue('D'.$rowNum, $row['id']);
-            $sheet->setCellValue('E'.$rowNum, $row['jumlah']);
-            $sheet->setCellValue('F'.$rowNum, $row['lama_angsuran']);
-            $sheet->setCellValue('G'.$rowNum, $row['jumlah_bunga']);
-            $sheet->setCellValue('H'.$rowNum, $row['saldo_pinjaman']);
-            $sheet->setCellValue('I'.$rowNum, $row['pokok']);
-            $sheet->setCellValue('J'.$rowNum, $row['bunga']);
-            $sheet->setCellValue('K'.$rowNum, $row['denda']);
-            $sheet->setCellValue('L'.$rowNum, $row['biaya_adm']);
-            $sheet->setCellValue('M'.$rowNum, $row['jumlah_angsuran']);
-            $sheet->setCellValue('N'.$rowNum, $row['saldo_akhir']);
-            $sheet->setCellValue('O'.$rowNum, $row['angsuran_ke']);
-            $sheet->setCellValue('P'.$rowNum, Carbon::parse($row['tgl_bayar'])->format('d/m/Y'));
-            $sheet->setCellValue('Q'.$rowNum, $row['status']);
-            $rowNum++;
-        }
-        
-        // Add summary row
-        if (count($data) > 0) {
-            $sheet->setCellValue('A'.$rowNum, 'TOTAL');
-            $sheet->mergeCells('A'.$rowNum.':D'.$rowNum);
-            $sheet->setCellValue('I'.$rowNum, $summary['total_pokok']);
-            $sheet->setCellValue('J'.$rowNum, $summary['total_bunga']);
-            $sheet->setCellValue('K'.$rowNum, $summary['total_denda']);
-            $sheet->setCellValue('L'.$rowNum, $summary['total_biaya_adm']);
-            $sheet->setCellValue('M'.$rowNum, $summary['total_jumlah_angsuran']);
-            
-            // Style summary row
-            $sheet->getStyle('A'.$rowNum.':Q'.$rowNum)->getFont()->setBold(true);
-            $sheet->getStyle('A'.$rowNum.':Q'.$rowNum)->getFill()
-                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                ->getStartColor()->setARGB('FFFFE0B2');
-        }
-        
-        // Recent installments section
-        if ($recentInstallments->count() > 0) {
-            $recentStartRow = $rowNum + 2;
-            $sheet->setCellValue('A'.$recentStartRow, 'AKTIVITAS ANGSURAN TERBARU');
-            $sheet->mergeCells('A'.$recentStartRow.':E'.$recentStartRow);
-            $sheet->getStyle('A'.$recentStartRow)->getFont()->setBold(true);
-            
-            $recentStartRow++;
-            $sheet->setCellValue('A'.$recentStartRow, 'Nama');
-            $sheet->setCellValue('B'.$recentStartRow, 'ID');
-            $sheet->setCellValue('C'.$recentStartRow, 'Tanggal Bayar');
-            $sheet->setCellValue('D'.$recentStartRow, 'Jumlah');
-            $sheet->setCellValue('E'.$recentStartRow, 'Angsuran Ke');
-            
-            // Style recent headers
-            $sheet->getStyle('A'.$recentStartRow.':E'.$recentStartRow)->getFont()->setBold(true);
-            $sheet->getStyle('A'.$recentStartRow.':E'.$recentStartRow)->getFill()
-                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                ->getStartColor()->setARGB('FFF0F8FF');
-            
-            $recentRow = $recentStartRow + 1;
-            foreach ($recentInstallments as $installment) {
-                $sheet->setCellValue('A'.$recentRow, $installment['anggota']);
-                $sheet->setCellValue('B'.$recentRow, $installment['id']);
-                $sheet->setCellValue('C'.$recentRow, $installment['tgl_bayar']);
-                $sheet->setCellValue('D'.$recentRow, 'Rp ' . number_format($installment['jumlah_angsuran'], 0, ',', '.'));
-                $sheet->setCellValue('E'.$recentRow, $installment['angsuran_ke']);
-                $recentRow++;
-            }
-        }
-        
-        // Auto-size columns
-        foreach (range('A', 'Q') as $column) {
-            $sheet->getColumnDimension($column)->setAutoSize(true);
-        }
-        
-        $writer = new Xlsx($spreadsheet);
-        $filename = 'laporan_angsuran_pinjaman_'.$tgl_dari.'_'.$tgl_samp.'.xlsx';
-        
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="'.$filename.'"');
-        header('Cache-Control: max-age=0');
-        
-        $writer->save('php://output');
-        exit;
-    }
 } 

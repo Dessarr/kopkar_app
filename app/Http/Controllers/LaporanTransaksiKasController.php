@@ -159,6 +159,11 @@ class LaporanTransaksiKasController extends Controller
             ];
         }
 
+        // Calculate totals
+        $totalDebet = $dataTransaksi->sum('debet');
+        $totalKredit = $dataTransaksi->sum('kredit');
+        $saldoAkhir = $runningBalance; // Final running balance
+
         // Format periode text
         $periodeText = Carbon::parse($tgl_dari)->format('d/m/Y') . ' - ' . Carbon::parse($tgl_samp)->format('d/m/Y');
 
@@ -166,7 +171,10 @@ class LaporanTransaksiKasController extends Controller
             'dataTransaksi',
             'processedData',
             'periodeText',
-            'saldoSebelumnya'
+            'saldoSebelumnya',
+            'totalDebet',
+            'totalKredit',
+            'saldoAkhir'
         ));
 
         return $pdf->download('laporan_transaksi_kas_' . date('Ymd') . '.pdf');

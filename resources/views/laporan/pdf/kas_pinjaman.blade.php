@@ -403,16 +403,16 @@
     <div class="financial-cards">
         <div class="financial-card">
             <h3>Total Pinjaman</h3>
-            <p class="amount">Rp {{ number_format($data['jml_pinjaman']) }}</p>
+            <p class="amount">Rp {{ number_format($summary['total_pinjaman']) }}</p>
         </div>
         <div class="financial-card green">
             <h3>Sudah Dibayar</h3>
-            <p class="amount">Rp {{ number_format($data['jml_angsuran']) }}</p>
-            <p class="subtitle">{{ number_format($data['collection_rate'], 1) }}% collected</p>
+            <p class="amount">Rp {{ number_format($summary['total_bayar']) }}</p>
+            <p class="subtitle">{{ number_format($summary['completion_rate'], 1) }}% collected</p>
         </div>
         <div class="financial-card red">
             <h3>Sisa Tagihan</h3>
-            <p class="amount">Rp {{ number_format($data['sisa_tagihan']) }}</p>
+            <p class="amount">Rp {{ number_format($summary['total_sisa']) }}</p>
             <p class="subtitle">Outstanding</p>
         </div>
     </div>
@@ -436,10 +436,10 @@
                         Pokok Pinjaman
                     </td>
                     <td class="text-right positive">
-                        Rp {{ number_format($data['jml_pinjaman']) }}
+                        Rp {{ number_format($summary['total_pinjaman']) }}
                     </td>
                     <td class="text-center">
-                        {{ $data['tot_tagihan'] > 0 ? number_format(($data['jml_pinjaman'] / $data['tot_tagihan']) * 100, 1) : 0 }}%
+                        {{ $summary['total_pinjaman'] > 0 ? number_format(($summary['total_pinjaman'] / $summary['total_pinjaman']) * 100, 1) : 0 }}%
                     </td>
                 </tr>
                 
@@ -450,10 +450,10 @@
                         Tagihan Denda
                     </td>
                     <td class="text-right negative">
-                        Rp {{ number_format($data['jml_denda']) }}
+                        Rp 0
                     </td>
                     <td class="text-center">
-                        {{ $data['tot_tagihan'] > 0 ? number_format(($data['jml_denda'] / $data['tot_tagihan']) * 100, 1) : 0 }}%
+                        0%
                     </td>
                 </tr>
                 
@@ -464,7 +464,7 @@
                         <strong>Jumlah Tagihan + Denda</strong>
                     </td>
                     <td class="text-right">
-                        <strong>Rp {{ number_format($data['tot_tagihan']) }}</strong>
+                        <strong>Rp {{ number_format($summary['total_pinjaman']) }}</strong>
                     </td>
                     <td class="text-center">
                         <strong>100.0%</strong>
@@ -478,10 +478,10 @@
                         Tagihan Sudah Dibayar
                     </td>
                     <td class="text-right positive">
-                        Rp {{ number_format($data['jml_angsuran']) }}
+                        Rp {{ number_format($summary['total_bayar']) }}
                     </td>
                     <td class="text-center">
-                        {{ $data['tot_tagihan'] > 0 ? number_format(($data['jml_angsuran'] / $data['tot_tagihan']) * 100, 1) : 0 }}%
+                        {{ $summary['total_pinjaman'] > 0 ? number_format(($summary['total_bayar'] / $summary['total_pinjaman']) * 100, 1) : 0 }}%
                     </td>
                 </tr>
                 
@@ -492,11 +492,11 @@
                         <strong>Sisa Tagihan</strong>
                     </td>
                     <td class="text-right">
-                        <strong class="negative">Rp {{ number_format($data['sisa_tagihan']) }}</strong>
+                        <strong class="negative">Rp {{ number_format($summary['total_sisa']) }}</strong>
                     </td>
                     <td class="text-center">
                         <strong class="negative">
-                            {{ $data['tot_tagihan'] > 0 ? number_format(($data['sisa_tagihan'] / $data['tot_tagihan']) * 100, 1) : 0 }}%
+                            {{ $summary['total_pinjaman'] > 0 ? number_format(($summary['total_sisa'] / $summary['total_pinjaman']) * 100, 1) : 0 }}%
                         </strong>
                     </td>
                 </tr>
