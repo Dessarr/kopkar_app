@@ -48,96 +48,64 @@ class LaporanPengeluaranPinjamanController extends Controller
     }
 
     /**
-     * Get detailed loan disbursement data with proper accounting principles
+     * Get detailed loan disbursement data using v_pengeluaran_pinjaman view
      * This implements the accounting principle for loan disbursement tracking
      */
     private function getDetailPengeluaran($tgl_dari, $tgl_samp)
     {
-        $pinjaman = TblPinjamanH::with('anggota')
+        // Get loan disbursement data from v_pengeluaran_pinjaman view
+        $loans = DB::table('v_pengeluaran_pinjaman')
             ->whereDate('tgl_pinjam', '>=', $tgl_dari)
             ->whereDate('tgl_pinjam', '<=', $tgl_samp)
             ->orderBy('tgl_pinjam', 'asc')
             ->get();
         
-        // Filter out loans without anggota relationship
-        $pinjaman = $pinjaman->filter(function($row) {
-            return $row->anggota !== null;
-        });
-        
         $result = [];
         $total_pinjaman = 0;
-        $total_tagihan = 0;
-        $total_dibayar = 0;
-        $total_sisa_tagihan = 0;
-        $total_bunga = 0;
-        $total_denda = 0;
-        $total_adm = 0;
         $no = 1;
         
-        foreach ($pinjaman as $row) {
-            $anggota = $row->anggota;
+        foreach ($loans as $loan) {
+            // Get additional data from tbl_pinjaman_h for calculations
+            $pinjaman_h = TblPinjamanH::find($loan->id);
             
-            // Get installment data
-            $angsuran = TblPinjamanD::where('pinjam_id', $row->id)->get();
+            // Get installment data for calculations
+            $angsuran = TblPinjamanD::where('pinjam_id', $loan->id)->get();
             $jml_bayar = $angsuran->sum('jumlah_bayar');
             $jml_denda = $angsuran->sum('denda_rp');
             $jml_adm = $angsuran->sum('biaya_adm');
             $jml_bunga = $angsuran->sum('bunga');
             
             // Calculate total tagihan (principal + interest + admin fee)
-            $total_tagihan_loan = $row->jumlah + ($row->bunga_rp ?? 0) + ($row->biaya_adm ?? 0);
+            $total_tagihan_loan = $loan->jumlah + ($pinjaman_h->bunga_rp ?? 0) + ($pinjaman_h->biaya_adm ?? 0);
             $sisa_tagihan = $total_tagihan_loan - $jml_bayar;
             
             // Calculate loan status
-            $status = $this->determineLoanStatus($row, $angsuran->count(), $sisa_tagihan);
+            $status = $this->determineLoanStatus($pinjaman_h, $angsuran->count(), $sisa_tagihan);
             
             $result[] = [
                 'no' => $no++,
-                'tgl_pinjam' => $row->tgl_pinjam,
-                'nama' => $anggota ? $anggota->nama : 'N/A',
-                'id' => 'AG' . str_pad($anggota ? $anggota->id : 0, 4, '0', STR_PAD_LEFT),
-                'id_anggota' => $anggota ? $anggota->id : 0,
-                'jumlah' => $row->jumlah ?? 0,
-                'lama_angsuran' => $row->lama_angsuran ?? 0,
-                'lunas' => $row->lunas ?? 'Belum Lunas',
-                'pokok_angsuran' => $row->pokok_angsuran ?? 0,
-                'pokok_bunga' => $row->pokok_bunga ?? 0,
-                'bunga' => $row->bunga ?? 0,
-                'biaya_adm' => $row->biaya_adm ?? 0,
-                'ags_per_bulan' => $row->ags_per_bulan ?? 0,
+                'tgl_pinjam' => Carbon::parse($loan->tgl_pinjam),
+                'nama' => $loan->no_ktp . '<br/>' . $loan->nama,
+                'id' => $loan->id,
+                'jumlah' => $loan->jumlah ?? 0,
+                'jaminan' => $loan->keterangan ?? '-',
+                'alamat' => $loan->alamat ?? '-',
+                'notelp' => $loan->notelp ?? '-',
                 'tagihan' => $total_tagihan_loan,
-                'jml_bunga' => $jml_bunga,
-                'jml_denda' => $jml_denda,
-                'jml_adm' => $jml_adm,
                 'jml_bayar' => $jml_bayar,
                 'sisa_tagihan' => $sisa_tagihan,
-                'alamat' => $anggota ? $anggota->alamat : '-',
-                'notelp' => $anggota ? $anggota->notelp : '-',
-                'jaminan' => $row->keterangan ?? '-',
                 'status' => $status,
                 'status_badge' => $this->getStatusBadge($status),
                 'persentase_bayar' => $total_tagihan_loan > 0 ? (($jml_bayar / $total_tagihan_loan) * 100) : 0
             ];
             
-            $total_pinjaman += $row->jumlah ?? 0;
-            $total_tagihan += $total_tagihan_loan;
-            $total_dibayar += $jml_bayar;
-            $total_sisa_tagihan += $sisa_tagihan;
-            $total_bunga += $jml_bunga;
-            $total_denda += $jml_denda;
-            $total_adm += $jml_adm;
+            $total_pinjaman += $loan->jumlah ?? 0;
         }
         
         return [
             'rows' => $result,
             'total' => [
-                'total_pinjaman' => $total_pinjaman,
-                'total_tagihan' => $total_tagihan,
-                'total_dibayar' => $total_dibayar,
-                'total_sisa_tagihan' => $total_sisa_tagihan,
-                'total_bunga' => $total_bunga,
-                'total_denda' => $total_denda,
-                'total_adm' => $total_adm
+                'total_pinjaman' => $total_pinjaman
             ]
         ];
     }
@@ -147,7 +115,11 @@ class LaporanPengeluaranPinjamanController extends Controller
      */
     private function determineLoanStatus($loan, $bln_sudah_angsur, $sisa_tagihan)
     {
-        $lunas = $loan->lunas ?? 'Belum Lunas';
+        if (!$loan) {
+            return 'Tidak Diketahui';
+        }
+        
+        $lunas = $loan->lunas ?? 'Belum';
         $lama_angsuran = $loan->lama_angsuran ?? 0;
         
         if ($lunas == 'Lunas') {
@@ -299,34 +271,33 @@ class LaporanPengeluaranPinjamanController extends Controller
      */
     private function getRecentLoans($tgl_dari, $tgl_samp)
     {
-        return TblPinjamanH::with('anggota')
+        $loans = DB::table('v_pengeluaran_pinjaman')
             ->whereDate('tgl_pinjam', '>=', $tgl_dari)
             ->whereDate('tgl_pinjam', '<=', $tgl_samp)
             ->orderBy('tgl_pinjam', 'desc')
             ->limit(10)
-            ->get()
-            ->filter(function($loan) {
-                return $loan->anggota !== null;
-            })
-            ->map(function ($loan) {
-                $angsuran = TblPinjamanD::where('pinjam_id', $loan->id)->get();
-                $total_bayar = $angsuran->sum('jumlah_bayar');
-                $total_tagihan = $loan->jumlah + ($loan->bunga_rp ?? 0) + ($loan->biaya_adm ?? 0);
-                $sisa_tagihan = $total_tagihan - $total_bayar;
-                
-                // Determine status
-                $status = $this->determineLoanStatus($loan, $angsuran->count(), $sisa_tagihan);
-                
-                return [
-                    'id' => 'PNJ' . str_pad($loan->id, 5, '0', STR_PAD_LEFT),
-                    'anggota' => $loan->anggota ? $loan->anggota->nama : 'N/A',
-                    'jumlah' => $loan->jumlah,
-                    'tgl_pinjam' => $loan->tgl_pinjam->format('d/m/Y'),
-                    'status' => $status,
-                    'sisa_tagihan' => $sisa_tagihan,
-                    'persentase' => $total_tagihan > 0 ? (($total_bayar / $total_tagihan) * 100) : 0
-                ];
-            });
+            ->get();
+        
+        return $loans->map(function ($loan) {
+            $pinjaman_h = TblPinjamanH::find($loan->id);
+            $angsuran = TblPinjamanD::where('pinjam_id', $loan->id)->get();
+            $total_bayar = $angsuran->sum('jumlah_bayar');
+            $total_tagihan = $loan->jumlah + ($pinjaman_h->bunga_rp ?? 0) + ($pinjaman_h->biaya_adm ?? 0);
+            $sisa_tagihan = $total_tagihan - $total_bayar;
+            
+            // Determine status
+            $status = $this->determineLoanStatus($pinjaman_h, $angsuran->count(), $sisa_tagihan);
+            
+            return [
+                'id' => 'PNJ' . str_pad($loan->id, 5, '0', STR_PAD_LEFT),
+                'anggota' => $loan->no_ktp . '/' . $loan->nama,
+                'jumlah' => $loan->jumlah,
+                'tgl_pinjam' => Carbon::parse($loan->tgl_pinjam)->format('d/m/Y'),
+                'status' => $status,
+                'sisa_tagihan' => $sisa_tagihan,
+                'persentase' => $total_tagihan > 0 ? (($total_bayar / $total_tagihan) * 100) : 0
+            ];
+        });
     }
 
     public function exportPdf(Request $request)

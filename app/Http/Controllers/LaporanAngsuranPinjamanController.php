@@ -28,10 +28,10 @@ class LaporanAngsuranPinjamanController extends Controller
         $data = $this->getDetailAngsuran($tgl_dari, $tgl_samp);
         
         // Calculate summary statistics
-        $summary = $this->calculateSummary($data);
+        $summary = $this->calculateSummary($data['rows']);
         
         // Get performance metrics
-        $performance = $this->calculatePerformanceMetrics($data);
+        $performance = $this->calculatePerformanceMetrics($data['rows']);
         
         // Get recent installment activities
         $recentInstallments = $this->getRecentInstallments($tgl_dari, $tgl_samp);
@@ -39,7 +39,8 @@ class LaporanAngsuranPinjamanController extends Controller
         return view('laporan.angsuran_pinjaman', [
             'tgl_dari' => $tgl_dari,
             'tgl_samp' => $tgl_samp,
-            'data' => $data,
+            'data' => $data['rows'],
+            'total' => $data['total'],
             'summary' => $summary,
             'performance' => $performance,
             'recentInstallments' => $recentInstallments
@@ -47,42 +48,27 @@ class LaporanAngsuranPinjamanController extends Controller
     }
 
     /**
-     * Get detailed installment data with proper accounting principles
+     * Get detailed installment data using v_rekap_det_angsuran view
      * This implements the accounting principle for loan installment tracking
      */
     private function getDetailAngsuran($tgl_dari, $tgl_samp)
     {
-        $angsuran = TblPinjamanD::with(['pinjaman.anggota'])
+        // Get installment data from v_rekap_det_angsuran view
+        $angsuran = DB::table('v_rekap_det_angsuran')
             ->whereDate('tgl_bayar', '>=', $tgl_dari)
             ->whereDate('tgl_bayar', '<=', $tgl_samp)
-            ->whereHas('pinjaman', function($q) {
-                $q->whereNotNull('anggota_id');
-            })
             ->orderBy('tgl_bayar', 'asc')
             ->get();
         
-        // Filter out installments without valid loan or member relationship
-        $angsuran = $angsuran->filter(function($row) {
-            return $row->pinjaman && $row->pinjaman->anggota;
-        });
-        
         $result = [];
+        $total_pokok = 0;
+        $total_bunga = 0;
+        $total_denda = 0;
+        $total_biaya_adm = 0;
+        $total_jumlah_angsuran = 0;
         $no = 1;
         
         foreach ($angsuran as $row) {
-            $pinjaman = $row->pinjaman;
-            $anggota = $pinjaman->anggota;
-            
-            // Calculate loan balance before this installment
-            $saldo_pinjaman = $pinjaman->jumlah ?? 0;
-            
-            // Get all previous installments for this loan
-            $previousInstallments = TblPinjamanD::where('pinjam_id', $pinjaman->id)
-                ->where('tgl_bayar', '<', $row->tgl_bayar)
-                ->sum('jumlah_bayar');
-            
-            $saldo_pinjaman -= $previousInstallments;
-            
             // Calculate installment components
             $pokok = $row->jumlah_bayar ?? 0;
             $bunga = $row->bunga ?? 0;
@@ -90,21 +76,21 @@ class LaporanAngsuranPinjamanController extends Controller
             $biaya_adm = $row->biaya_adm ?? 0;
             $jumlah_angsuran = $pokok + $bunga + $denda + $biaya_adm;
             
-            // Calculate ending balance
-            $saldo_akhir = $saldo_pinjaman - $pokok;
+            // Calculate saldo pinjaman (jumlah - sisa_pokok)
+            $saldo_pinjaman = $row->jumlah - $row->sisa_pokok;
+            $saldo_akhir = $row->sisa_pokok;
             
             // Determine installment status
             $status = $this->determineInstallmentStatus($row, $saldo_akhir);
             
             $result[] = [
                 'no' => $no++,
-                'tgl_pinjam' => $pinjaman->tgl_pinjam ?? '',
-                'nama' => $anggota ? $anggota->nama : 'N/A',
-                'id' => 'AG' . str_pad($anggota ? $anggota->id : 0, 4, '0', STR_PAD_LEFT),
-                'id_anggota' => $anggota ? $anggota->id : 0,
-                'jumlah' => $pinjaman->jumlah ?? 0, // Pinjaman awal
-                'lama_angsuran' => $pinjaman->lama_angsuran ?? 0, // Jangka waktu
-                'jumlah_bunga' => $pinjaman->bunga ?? 0, // Persentase bunga
+                'tgl_pinjam' => Carbon::parse($row->tgl_pinjam),
+                'nama' => $row->no_ktp . '<br/>' . $row->nama,
+                'id' => $row->id,
+                'jumlah' => $row->jumlah ?? 0, // Pinjaman awal
+                'lama_angsuran' => $row->lama_angsuran ?? 0, // Jangka waktu
+                'jumlah_bunga' => $row->jumlah_bunga ?? 0, // Persentase bunga
                 'saldo_pinjaman' => $saldo_pinjaman, // Saldo sebelum angsuran
                 'pokok' => $pokok,
                 'bunga' => $bunga,
@@ -113,14 +99,29 @@ class LaporanAngsuranPinjamanController extends Controller
                 'jumlah_angsuran' => $jumlah_angsuran,
                 'saldo_akhir' => $saldo_akhir,
                 'angsuran_ke' => $row->angsuran_ke ?? 0,
-                'tgl_bayar' => $row->tgl_bayar ?? '',
+                'tgl_bayar' => Carbon::parse($row->tgl_bayar),
                 'status' => $status,
                 'status_badge' => $this->getInstallmentStatusBadge($status),
-                'persentase_pelunasan' => $pinjaman->jumlah > 0 ? ((($pinjaman->jumlah - $saldo_akhir) / $pinjaman->jumlah) * 100) : 0
+                'persentase_pelunasan' => $row->jumlah > 0 ? ((($row->jumlah - $saldo_akhir) / $row->jumlah) * 100) : 0
             ];
+            
+            $total_pokok += $pokok;
+            $total_bunga += $bunga;
+            $total_denda += $denda;
+            $total_biaya_adm += $biaya_adm;
+            $total_jumlah_angsuran += $jumlah_angsuran;
         }
         
-        return $result;
+        return [
+            'rows' => $result,
+            'total' => [
+                'total_pokok' => $total_pokok,
+                'total_bunga' => $total_bunga,
+                'total_denda' => $total_denda,
+                'total_biaya_adm' => $total_biaya_adm,
+                'total_jumlah_angsuran' => $total_jumlah_angsuran
+            ]
+        ];
     }
 
     /**
@@ -131,6 +132,8 @@ class LaporanAngsuranPinjamanController extends Controller
         if ($saldo_akhir <= 0) {
             return 'Lunas';
         } elseif ($installment->denda_rp > 0) {
+            return 'Terlambat';
+        } elseif ($installment->terlambat > 0) {
             return 'Terlambat';
         } elseif ($installment->tgl_bayar) {
             return 'Tepat Waktu';
@@ -287,45 +290,37 @@ class LaporanAngsuranPinjamanController extends Controller
      */
     private function getRecentInstallments($tgl_dari, $tgl_samp)
     {
-        return TblPinjamanD::with(['pinjaman.anggota'])
+        $angsuran = DB::table('v_rekap_det_angsuran')
             ->whereDate('tgl_bayar', '>=', $tgl_dari)
             ->whereDate('tgl_bayar', '<=', $tgl_samp)
-            ->whereHas('pinjaman', function($q) {
-                $q->whereNotNull('anggota_id');
-            })
             ->orderBy('tgl_bayar', 'desc')
             ->limit(10)
-            ->get()
-            ->filter(function($installment) {
-                return $installment->pinjaman && $installment->pinjaman->anggota;
-            })
-            ->map(function ($installment) {
-                $pinjaman = $installment->pinjaman;
-                $anggota = $pinjaman->anggota;
-                
-                // Calculate installment components
-                $pokok = $installment->jumlah_bayar ?? 0;
-                $bunga = $installment->bunga ?? 0;
-                $denda = $installment->denda_rp ?? 0;
-                $biaya_adm = $installment->biaya_adm ?? 0;
-                $jumlah_angsuran = $pokok + $bunga + $denda + $biaya_adm;
-                
-                // Determine status
-                $status = $this->determineInstallmentStatus($installment, 0);
-                
-                return [
-                    'id' => 'INS' . str_pad($installment->id, 5, '0', STR_PAD_LEFT),
-                    'anggota' => $anggota ? $anggota->nama : 'N/A',
-                    'pinjaman_id' => 'PNJ' . str_pad($pinjaman->id, 5, '0', STR_PAD_LEFT),
-                    'jumlah_angsuran' => $jumlah_angsuran,
-                    'tgl_bayar' => $installment->tgl_bayar ? Carbon::parse($installment->tgl_bayar)->format('d/m/Y') : '-',
-                    'angsuran_ke' => $installment->angsuran_ke ?? 0,
-                    'status' => $status,
-                    'pokok' => $pokok,
-                    'bunga' => $bunga,
-                    'denda' => $denda
-                ];
-            });
+            ->get();
+        
+        return $angsuran->map(function ($installment) {
+            // Calculate installment components
+            $pokok = $installment->jumlah_bayar ?? 0;
+            $bunga = $installment->bunga ?? 0;
+            $denda = $installment->denda_rp ?? 0;
+            $biaya_adm = $installment->biaya_adm ?? 0;
+            $jumlah_angsuran = $pokok + $bunga + $denda + $biaya_adm;
+            
+            // Determine status
+            $status = $this->determineInstallmentStatus($installment, $installment->sisa_pokok);
+            
+            return [
+                'id' => 'INS' . str_pad($installment->id, 5, '0', STR_PAD_LEFT),
+                'anggota' => $installment->no_ktp . '/' . $installment->nama,
+                'pinjaman_id' => 'PNJ' . str_pad($installment->pinjam_id, 5, '0', STR_PAD_LEFT),
+                'jumlah_angsuran' => $jumlah_angsuran,
+                'tgl_bayar' => Carbon::parse($installment->tgl_bayar)->format('d/m/Y'),
+                'angsuran_ke' => $installment->angsuran_ke ?? 0,
+                'status' => $status,
+                'pokok' => $pokok,
+                'bunga' => $bunga,
+                'denda' => $denda
+            ];
+        });
     }
 
     public function exportPdf(Request $request)
