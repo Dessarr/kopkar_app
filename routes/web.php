@@ -37,6 +37,7 @@ use App\Http\Controllers\LaporanPengeluaranPinjamanController;
 use App\Http\Controllers\LaporanAngsuranPinjamanController;
 use App\Http\Controllers\LaporanRekapitulasiController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\CabangController;
 
 // Admin Routes
 Route::get('/', [AdminController::class, 'showLoginForm'])->name('admin.login.form');
@@ -76,6 +77,7 @@ Route::get('/master-data/data_anggota/print', [DtaAnggotaController::class, 'pri
 Route::get('/master-data/jenis_angsuran/print', [JnsAngusuranController::class, 'print'])->name('master-data.jenis_angsuran.print');
 Route::get('/master-data/jns_simpan/print', [JnsSimpanController::class, 'print'])->name('master-data.jns_simpan.print');
 Route::get('/master-data/jns_akun/print', [JnsAkunController::class, 'print'])->name('master-data.jns_akun.print');
+Route::get('/master-data/cabang/print', [CabangController::class, 'print'])->name('master-data.cabang.print');
 
 
 // Member Routes - Dashboard
@@ -445,6 +447,18 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/master-data/data_kas/export/excel', [DtaKasController::class, 'export'])->name('master-data.data_kas.export');
     Route::post('/master-data/data_kas/import', [DtaKasController::class, 'import'])->name('master-data.data_kas.import');
     Route::get('/master-data/data_kas/template/download', [DtaKasController::class, 'downloadTemplate'])->name('master-data.data_kas.template');
+
+    // Data Cabang
+    Route::resource('master-data/cabang', CabangController::class)->names([
+        'index' => 'master-data.cabang.index',
+        'create' => 'master-data.cabang.create',
+        'store' => 'master-data.cabang.store',
+        'show' => 'master-data.cabang.show',
+        'edit' => 'master-data.cabang.edit',
+        'update' => 'master-data.cabang.update',
+        'destroy' => 'master-data.cabang.destroy',
+    ]);
+    Route::get('/master-data/cabang/export/excel', [CabangController::class, 'export'])->name('master-data.cabang.export');
 
     //Route untuk Setting
     Route::get('/settings/identitas_koperasi',[SettingController::class,'index'])->name('settings.identitas_koperasi');

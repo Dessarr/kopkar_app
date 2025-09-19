@@ -43,4 +43,24 @@ class Cabang extends Table_Base
         'alamat',
         'no_telp',
     ];
+
+    /**
+     * Generate next ID cabang
+     *
+     * @return string
+     */
+    public static function generateNextId()
+    {
+        $lastCabang = self::orderBy('id_cabang', 'desc')->first();
+        
+        if (!$lastCabang) {
+            return 'CB0001';
+        }
+        
+        // Extract number from last ID (e.g., CB0005 -> 5)
+        $lastNumber = (int) substr($lastCabang->id_cabang, 2);
+        $nextNumber = $lastNumber + 1;
+        
+        return 'CB' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    }
 } 

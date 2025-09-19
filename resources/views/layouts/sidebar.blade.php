@@ -277,6 +277,10 @@
                     class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">
                     Data Kas
                 </a>
+                <a href="{{ route('master-data.cabang.index') }}"
+                    class="block py-2 px-3 rounded-lg hover:bg-[#14AE5C] hover:text-white hover:translate-x-1 transition-all duration-200">
+                    Data Cabang
+                </a>
             </div>
         </div>
 
