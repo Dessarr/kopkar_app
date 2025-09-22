@@ -6,7 +6,7 @@
 <div class="p-6">
     <div class="flex justify-between align-center mb-6">
         <h1 class="text-2xl font-bold">Detail Data Anggota</h1>
-        <a href="{{ route('master-data.data_anggota') }}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">
+        <a href="{{ route('master-data.data_anggota.index') }}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">
             Kembali
         </a>
     </div>

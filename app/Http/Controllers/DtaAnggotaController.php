@@ -26,13 +26,60 @@ class DtaAnggotaController extends Controller
             });
         }
 
+        // Handle filter jenis kelamin
+        if ($request->has('jenis_kelamin') && $request->jenis_kelamin != '') {
+            $query->where('jk', $request->jenis_kelamin);
+        }
+
+        // Handle filter departement
+        if ($request->has('departement') && $request->departement != '') {
+            $query->where('departement', $request->departement);
+        }
+
+        // Handle filter kota
+        if ($request->has('kota') && $request->kota != '') {
+            $query->where('kota', $request->kota);
+        }
+
         // Tampilkan anggota aktif
         $dataAnggota = $query->where('aktif', 'Y')->orderBy('nama')->paginate(10);
 
         // Tampilkan anggota tidak aktif jika diminta
         $dataAnggotaNonAktif = data_anggota::where('aktif', 'N')->orderBy('nama')->paginate(10, ['*'], 'nonaktif');
 
-        return view('master-data.data_anggota', compact('dataAnggota', 'dataAnggotaNonAktif'));
+        // Hitung statistik untuk card informatif
+        $totalAnggota = data_anggota::where('aktif', 'Y')->count();
+        $totalAktif = data_anggota::where('aktif', 'Y')->count();
+        $totalLakiLaki = data_anggota::where('aktif', 'Y')->where('jk', 'L')->count();
+        $totalPerempuan = data_anggota::where('aktif', 'Y')->where('jk', 'P')->count();
+
+        // Ambil data untuk filter dropdown
+        $departements = data_anggota::where('aktif', 'Y')
+            ->whereNotNull('departement')
+            ->where('departement', '!=', '')
+            ->distinct()
+            ->pluck('departement')
+            ->sort()
+            ->values();
+
+        $kotas = data_anggota::where('aktif', 'Y')
+            ->whereNotNull('kota')
+            ->where('kota', '!=', '')
+            ->distinct()
+            ->pluck('kota')
+            ->sort()
+            ->values();
+
+        return view('master-data.data_anggota', compact(
+            'dataAnggota', 
+            'dataAnggotaNonAktif', 
+            'totalAnggota', 
+            'totalAktif', 
+            'totalLakiLaki', 
+            'totalPerempuan',
+            'departements',
+            'kotas'
+        ));
     }
 
     public function show($id)
@@ -56,8 +103,8 @@ class DtaAnggotaController extends Controller
         } else {
             $newNumber = 1;
         }
-        $no_ktp_auto = $yearMonth . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
-        return view('layouts.form.add_data_anggota', compact('no_ktp_auto'));
+        $id_anggota_auto = $yearMonth . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        return view('master-data.data_anggota.create', compact('id_anggota_auto'));
     }
 
     public function store(Request $request)
@@ -132,14 +179,14 @@ class DtaAnggotaController extends Controller
 
         data_anggota::create($validated);
 
-        return redirect()->route('master-data.data_anggota')
+        return redirect()->route('master-data.data_anggota.index')
             ->with('success', 'Data anggota berhasil ditambahkan');
     }
 
     public function edit($id)
     {
         $anggota = data_anggota::findOrFail($id);
-        return view('layouts.form.edit_data_anggota', compact('anggota'));
+        return view('master-data.data_anggota.edit', compact('anggota'));
     }
 
     public function update(Request $request, $id)
@@ -199,7 +246,7 @@ class DtaAnggotaController extends Controller
 
         $anggota->update($validated);
 
-        return redirect()->route('master-data.data_anggota')
+        return redirect()->route('master-data.data_anggota.index')
             ->with('success', 'Data anggota berhasil diperbarui');
     }
 
@@ -219,11 +266,11 @@ class DtaAnggotaController extends Controller
             // Hapus data anggota
         $anggota->delete();
 
-        return redirect()->route('master-data.data_anggota')
+        return redirect()->route('master-data.data_anggota.index')
                 ->with('success', 'Data anggota dan semua data terkait berhasil dihapus');
                 
         } catch (\Exception $e) {
-            return redirect()->route('master-data.data_anggota')
+            return redirect()->route('master-data.data_anggota.index')
                 ->with('error', 'Gagal menghapus data anggota: ' . $e->getMessage());
         }
     }
