@@ -287,12 +287,7 @@ class LaporanKasAnggotaController extends Controller
      */
     public function exportExcelDetail(Request $request)
     {
-        $periode = $request->input('periode', date('Y-m'));
         $search = $request->input('search');
-
-        $tgl_arr = explode('-', $periode);
-        $tahun = $tgl_arr[0];
-        $bulan = $tgl_arr[1];
 
         $query = data_anggota::where('aktif', 'Y');
 
@@ -305,14 +300,17 @@ class LaporanKasAnggotaController extends Controller
         }
 
         $dataAnggota = $query->orderBy('nama', 'asc')->get();
-        $jenisSimpanan = jns_simpan::where('tampil', 'Y')
-            ->whereIn('id', [41, 32, 52, 40, 51, 31])
-            ->orderBy('urut', 'asc')
-            ->get();
 
-        $kasData = [];
+        // Hitung data menggunakan method yang sama dengan web view
+        $anggotaData = [];
         foreach ($dataAnggota as $anggota) {
-            $kasData[$anggota->no_ktp] = $this->getKasData($anggota->no_ktp, $tahun, $bulan);
+            $anggotaData[$anggota->no_ktp] = [
+                'anggota' => $anggota,
+                'identitas' => $this->getIdentitasAnggota($anggota),
+                'saldo_simpanan' => $this->hitungSaldoSimpanan($anggota->no_ktp),
+                'tagihan_kredit' => $this->hitungTagihanKredit($anggota->no_ktp),
+                'keterangan' => $this->hitungKeteranganPinjaman($anggota->no_ktp)
+            ];
         }
 
         // Create Excel file with comprehensive data
@@ -321,8 +319,14 @@ class LaporanKasAnggotaController extends Controller
 
         // Set title
         $sheet->setCellValue('A1', 'LAPORAN DATA KAS PER ANGGOTA');
-        $sheet->setCellValue('A2', 'Periode: ' . Carbon::createFromDate($tahun, $bulan, 1)->format('F Y'));
+        $sheet->setCellValue('A2', 'Periode: ' . Carbon::now()->format('F Y'));
         $sheet->setCellValue('A3', 'Tanggal: ' . Carbon::now()->format('d/m/Y H:i:s'));
+
+        // Get jenis simpanan
+        $jenisSimpanan = jns_simpan::where('tampil', 'Y')
+            ->whereIn('id', [41, 32, 52, 40, 51, 31])
+            ->orderBy('urut', 'asc')
+            ->get();
 
         // Merge cells for title
         $lastCol = chr(65 + 4 + (count($jenisSimpanan) * 3) + 6); // A + 4 basic + jenis simpanan * 3 + 6 additional
@@ -382,12 +386,41 @@ class LaporanKasAnggotaController extends Controller
             $sheet->setCellValue($col . $row, $anggota->no_ktp);
             $col++;
 
-            $kas = $kasData[$anggota->no_ktp] ?? [];
+            // Get calculated data
+            $data = $anggotaData[$anggota->no_ktp] ?? [];
+            $saldoSimpanan = $data['saldo_simpanan'] ?? (object)[];
+            $tagihanKredit = $data['tagihan_kredit'] ?? (object)[];
 
-            // Jenis simpanan data
+            // Calculate totals
+            $totalSetor = ($saldoSimpanan->simpanan_wajib ?? 0) + 
+                         ($saldoSimpanan->simpanan_sukarela ?? 0) + 
+                         ($saldoSimpanan->simpanan_khusus_2 ?? 0) + 
+                         ($saldoSimpanan->simpanan_pokok ?? 0) + 
+                         ($saldoSimpanan->simpanan_khusus_1 ?? 0) + 
+                         ($saldoSimpanan->tab_perumahan ?? 0);
+
+            $totalTarik = 0; // Setoran tidak memiliki penarikan terpisah dalam data ini
+            $totalSaldo = $totalSetor - $totalTarik;
+            $tagihanKreditTotal = ($tagihanKredit->pinjaman_biasa ?? 0) + ($tagihanKredit->pinjaman_barang ?? 0);
+            $bayarKredit = 0; // Tidak ada data pembayaran dalam struktur ini
+            $sisaKredit = ($tagihanKredit->sisa_pinjaman_biasa ?? 0) + ($tagihanKredit->sisa_pinjaman_barang ?? 0);
+
+            // Jenis simpanan data - simplified
             foreach ($jenisSimpanan as $jenis) {
-                $setor = $kas['setoran'][$jenis->id] ?? 0;
-                $tarik = $kas['penarikan'][$jenis->id] ?? 0;
+                $setor = 0;
+                $tarik = 0;
+                $saldo = 0;
+
+                // Map jenis simpanan ID to data
+                switch($jenis->id) {
+                    case 41: $setor = $saldoSimpanan->simpanan_wajib ?? 0; break;
+                    case 32: $setor = $saldoSimpanan->simpanan_sukarela ?? 0; break;
+                    case 52: $setor = $saldoSimpanan->simpanan_khusus_2 ?? 0; break;
+                    case 40: $setor = $saldoSimpanan->simpanan_pokok ?? 0; break;
+                    case 51: $setor = $saldoSimpanan->simpanan_khusus_1 ?? 0; break;
+                    case 156: $setor = $saldoSimpanan->tab_perumahan ?? 0; break;
+                }
+
                 $saldo = $setor - $tarik;
 
                 $sheet->setCellValue($col . $row, $setor);
@@ -399,12 +432,7 @@ class LaporanKasAnggotaController extends Controller
             }
 
             // Additional data
-            $totalSetor = $kas['total_setor'] ?? 0;
-            $totalTarik = $kas['total_tarik'] ?? 0;
-            $totalSaldo = $kas['total_saldo'] ?? 0;
-            $tagihanKredit = $kas['tagihan_kredit'] ?? 0;
-            $bayarKredit = $kas['bayar_kredit'] ?? 0;
-            $sisaKredit = $kas['sisa_kredit'] ?? 0;
+            $tagihanKredit = $tagihanKreditTotal;
 
             $sheet->setCellValue($col . $row, $totalSetor);
             $col++;
@@ -447,12 +475,7 @@ class LaporanKasAnggotaController extends Controller
      */
     public function exportExcelTagihan(Request $request)
     {
-        $periode = $request->input('periode', date('Y-m'));
         $search = $request->input('search');
-
-        $tgl_arr = explode('-', $periode);
-        $tahun = $tgl_arr[0];
-        $bulan = $tgl_arr[1];
 
         $query = data_anggota::where('aktif', 'Y');
 
@@ -466,13 +489,25 @@ class LaporanKasAnggotaController extends Controller
 
         $dataAnggota = $query->orderBy('nama', 'asc')->get();
 
+        // Hitung data menggunakan method yang sama dengan web view
+        $anggotaData = [];
+        foreach ($dataAnggota as $anggota) {
+            $anggotaData[$anggota->no_ktp] = [
+                'anggota' => $anggota,
+                'identitas' => $this->getIdentitasAnggota($anggota),
+                'saldo_simpanan' => $this->hitungSaldoSimpanan($anggota->no_ktp),
+                'tagihan_kredit' => $this->hitungTagihanKredit($anggota->no_ktp),
+                'keterangan' => $this->hitungKeteranganPinjaman($anggota->no_ktp)
+            ];
+        }
+
         // Create Excel file focused on billing
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
         // Set title
         $sheet->setCellValue('A1', 'LAPORAN TAGIHAN ANGGOTA');
-        $sheet->setCellValue('A2', 'Periode: ' . Carbon::createFromDate($tahun, $bulan, 1)->format('F Y'));
+        $sheet->setCellValue('A2', 'Periode: ' . Carbon::now()->format('F Y'));
         $sheet->setCellValue('A3', 'Tanggal: ' . Carbon::now()->format('d/m/Y H:i:s'));
 
         // Merge cells for title
@@ -502,18 +537,34 @@ class LaporanKasAnggotaController extends Controller
         $row = 6;
         $no = 1;
         foreach ($dataAnggota as $anggota) {
-            $kas = $this->getKasData($anggota->no_ktp, $tahun, $bulan);
+            // Get calculated data
+            $data = $anggotaData[$anggota->no_ktp] ?? [];
+            $saldoSimpanan = $data['saldo_simpanan'] ?? (object)[];
+            $tagihanKredit = $data['tagihan_kredit'] ?? (object)[];
+            
+            // Calculate totals
+            $totalSimpanan = ($saldoSimpanan->simpanan_wajib ?? 0) + 
+                           ($saldoSimpanan->simpanan_sukarela ?? 0) + 
+                           ($saldoSimpanan->simpanan_khusus_2 ?? 0) + 
+                           ($saldoSimpanan->simpanan_pokok ?? 0) + 
+                           ($saldoSimpanan->simpanan_khusus_1 ?? 0) + 
+                           ($saldoSimpanan->tab_perumahan ?? 0);
+            
+            $totalKredit = ($tagihanKredit->pinjaman_biasa ?? 0) + ($tagihanKredit->pinjaman_barang ?? 0);
+            $totalTagihan = $totalSimpanan + $totalKredit;
+            $bayar = 0; // Tidak ada data pembayaran dalam struktur ini
+            $sisa = $totalTagihan - $bayar;
             
             $sheet->setCellValue('A' . $row, $no);
             $sheet->setCellValue('B' . $row, 'AG' . str_pad($anggota->id, 4, '0', STR_PAD_LEFT));
             $sheet->setCellValue('C' . $row, $anggota->nama);
             $sheet->setCellValue('D' . $row, $anggota->no_ktp);
-            $sheet->setCellValue('E' . $row, $kas['tagihan_simpanan'] ?? 0);
-            $sheet->setCellValue('F' . $row, $kas['tagihan_kredit'] ?? 0);
-            $sheet->setCellValue('G' . $row, ($kas['tagihan_simpanan'] ?? 0) + ($kas['tagihan_kredit'] ?? 0));
-            $sheet->setCellValue('H' . $row, $kas['bayar'] ?? 0);
-            $sheet->setCellValue('I' . $row, $kas['sisa'] ?? 0);
-            $sheet->setCellValue('J' . $row, ($kas['sisa'] ?? 0) > 0 ? 'Belum Lunas' : 'Lunas');
+            $sheet->setCellValue('E' . $row, $totalSimpanan);
+            $sheet->setCellValue('F' . $row, $totalKredit);
+            $sheet->setCellValue('G' . $row, $totalTagihan);
+            $sheet->setCellValue('H' . $row, $bayar);
+            $sheet->setCellValue('I' . $row, $sisa);
+            $sheet->setCellValue('J' . $row, $sisa > 0 ? 'Belum Lunas' : 'Lunas');
 
             $row++;
             $no++;
@@ -544,12 +595,7 @@ class LaporanKasAnggotaController extends Controller
      */
     public function exportExcelSimpanan(Request $request)
     {
-        $periode = $request->input('periode', date('Y-m'));
         $search = $request->input('search');
-
-        $tgl_arr = explode('-', $periode);
-        $tahun = $tgl_arr[0];
-        $bulan = $tgl_arr[1];
 
         $query = data_anggota::where('aktif', 'Y');
 
@@ -562,6 +608,19 @@ class LaporanKasAnggotaController extends Controller
         }
 
         $dataAnggota = $query->orderBy('nama', 'asc')->get();
+
+        // Hitung data menggunakan method yang sama dengan web view
+        $anggotaData = [];
+        foreach ($dataAnggota as $anggota) {
+            $anggotaData[$anggota->no_ktp] = [
+                'anggota' => $anggota,
+                'identitas' => $this->getIdentitasAnggota($anggota),
+                'saldo_simpanan' => $this->hitungSaldoSimpanan($anggota->no_ktp),
+                'tagihan_kredit' => $this->hitungTagihanKredit($anggota->no_ktp),
+                'keterangan' => $this->hitungKeteranganPinjaman($anggota->no_ktp)
+            ];
+        }
+
         $jenisSimpanan = jns_simpan::where('tampil', 'Y')
             ->whereIn('id', [41, 32, 52, 40, 51, 31])
             ->orderBy('urut', 'asc')
@@ -573,7 +632,7 @@ class LaporanKasAnggotaController extends Controller
 
         // Set title
         $sheet->setCellValue('A1', 'LAPORAN SIMPANAN ANGGOTA');
-        $sheet->setCellValue('A2', 'Periode: ' . Carbon::createFromDate($tahun, $bulan, 1)->format('F Y'));
+        $sheet->setCellValue('A2', 'Periode: ' . Carbon::now()->format('F Y'));
         $sheet->setCellValue('A3', 'Tanggal: ' . Carbon::now()->format('d/m/Y H:i:s'));
 
         // Merge cells for title
@@ -623,7 +682,10 @@ class LaporanKasAnggotaController extends Controller
         $no = 1;
         foreach ($dataAnggota as $anggota) {
             $col = 'A';
-            $kas = $this->getKasData($anggota->no_ktp, $tahun, $bulan);
+            
+            // Get calculated data
+            $data = $anggotaData[$anggota->no_ktp] ?? [];
+            $saldoSimpanan = $data['saldo_simpanan'] ?? (object)[];
             
             // Basic data
             $sheet->setCellValue($col . $row, $no);
@@ -637,8 +699,20 @@ class LaporanKasAnggotaController extends Controller
 
             // Jenis simpanan data
             foreach ($jenisSimpanan as $jenis) {
-                $setor = $kas['setoran'][$jenis->id] ?? 0;
-                $tarik = $kas['penarikan'][$jenis->id] ?? 0;
+                $setor = 0;
+                $tarik = 0;
+                $saldo = 0;
+
+                // Map jenis simpanan ID to data
+                switch($jenis->id) {
+                    case 41: $setor = $saldoSimpanan->simpanan_wajib ?? 0; break;
+                    case 32: $setor = $saldoSimpanan->simpanan_sukarela ?? 0; break;
+                    case 52: $setor = $saldoSimpanan->simpanan_khusus_2 ?? 0; break;
+                    case 40: $setor = $saldoSimpanan->simpanan_pokok ?? 0; break;
+                    case 51: $setor = $saldoSimpanan->simpanan_khusus_1 ?? 0; break;
+                    case 156: $setor = $saldoSimpanan->tab_perumahan ?? 0; break;
+                }
+
                 $saldo = $setor - $tarik;
 
                 $sheet->setCellValue($col . $row, $setor);
@@ -650,9 +724,14 @@ class LaporanKasAnggotaController extends Controller
             }
 
             // Additional data
-            $totalSetor = $kas['total_setor'] ?? 0;
-            $totalTarik = $kas['total_tarik'] ?? 0;
-            $totalSaldo = $kas['total_saldo'] ?? 0;
+            $totalSetor = ($saldoSimpanan->simpanan_wajib ?? 0) + 
+                         ($saldoSimpanan->simpanan_sukarela ?? 0) + 
+                         ($saldoSimpanan->simpanan_khusus_2 ?? 0) + 
+                         ($saldoSimpanan->simpanan_pokok ?? 0) + 
+                         ($saldoSimpanan->simpanan_khusus_1 ?? 0) + 
+                         ($saldoSimpanan->tab_perumahan ?? 0);
+            $totalTarik = 0; // Setoran tidak memiliki penarikan terpisah dalam data ini
+            $totalSaldo = $totalSetor - $totalTarik;
 
             $sheet->setCellValue($col . $row, $totalSetor);
             $col++;
