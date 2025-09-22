@@ -594,6 +594,13 @@ class DtaAnggotaController extends Controller
         return Excel::download(new AnggotaExport, $fileName);
     }
 
+    public function print()
+    {
+        $dataAnggota = data_anggota::where('aktif', 'Y')->orderBy('nama')->get();
+        
+        return view('master-data.data_anggota.print', compact('dataAnggota'));
+    }
+
     public function nonaktif(Request $request)
     {
         $query = data_anggota::query();
