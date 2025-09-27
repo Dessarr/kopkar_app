@@ -85,12 +85,7 @@ class LaporanKasAnggotaController extends Controller
 
     public function exportPdf(Request $request)
     {
-        $periode = $request->input('periode', date('Y-m'));
         $search = $request->input('search');
-
-        $tgl_arr = explode('-', $periode);
-        $tahun = $tgl_arr[0];
-        $bulan = $tgl_arr[1];
 
         $query = data_anggota::where('aktif', 'Y');
 
@@ -98,28 +93,45 @@ class LaporanKasAnggotaController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('nama', 'like', '%' . $search . '%')
                   ->orWhere('no_ktp', 'like', '%' . $search . '%')
-                  ->orWhere('no_anggota', 'like', '%' . $search . '%');
+                  ->orWhere('id', 'like', '%' . $search . '%');
             });
         }
 
         $dataAnggota = $query->orderBy('nama', 'asc')->get();
-        $jenisSimpanan = jns_simpan::where('tampil', 'Y')
-            ->whereIn('id', [41, 32, 52, 40, 51, 31])
-            ->orderBy('urut', 'asc')
-            ->get();
 
-        $kasData = [];
+        // Hitung data menggunakan method yang sama dengan web view
+        $anggotaData = [];
         foreach ($dataAnggota as $anggota) {
-            $kasData[$anggota->no_ktp] = $this->getKasData($anggota->no_ktp, $tahun, $bulan);
+            $anggotaData[$anggota->no_ktp] = [
+                'anggota' => $anggota,
+                'identitas' => $this->getIdentitasAnggota($anggota),
+                'saldo_simpanan' => $this->hitungSaldoSimpanan($anggota->no_ktp),
+                'tagihan_kredit' => $this->hitungTagihanKredit($anggota->no_ktp),
+                'keterangan' => $this->hitungKeteranganPinjaman($anggota->no_ktp)
+            ];
+        }
+
+        // Statistik
+        $totalAnggota = $dataAnggota->count();
+        
+        // Hitung total saldo dari semua anggota
+        $totalSaldo = 0;
+        foreach ($anggotaData as $data) {
+            $saldo = $data['saldo_simpanan'];
+            $totalSaldo += ($saldo->simpanan_wajib ?? 0) + 
+                          ($saldo->simpanan_sukarela ?? 0) + 
+                          ($saldo->simpanan_khusus_2 ?? 0) + 
+                          ($saldo->simpanan_pokok ?? 0) + 
+                          ($saldo->simpanan_khusus_1 ?? 0) + 
+                          ($saldo->tab_perumahan ?? 0);
         }
 
         $pdf = PDF::loadView('laporan.pdf.kas_anggota', compact(
             'dataAnggota',
-            'jenisSimpanan',
-            'kasData',
-            'periode',
-            'tahun',
-            'bulan'
+            'anggotaData',
+            'search',
+            'totalAnggota',
+            'totalSaldo'
         ));
 
         return $pdf->download('laporan_kas_anggota_' . date('Ymd') . '.pdf');
@@ -321,142 +333,91 @@ class LaporanKasAnggotaController extends Controller
         $sheet->setCellValue('A1', 'LAPORAN DATA KAS PER ANGGOTA');
         $sheet->setCellValue('A2', 'Periode: ' . Carbon::now()->format('F Y'));
         $sheet->setCellValue('A3', 'Tanggal: ' . Carbon::now()->format('d/m/Y H:i:s'));
-
-        // Get jenis simpanan
-        $jenisSimpanan = jns_simpan::where('tampil', 'Y')
-            ->whereIn('id', [41, 32, 52, 40, 51, 31])
-            ->orderBy('urut', 'asc')
-            ->get();
+        if ($search) {
+            $sheet->setCellValue('A4', 'Hasil pencarian untuk: "' . $search . '"');
+        }
 
         // Merge cells for title
-        $lastCol = chr(65 + 4 + (count($jenisSimpanan) * 3) + 6); // A + 4 basic + jenis simpanan * 3 + 6 additional
+        $lastCol = 'V';
         $sheet->mergeCells('A1:' . $lastCol . '1');
         $sheet->mergeCells('A2:' . $lastCol . '2');
         $sheet->mergeCells('A3:' . $lastCol . '3');
+        if ($search) {
+            $sheet->mergeCells('A4:' . $lastCol . '4');
+        }
 
         // Style title
-        $sheet->getStyle('A1:A3')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A1:A3')->getAlignment()->setHorizontal('center');
+        $titleRow = $search ? 4 : 3;
+        $sheet->getStyle('A1:A' . $titleRow)->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A1:A' . $titleRow)->getAlignment()->setHorizontal('center');
 
         // Header table
-        $row = 5;
-        $col = 'A';
+        $row = $titleRow + 2;
+        $headers = ['No', 'ID Anggota', 'Nama', 'No KTP', 'Jenis Kelamin', 'Alamat', 'Telp', 'Simpanan Wajib', 'Simpanan Sukarela', 'Simpanan Khusus II', 'Simpanan Pokok', 'Simpanan Khusus I', 'Tab. Perumahan', 'Jumlah Simpanan', 'Pinjaman Biasa', 'Sisa Pinjaman Biasa', 'Pinjaman Barang', 'Sisa Pinjaman Barang', 'Jumlah Pinjaman', 'Pinjaman Lunas', 'Status Pembayaran', 'Tanggal Tempo'];
         
-        // Basic headers
-        $headers = ['No', 'ID Anggota', 'Nama', 'No KTP'];
+        $col = 'A';
         foreach ($headers as $header) {
             $sheet->setCellValue($col . $row, $header);
             $col++;
         }
 
-        // Jenis simpanan headers
-        foreach ($jenisSimpanan as $jenis) {
-            $sheet->setCellValue($col . $row, $jenis->jns_simpan . ' Setor');
-            $col++;
-            $sheet->setCellValue($col . $row, $jenis->jns_simpan . ' Tarik');
-            $col++;
-            $sheet->setCellValue($col . $row, $jenis->jns_simpan . ' Saldo');
-            $col++;
-        }
-
-        // Additional headers
-        $additionalHeaders = ['Total Setor', 'Total Tarik', 'Total Saldo', 'Tagihan Kredit', 'Bayar Kredit', 'Sisa Kredit'];
-        foreach ($additionalHeaders as $header) {
-            $sheet->setCellValue($col . $row, $header);
-            $col++;
-        }
-
         // Style header
-        $sheet->getStyle('A5:' . $lastCol . '5')->getFont()->setBold(true);
-        $sheet->getStyle('A5:' . $lastCol . '5')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('CCCCCC');
+        $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('CCCCCC');
 
         // Data anggota
-        $row = 6;
+        $row = $titleRow + 3;
         $no = 1;
         foreach ($dataAnggota as $anggota) {
-            $col = 'A';
-            
-            // Basic data
-            $sheet->setCellValue($col . $row, $no);
-            $col++;
-            $sheet->setCellValue($col . $row, 'AG' . str_pad($anggota->id, 4, '0', STR_PAD_LEFT));
-            $col++;
-            $sheet->setCellValue($col . $row, $anggota->nama);
-            $col++;
-            $sheet->setCellValue($col . $row, $anggota->no_ktp);
-            $col++;
-
             // Get calculated data
             $data = $anggotaData[$anggota->no_ktp] ?? [];
+            $identitas = $data['identitas'] ?? [];
             $saldoSimpanan = $data['saldo_simpanan'] ?? (object)[];
             $tagihanKredit = $data['tagihan_kredit'] ?? (object)[];
+            $keterangan = $data['keterangan'] ?? (object)[];
 
             // Calculate totals
-            $totalSetor = ($saldoSimpanan->simpanan_wajib ?? 0) + 
-                         ($saldoSimpanan->simpanan_sukarela ?? 0) + 
-                         ($saldoSimpanan->simpanan_khusus_2 ?? 0) + 
-                         ($saldoSimpanan->simpanan_pokok ?? 0) + 
-                         ($saldoSimpanan->simpanan_khusus_1 ?? 0) + 
-                         ($saldoSimpanan->tab_perumahan ?? 0);
+            $totalSimpanan = ($saldoSimpanan->simpanan_wajib ?? 0) + 
+                           ($saldoSimpanan->simpanan_sukarela ?? 0) + 
+                           ($saldoSimpanan->simpanan_khusus_2 ?? 0) + 
+                           ($saldoSimpanan->simpanan_pokok ?? 0) + 
+                           ($saldoSimpanan->simpanan_khusus_1 ?? 0) + 
+                           ($saldoSimpanan->tab_perumahan ?? 0);
 
-            $totalTarik = 0; // Setoran tidak memiliki penarikan terpisah dalam data ini
-            $totalSaldo = $totalSetor - $totalTarik;
-            $tagihanKreditTotal = ($tagihanKredit->pinjaman_biasa ?? 0) + ($tagihanKredit->pinjaman_barang ?? 0);
-            $bayarKredit = 0; // Tidak ada data pembayaran dalam struktur ini
-            $sisaKredit = ($tagihanKredit->sisa_pinjaman_biasa ?? 0) + ($tagihanKredit->sisa_pinjaman_barang ?? 0);
-
-            // Jenis simpanan data - simplified
-            foreach ($jenisSimpanan as $jenis) {
-                $setor = 0;
-                $tarik = 0;
-                $saldo = 0;
-
-                // Map jenis simpanan ID to data
-                switch($jenis->id) {
-                    case 41: $setor = $saldoSimpanan->simpanan_wajib ?? 0; break;
-                    case 32: $setor = $saldoSimpanan->simpanan_sukarela ?? 0; break;
-                    case 52: $setor = $saldoSimpanan->simpanan_khusus_2 ?? 0; break;
-                    case 40: $setor = $saldoSimpanan->simpanan_pokok ?? 0; break;
-                    case 51: $setor = $saldoSimpanan->simpanan_khusus_1 ?? 0; break;
-                    case 156: $setor = $saldoSimpanan->tab_perumahan ?? 0; break;
-                }
-
-                $saldo = $setor - $tarik;
-
-                $sheet->setCellValue($col . $row, $setor);
-                $col++;
-                $sheet->setCellValue($col . $row, $tarik);
-                $col++;
-                $sheet->setCellValue($col . $row, $saldo);
-                $col++;
-            }
-
-            // Additional data
-            $tagihanKredit = $tagihanKreditTotal;
-
-            $sheet->setCellValue($col . $row, $totalSetor);
-            $col++;
-            $sheet->setCellValue($col . $row, $totalTarik);
-            $col++;
-            $sheet->setCellValue($col . $row, $totalSaldo);
-            $col++;
-            $sheet->setCellValue($col . $row, $tagihanKredit);
-            $col++;
-            $sheet->setCellValue($col . $row, $bayarKredit);
-            $col++;
-            $sheet->setCellValue($col . $row, $sisaKredit);
+            $sheet->setCellValue('A' . $row, $no);
+            $sheet->setCellValue('B' . $row, $identitas['id_anggota'] ?? '-');
+            $sheet->setCellValue('C' . $row, $identitas['nama'] ?? '-');
+            $sheet->setCellValue('D' . $row, $anggota->no_ktp);
+            $sheet->setCellValue('E' . $row, $identitas['jenis_kelamin'] ?? '-');
+            $sheet->setCellValue('F' . $row, $identitas['alamat'] ?? '-');
+            $sheet->setCellValue('G' . $row, $identitas['telp'] ?? '-');
+            $sheet->setCellValue('H' . $row, $saldoSimpanan->simpanan_wajib ?? 0);
+            $sheet->setCellValue('I' . $row, $saldoSimpanan->simpanan_sukarela ?? 0);
+            $sheet->setCellValue('J' . $row, $saldoSimpanan->simpanan_khusus_2 ?? 0);
+            $sheet->setCellValue('K' . $row, $saldoSimpanan->simpanan_pokok ?? 0);
+            $sheet->setCellValue('L' . $row, $saldoSimpanan->simpanan_khusus_1 ?? 0);
+            $sheet->setCellValue('M' . $row, $saldoSimpanan->tab_perumahan ?? 0);
+            $sheet->setCellValue('N' . $row, $totalSimpanan);
+            $sheet->setCellValue('O' . $row, $tagihanKredit->pinjaman_biasa ?? 0);
+            $sheet->setCellValue('P' . $row, $tagihanKredit->sisa_pinjaman_biasa ?? 0);
+            $sheet->setCellValue('Q' . $row, $tagihanKredit->pinjaman_barang ?? 0);
+            $sheet->setCellValue('R' . $row, $tagihanKredit->sisa_pinjaman_barang ?? 0);
+            $sheet->setCellValue('S' . $row, $keterangan->jumlah_pinjaman ?? 0);
+            $sheet->setCellValue('T' . $row, $keterangan->pinjaman_lunas ?? 0);
+            $sheet->setCellValue('U' . $row, $keterangan->status_pembayaran ?? 'Lancar');
+            $sheet->setCellValue('V' . $row, $keterangan->tanggal_tempo ?? '-');
 
             $row++;
             $no++;
         }
 
         // Auto size columns
-        foreach (range('A', $lastCol) as $col) {
+        foreach (range('A', 'V') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
         // Set number format for currency columns
-        $sheet->getStyle('E6:' . $lastCol . ($row - 1))->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('H' . ($titleRow + 3) . ':V' . ($row - 1))->getNumberFormat()->setFormatCode('#,##0');
 
         // Create file
         $writer = new Xlsx($spreadsheet);
@@ -509,19 +470,26 @@ class LaporanKasAnggotaController extends Controller
         $sheet->setCellValue('A1', 'LAPORAN TAGIHAN ANGGOTA');
         $sheet->setCellValue('A2', 'Periode: ' . Carbon::now()->format('F Y'));
         $sheet->setCellValue('A3', 'Tanggal: ' . Carbon::now()->format('d/m/Y H:i:s'));
+        if ($search) {
+            $sheet->setCellValue('A4', 'Hasil pencarian untuk: "' . $search . '"');
+        }
 
         // Merge cells for title
         $lastCol = 'J';
         $sheet->mergeCells('A1:' . $lastCol . '1');
         $sheet->mergeCells('A2:' . $lastCol . '2');
         $sheet->mergeCells('A3:' . $lastCol . '3');
+        if ($search) {
+            $sheet->mergeCells('A4:' . $lastCol . '4');
+        }
 
         // Style title
-        $sheet->getStyle('A1:A3')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A1:A3')->getAlignment()->setHorizontal('center');
+        $titleRow = $search ? 4 : 3;
+        $sheet->getStyle('A1:A' . $titleRow)->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A1:A' . $titleRow)->getAlignment()->setHorizontal('center');
 
         // Header table
-        $row = 5;
+        $row = $titleRow + 2;
         $headers = ['No', 'ID Anggota', 'Nama', 'No KTP', 'Tagihan Simpanan', 'Tagihan Kredit', 'Total Tagihan', 'Bayar', 'Sisa', 'Status'];
         $col = 'A';
         foreach ($headers as $header) {
@@ -530,15 +498,16 @@ class LaporanKasAnggotaController extends Controller
         }
 
         // Style header
-        $sheet->getStyle('A5:' . $lastCol . '5')->getFont()->setBold(true);
-        $sheet->getStyle('A5:' . $lastCol . '5')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('CCCCCC');
+        $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('CCCCCC');
 
         // Data anggota
-        $row = 6;
+        $row = $titleRow + 3;
         $no = 1;
         foreach ($dataAnggota as $anggota) {
             // Get calculated data
             $data = $anggotaData[$anggota->no_ktp] ?? [];
+            $identitas = $data['identitas'] ?? [];
             $saldoSimpanan = $data['saldo_simpanan'] ?? (object)[];
             $tagihanKredit = $data['tagihan_kredit'] ?? (object)[];
             
@@ -556,8 +525,8 @@ class LaporanKasAnggotaController extends Controller
             $sisa = $totalTagihan - $bayar;
             
             $sheet->setCellValue('A' . $row, $no);
-            $sheet->setCellValue('B' . $row, 'AG' . str_pad($anggota->id, 4, '0', STR_PAD_LEFT));
-            $sheet->setCellValue('C' . $row, $anggota->nama);
+            $sheet->setCellValue('B' . $row, $identitas['id_anggota'] ?? '-');
+            $sheet->setCellValue('C' . $row, $identitas['nama'] ?? '-');
             $sheet->setCellValue('D' . $row, $anggota->no_ktp);
             $sheet->setCellValue('E' . $row, $totalSimpanan);
             $sheet->setCellValue('F' . $row, $totalKredit);
@@ -576,7 +545,7 @@ class LaporanKasAnggotaController extends Controller
         }
 
         // Set number format for currency columns
-        $sheet->getStyle('E6:' . $lastCol . ($row - 1))->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('E' . ($titleRow + 3) . ':' . $lastCol . ($row - 1))->getNumberFormat()->setFormatCode('#,##0');
 
         // Create file
         $writer = new Xlsx($spreadsheet);
@@ -621,11 +590,6 @@ class LaporanKasAnggotaController extends Controller
             ];
         }
 
-        $jenisSimpanan = jns_simpan::where('tampil', 'Y')
-            ->whereIn('id', [41, 32, 52, 40, 51, 31])
-            ->orderBy('urut', 'asc')
-            ->get();
-
         // Create Excel file focused on savings
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -634,110 +598,65 @@ class LaporanKasAnggotaController extends Controller
         $sheet->setCellValue('A1', 'LAPORAN SIMPANAN ANGGOTA');
         $sheet->setCellValue('A2', 'Periode: ' . Carbon::now()->format('F Y'));
         $sheet->setCellValue('A3', 'Tanggal: ' . Carbon::now()->format('d/m/Y H:i:s'));
+        if ($search) {
+            $sheet->setCellValue('A4', 'Hasil pencarian untuk: "' . $search . '"');
+        }
 
         // Merge cells for title
-        $lastCol = chr(65 + 4 + (count($jenisSimpanan) * 3) + 3); // A + 4 basic + jenis simpanan * 3 + 3 additional
+        $lastCol = 'N';
         $sheet->mergeCells('A1:' . $lastCol . '1');
         $sheet->mergeCells('A2:' . $lastCol . '2');
         $sheet->mergeCells('A3:' . $lastCol . '3');
+        if ($search) {
+            $sheet->mergeCells('A4:' . $lastCol . '4');
+        }
 
         // Style title
-        $sheet->getStyle('A1:A3')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A1:A3')->getAlignment()->setHorizontal('center');
+        $titleRow = $search ? 4 : 3;
+        $sheet->getStyle('A1:A' . $titleRow)->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A1:A' . $titleRow)->getAlignment()->setHorizontal('center');
 
         // Header table
-        $row = 5;
+        $row = $titleRow + 2;
+        $headers = ['No', 'ID Anggota', 'Nama', 'No KTP', 'Simpanan Wajib', 'Simpanan Sukarela', 'Simpanan Khusus II', 'Simpanan Pokok', 'Simpanan Khusus I', 'Tab. Perumahan', 'Jumlah Simpanan'];
         $col = 'A';
-        
-        // Basic headers
-        $headers = ['No', 'ID Anggota', 'Nama', 'No KTP'];
         foreach ($headers as $header) {
             $sheet->setCellValue($col . $row, $header);
             $col++;
         }
 
-        // Jenis simpanan headers
-        foreach ($jenisSimpanan as $jenis) {
-            $sheet->setCellValue($col . $row, $jenis->jns_simpan . ' Setor');
-            $col++;
-            $sheet->setCellValue($col . $row, $jenis->jns_simpan . ' Tarik');
-            $col++;
-            $sheet->setCellValue($col . $row, $jenis->jns_simpan . ' Saldo');
-            $col++;
-        }
-
-        // Additional headers
-        $additionalHeaders = ['Total Setor', 'Total Tarik', 'Total Saldo'];
-        foreach ($additionalHeaders as $header) {
-            $sheet->setCellValue($col . $row, $header);
-            $col++;
-        }
-
         // Style header
-        $sheet->getStyle('A5:' . $lastCol . '5')->getFont()->setBold(true);
-        $sheet->getStyle('A5:' . $lastCol . '5')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('CCCCCC');
+        $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('CCCCCC');
 
         // Data anggota
-        $row = 6;
+        $row = $titleRow + 3;
         $no = 1;
         foreach ($dataAnggota as $anggota) {
-            $col = 'A';
-            
             // Get calculated data
             $data = $anggotaData[$anggota->no_ktp] ?? [];
+            $identitas = $data['identitas'] ?? [];
             $saldoSimpanan = $data['saldo_simpanan'] ?? (object)[];
             
-            // Basic data
-            $sheet->setCellValue($col . $row, $no);
-            $col++;
-            $sheet->setCellValue($col . $row, 'AG' . str_pad($anggota->id, 4, '0', STR_PAD_LEFT));
-            $col++;
-            $sheet->setCellValue($col . $row, $anggota->nama);
-            $col++;
-            $sheet->setCellValue($col . $row, $anggota->no_ktp);
-            $col++;
+            // Calculate totals
+            $totalSimpanan = ($saldoSimpanan->simpanan_wajib ?? 0) + 
+                           ($saldoSimpanan->simpanan_sukarela ?? 0) + 
+                           ($saldoSimpanan->simpanan_khusus_2 ?? 0) + 
+                           ($saldoSimpanan->simpanan_pokok ?? 0) + 
+                           ($saldoSimpanan->simpanan_khusus_1 ?? 0) + 
+                           ($saldoSimpanan->tab_perumahan ?? 0);
 
-            // Jenis simpanan data
-            foreach ($jenisSimpanan as $jenis) {
-                $setor = 0;
-                $tarik = 0;
-                $saldo = 0;
-
-                // Map jenis simpanan ID to data
-                switch($jenis->id) {
-                    case 41: $setor = $saldoSimpanan->simpanan_wajib ?? 0; break;
-                    case 32: $setor = $saldoSimpanan->simpanan_sukarela ?? 0; break;
-                    case 52: $setor = $saldoSimpanan->simpanan_khusus_2 ?? 0; break;
-                    case 40: $setor = $saldoSimpanan->simpanan_pokok ?? 0; break;
-                    case 51: $setor = $saldoSimpanan->simpanan_khusus_1 ?? 0; break;
-                    case 156: $setor = $saldoSimpanan->tab_perumahan ?? 0; break;
-                }
-
-                $saldo = $setor - $tarik;
-
-                $sheet->setCellValue($col . $row, $setor);
-                $col++;
-                $sheet->setCellValue($col . $row, $tarik);
-                $col++;
-                $sheet->setCellValue($col . $row, $saldo);
-                $col++;
-            }
-
-            // Additional data
-            $totalSetor = ($saldoSimpanan->simpanan_wajib ?? 0) + 
-                         ($saldoSimpanan->simpanan_sukarela ?? 0) + 
-                         ($saldoSimpanan->simpanan_khusus_2 ?? 0) + 
-                         ($saldoSimpanan->simpanan_pokok ?? 0) + 
-                         ($saldoSimpanan->simpanan_khusus_1 ?? 0) + 
-                         ($saldoSimpanan->tab_perumahan ?? 0);
-            $totalTarik = 0; // Setoran tidak memiliki penarikan terpisah dalam data ini
-            $totalSaldo = $totalSetor - $totalTarik;
-
-            $sheet->setCellValue($col . $row, $totalSetor);
-            $col++;
-            $sheet->setCellValue($col . $row, $totalTarik);
-            $col++;
-            $sheet->setCellValue($col . $row, $totalSaldo);
+            $sheet->setCellValue('A' . $row, $no);
+            $sheet->setCellValue('B' . $row, $identitas['id_anggota'] ?? '-');
+            $sheet->setCellValue('C' . $row, $identitas['nama'] ?? '-');
+            $sheet->setCellValue('D' . $row, $anggota->no_ktp);
+            $sheet->setCellValue('E' . $row, $saldoSimpanan->simpanan_wajib ?? 0);
+            $sheet->setCellValue('F' . $row, $saldoSimpanan->simpanan_sukarela ?? 0);
+            $sheet->setCellValue('G' . $row, $saldoSimpanan->simpanan_khusus_2 ?? 0);
+            $sheet->setCellValue('H' . $row, $saldoSimpanan->simpanan_pokok ?? 0);
+            $sheet->setCellValue('I' . $row, $saldoSimpanan->simpanan_khusus_1 ?? 0);
+            $sheet->setCellValue('J' . $row, $saldoSimpanan->tab_perumahan ?? 0);
+            $sheet->setCellValue('K' . $row, $totalSimpanan);
 
             $row++;
             $no++;
@@ -749,7 +668,7 @@ class LaporanKasAnggotaController extends Controller
         }
 
         // Set number format for currency columns
-        $sheet->getStyle('E6:' . $lastCol . ($row - 1))->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('E' . ($titleRow + 3) . ':' . $lastCol . ($row - 1))->getNumberFormat()->setFormatCode('#,##0');
 
         // Create file
         $writer = new Xlsx($spreadsheet);

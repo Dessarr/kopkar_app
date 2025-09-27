@@ -61,6 +61,10 @@
 
     <!-- Export Buttons -->
     <div class="mb-6 flex flex-wrap gap-2">
+        <a href="{{ route('laporan.kas.anggota.export.pdf') }}?search={{ $search }}"
+            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">
+            <i class="fas fa-file-pdf mr-2"></i>Download PDF
+        </a>
         <a href="{{ route('laporan.kas.anggota.export.detail') }}?search={{ $search }}"
             class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
             <i class="fas fa-file-excel mr-2"></i>Download Detail

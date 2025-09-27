@@ -135,25 +135,6 @@
             padding-top: 15px;
         }
         
-        .legend {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #e3f2fd;
-            border-radius: 5px;
-            font-size: 10px;
-        }
-        
-        .legend h4 {
-            margin: 0 0 10px 0;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        
-        .legend-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-        }
         
         @media print {
             body {
@@ -179,8 +160,11 @@
     <!-- Header -->
     <div class="header">
         <h1>LAPORAN DATA KAS PER ANGGOTA</h1>
-        <h2>Periode {{ \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->format('F Y') }}</h2>
+        <h2>Periode {{ \Carbon\Carbon::now()->format('F Y') }}</h2>
         <p>Tanggal Cetak: {{ \Carbon\Carbon::now()->format('d/m/Y H:i:s') }}</p>
+        @if($search)
+        <p>Hasil pencarian untuk: "{{ $search }}"</p>
+        @endif
     </div>
 
     <!-- Information Section -->
@@ -188,15 +172,7 @@
         <div class="info-grid">
             <div class="info-card">
                 <h3>Total Anggota</h3>
-                <div class="value">{{ number_format($dataAnggota->count()) }}</div>
-            </div>
-            <div class="info-card">
-                <h3>Total Setoran</h3>
-                <div class="value">Rp {{ number_format($totalSimpanan) }}</div>
-            </div>
-            <div class="info-card">
-                <h3>Total Penarikan</h3>
-                <div class="value">Rp {{ number_format($totalPenarikan) }}</div>
+                <div class="value">{{ number_format($totalAnggota) }}</div>
             </div>
             <div class="info-card">
                 <h3>Total Saldo</h3>
@@ -209,38 +185,23 @@
     <table>
         <thead>
             <tr>
-                <th rowspan="2">No</th>
-                <th rowspan="2">Photo</th>
-                <th rowspan="2">Identitas</th>
-                
-                @foreach($jenisSimpanan as $jenis)
-                <th colspan="3">{{ $jenis->jns_simpan }}</th>
-                @endforeach
-                
-                <th colspan="3">Total Simpanan</th>
-                <th colspan="3">Tagihan Kredit</th>
-                <th colspan="3">Tagihan Simpanan</th>
-            </tr>
-            <tr>
-                @foreach($jenisSimpanan as $jenis)
-                <th>Setor</th>
-                <th>Tarik</th>
-                <th>Saldo</th>
-                @endforeach
-                
-                <th>Setor</th>
-                <th>Tarik</th>
-                <th>Saldo</th>
-                <th>Pinjaman</th>
-                <th>Bayar</th>
-                <th>Sisa</th>
-                <th>Tagihan</th>
-                <th>Bayar</th>
-                <th>Sisa</th>
+                <th>No</th>
+                <th>Photo</th>
+                <th>Identitas</th>
+                <th>Saldo Simpanan</th>
+                <th>Tagihan Kredit</th>
+                <th>Keterangan</th>
             </tr>
         </thead>
         <tbody>
             @foreach($dataAnggota as $index => $anggota)
+            @php
+            $anggotaInfo = $anggotaData[$anggota->no_ktp] ?? null;
+            $identitas = $anggotaInfo['identitas'] ?? [];
+            $saldoSimpanan = $anggotaInfo['saldo_simpanan'] ?? [];
+            $tagihanKredit = $anggotaInfo['tagihan_kredit'] ?? [];
+            $keterangan = $anggotaInfo['keterangan'] ?? [];
+            @endphp
             <tr>
                 <td class="text-center">{{ $index + 1 }}</td>
                 <td class="text-center">
@@ -250,79 +211,46 @@
                 </td>
                 <td>
                     <div class="member-info">
-                        <div><strong>ID:</strong> AG{{ str_pad($anggota->id, 4, '0', STR_PAD_LEFT) }}</div>
-                        <div><strong>Nama:</strong> {{ $anggota->nama }}</div>
-                        <div><strong>L/P:</strong> {{ $anggota->jk == 'L' ? 'L' : 'P' }}</div>
-                        <div><strong>Jabatan:</strong> {{ $anggota->jabatan_id ? 'Pengurus' : 'Anggota' }}</div>
-                        <div><strong>Dept:</strong> {{ $anggota->departement ?? '-' }}</div>
-                        <div><strong>Alamat:</strong> {{ Str::limit($anggota->alamat ?? '-', 20) }}</div>
-                        <div><strong>Telp:</strong> {{ $anggota->notelp ?? '-' }}</div>
+                        <div><strong>ID Anggota:</strong> {{ $identitas['id_anggota'] ?? '-' }}</div>
+                        <div><strong>Nama:</strong> {{ $identitas['nama'] ?? '-' }}</div>
+                        <div><strong>Jenis Kelamin:</strong> {{ $identitas['jenis_kelamin'] ?? '-' }}</div>
+                        <div><strong>Alamat:</strong> {{ Str::limit($identitas['alamat'] ?? '-', 30) }}</div>
+                        <div><strong>Telp:</strong> {{ $identitas['telp'] ?? '-' }}</div>
                     </div>
                 </td>
-                
-                @php
-                    $kas = $kasData[$anggota->no_ktp] ?? [];
-                @endphp
-                
-                @foreach($jenisSimpanan as $jenis)
-                @php
-                    $setor = $kas['setoran'][$jenis->id] ?? 0;
-                    $tarik = $kas['penarikan'][$jenis->id] ?? 0;
-                    $saldo = $setor - $tarik;
-                @endphp
-                <td class="text-right">{{ number_format($setor) }}</td>
-                <td class="text-right">{{ number_format($tarik) }}</td>
-                <td class="text-right font-bold {{ $saldo >= 0 ? 'text-green' : 'text-red' }}">
-                    {{ number_format($saldo) }}
+                <td>
+                    <div class="member-info">
+                        <div><strong>Simpanan Wajib:</strong> {{ number_format($saldoSimpanan->simpanan_wajib ?? 0, 0, ',', '.') }}</div>
+                        <div><strong>Simpanan Sukarela:</strong> {{ number_format($saldoSimpanan->simpanan_sukarela ?? 0, 0, ',', '.') }}</div>
+                        <div><strong>Simpanan Khusus II:</strong> {{ number_format($saldoSimpanan->simpanan_khusus_2 ?? 0, 0, ',', '.') }}</div>
+                        <div><strong>Simpanan Pokok:</strong> {{ number_format($saldoSimpanan->simpanan_pokok ?? 0, 0, ',', '.') }}</div>
+                        <div><strong>Simpanan Khusus I:</strong> {{ number_format($saldoSimpanan->simpanan_khusus_1 ?? 0, 0, ',', '.') }}</div>
+                        <div><strong>Tab. Perumahan:</strong> {{ number_format($saldoSimpanan->tab_perumahan ?? 0, 0, ',', '.') }}</div>
+                        <div class="font-bold text-green"><strong>Jumlah:</strong> {{ number_format(($saldoSimpanan->simpanan_wajib ?? 0) + ($saldoSimpanan->simpanan_sukarela ?? 0) + ($saldoSimpanan->simpanan_khusus_2 ?? 0) + ($saldoSimpanan->simpanan_pokok ?? 0) + ($saldoSimpanan->simpanan_khusus_1 ?? 0) + ($saldoSimpanan->tab_perumahan ?? 0), 0, ',', '.') }}</div>
+                    </div>
                 </td>
-                @endforeach
-                
-                <!-- Total Simpanan -->
-                <td class="text-right font-bold">{{ number_format($kas['total_setor'] ?? 0) }}</td>
-                <td class="text-right font-bold">{{ number_format($kas['total_tarik'] ?? 0) }}</td>
-                <td class="text-right font-bold {{ ($kas['total_saldo'] ?? 0) >= 0 ? 'text-green' : 'text-red' }}">
-                    {{ number_format($kas['total_saldo'] ?? 0) }}
+                <td>
+                    <div class="member-info">
+                        <div><strong>Pinjaman Biasa:</strong> {{ number_format($tagihanKredit->pinjaman_biasa ?? 0, 0, ',', '.') }}</div>
+                        <div><strong>Sisa Pinjaman:</strong> {{ number_format($tagihanKredit->sisa_pinjaman_biasa ?? 0, 0, ',', '.') }}</div>
+                        <div><strong>Pinjaman Barang:</strong> {{ number_format($tagihanKredit->pinjaman_barang ?? 0, 0, ',', '.') }}</div>
+                        <div><strong>Sisa Pinjaman:</strong> {{ number_format($tagihanKredit->sisa_pinjaman_barang ?? 0, 0, ',', '.') }}</div>
+                        <div><strong>Tagihan Takterbayar:</strong> {{ number_format(0, 0, ',', '.') }}</div>
+                    </div>
                 </td>
-                
-                <!-- Tagihan Kredit -->
-                <td class="text-right">{{ number_format($kas['tagihan_kredit'] ?? 0) }}</td>
-                <td class="text-right">{{ number_format($kas['bayar_kredit'] ?? 0) }}</td>
-                <td class="text-right font-bold {{ ($kas['sisa_kredit'] ?? 0) >= 0 ? 'text-green' : 'text-red' }}">
-                    {{ number_format($kas['sisa_kredit'] ?? 0) }}
-                </td>
-                
-                <!-- Tagihan Simpanan -->
-                <td class="text-right">{{ number_format($kas['tagihan_simpanan'] ?? 0) }}</td>
-                <td class="text-right">{{ number_format($kas['bayar'] ?? 0) }}</td>
-                <td class="text-right font-bold {{ ($kas['sisa'] ?? 0) >= 0 ? 'text-green' : 'text-red' }}">
-                    {{ number_format($kas['sisa'] ?? 0) }}
+                <td>
+                    <div class="member-info">
+                        <div><strong>Jumlah Pinjaman:</strong> {{ $keterangan->jumlah_pinjaman ?? 0 }}</div>
+                        <div><strong>Pinjaman Lunas:</strong> {{ $keterangan->pinjaman_lunas ?? 0 }}</div>
+                        <div><strong>Pembayaran:</strong> {{ $keterangan->status_pembayaran ?? 'Lancar' }}</div>
+                        <div><strong>Tanggal Tempo:</strong> {{ $keterangan->tanggal_tempo ?? '-' }}</div>
+                    </div>
                 </td>
             </tr>
             @endforeach
         </tbody>
     </table>
 
-    <!-- Legend -->
-    <div class="legend">
-        <h4>Keterangan:</h4>
-        <div class="legend-grid">
-            <div>
-                <p><strong>Setor:</strong> Total setoran anggota per jenis simpanan</p>
-                <p><strong>Tarik:</strong> Total penarikan anggota per jenis simpanan</p>
-                <p><strong>Saldo:</strong> Selisih antara setoran dan penarikan</p>
-            </div>
-            <div>
-                <p><strong>Tagihan Kredit:</strong> Total tagihan pinjaman yang harus dibayar</p>
-                <p><strong>Bayar Kredit:</strong> Total pembayaran pinjaman yang sudah dilakukan</p>
-                <p><strong>Sisa Kredit:</strong> Selisih antara tagihan dan pembayaran pinjaman</p>
-            </div>
-            <div>
-                <p><strong>Tagihan Simpanan:</strong> Total tagihan simpanan bulanan</p>
-                <p><strong>Bayar Simpanan:</strong> Total pembayaran simpanan yang sudah dilakukan</p>
-                <p><strong>Sisa Simpanan:</strong> Selisih antara tagihan dan pembayaran simpanan</p>
-            </div>
-        </div>
-    </div>
 
     <!-- Footer -->
     <div class="footer">
