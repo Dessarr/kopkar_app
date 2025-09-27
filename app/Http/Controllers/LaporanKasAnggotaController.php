@@ -353,7 +353,7 @@ class LaporanKasAnggotaController extends Controller
 
         // Header table
         $row = $titleRow + 2;
-        $headers = ['No', 'ID Anggota', 'Nama', 'No KTP', 'Jenis Kelamin', 'Alamat', 'Telp', 'Simpanan Wajib', 'Simpanan Sukarela', 'Simpanan Khusus II', 'Simpanan Pokok', 'Simpanan Khusus I', 'Tab. Perumahan', 'Jumlah Simpanan', 'Pinjaman Biasa', 'Sisa Pinjaman Biasa', 'Pinjaman Barang', 'Sisa Pinjaman Barang', 'Jumlah Pinjaman', 'Pinjaman Lunas', 'Status Pembayaran', 'Tanggal Tempo'];
+        $headers = ['No', 'ID Anggota', 'Nama', 'No KTP', 'Jenis Kelamin', 'Alamat', 'Telp', 'Simpanan Wajib', 'Simpanan Sukarela', 'Simpanan Khusus II', 'Simpanan Pokok', 'Simpanan Khusus I', 'Tab. Perumahan', 'Total Simpanan', 'Pinjaman Biasa', 'Sisa Pinjaman Biasa', 'Pinjaman Barang', 'Sisa Pinjaman Barang', 'Jumlah Pinjaman', 'Pinjaman Lunas', 'Status Pembayaran', 'Tanggal Tempo'];
         
         $col = 'A';
         foreach ($headers as $header) {
