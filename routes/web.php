@@ -556,7 +556,7 @@ Route::prefix('toserda')->group(function () {
         Route::get('/kas-anggota/export/pdf', [LaporanKasAnggotaController::class, 'exportPdf'])->name('laporan.kas.anggota.export.pdf');
         Route::get('/kas-anggota/export/excel', [LaporanKasAnggotaController::class, 'exportExcel'])->name('laporan.kas.anggota.export.excel');
         Route::get('/kas-anggota/export/detail', [LaporanKasAnggotaController::class, 'exportExcelDetail'])->name('laporan.kas.anggota.export.detail');
-        Route::get('/kas-anggota/export/tagihan', action: [LaporanKasAnggotaController::class, 'exportExcelTagihan'])->name('laporan.kas.anggota.export.tagihan');
+        Route::get('/kas-anggota/export/tagihan', [LaporanKasAnggotaController::class, 'exportExcelTagihan'])->name('laporan.kas.anggota.export.tagihan');
         Route::get('/kas-anggota/export/simpanan', [LaporanKasAnggotaController::class, 'exportExcelSimpanan'])->name('laporan.kas.anggota.export.simpanan');
         
         Route::get('/jatuh-tempo', [LaporanJatuhTempoController::class, 'index'])->name('laporan.jatuh.tempo');

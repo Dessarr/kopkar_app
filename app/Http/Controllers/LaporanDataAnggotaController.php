@@ -61,7 +61,7 @@ class LaporanDataAnggotaController extends Controller
 
         $dataAnggota = $query->orderBy('nama', 'asc')->get();
 
-        $pdf = PDF::loadView('laporan.pdf.data_anggota', compact('dataAnggota', 'search'));
+        $pdf = Pdf::loadView('laporan.pdf.data_anggota', compact('dataAnggota', 'search'));
         $pdf->setPaper('A4', 'landscape');
 
         return $pdf->download('laporan_data_anggota_' . date('Ymd') . '.pdf');
@@ -69,7 +69,16 @@ class LaporanDataAnggotaController extends Controller
 
     public function exportExcel(Request $request)
     {
-        $dataAnggota = data_anggota::orderBy('nama', 'asc')->get();
+        $search = $request->input('search');
+        $query = data_anggota::query();
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', '%' . $search . '%')
+                  ->orWhere('no_ktp', 'like', '%' . $search . '%')
+                  ->orWhere('id', 'like', '%' . $search . '%');
+            });
+        }
+        $dataAnggota = $query->orderBy('nama', 'asc')->get();
 
         // Create Excel file
         $spreadsheet = new Spreadsheet();
@@ -78,8 +87,8 @@ class LaporanDataAnggotaController extends Controller
         // Set title
         $sheet->setCellValue('A1', 'LAPORAN DATA ANGGOTA KOPERASI');
         $sheet->setCellValue('A2', 'Tanggal: ' . Carbon::now()->format('d/m/Y H:i:s'));
-        $sheet->mergeCells('A1:J1');
-        $sheet->mergeCells('A2:J2');
+        $sheet->mergeCells('A1:I1');
+        $sheet->mergeCells('A2:I2');
 
         // Style title
         $sheet->getStyle('A1:A2')->getFont()->setBold(true)->setSize(14);
@@ -95,8 +104,8 @@ class LaporanDataAnggotaController extends Controller
         }
 
         // Style header
-        $sheet->getStyle('A4:J4')->getFont()->setBold(true);
-        $sheet->getStyle('A4:J4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('CCCCCC');
+        $sheet->getStyle('A4:I4')->getFont()->setBold(true);
+        $sheet->getStyle('A4:I4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('CCCCCC');
 
         // Data anggota
         $row = 5;
@@ -116,7 +125,7 @@ class LaporanDataAnggotaController extends Controller
         }
 
         // Auto size columns
-        foreach (range('A', 'J') as $col) {
+        foreach (range('A', 'I') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 

@@ -85,7 +85,7 @@ class DtaAnggotaController extends Controller
     public function show($id)
     {
         $anggota = data_anggota::findOrFail($id);
-        return view('master-data.show_data_anggota', compact('anggota'));
+        return view('master-data.data_anggota.show', compact('anggota'));
     }
 
     public function create()
@@ -158,7 +158,7 @@ class DtaAnggotaController extends Controller
         $validated['identitas'] = $validated['nama'];
         $validated['tgl_daftar'] = date('Y-m-d');
         $validated['jabatan_id'] = 2;
-        $validated['aktif'] = 1;
+        $validated['aktif'] = 'Y';
         $validated['pass_word'] = bcrypt($validated['no_ktp']);
         $validated['id_tagihan'] = null;
         $validated['jns_trans'] = null;
