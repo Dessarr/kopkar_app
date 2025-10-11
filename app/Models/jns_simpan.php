@@ -3,11 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-
 class jns_simpan extends Model
 {
-    use SoftDeletes;
 
     protected $table = 'jns_simpan';
 
