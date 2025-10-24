@@ -32,19 +32,22 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Identitas</label>
-                        <input type="text" name="identitas" value="{{ old('identitas') }}" required
+                        <input type="text" name="identitas" value="{{ old('identitas') }}"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('identitas') border-red-500 @enderror"
-                            placeholder="Masukkan identitas">
+                            placeholder="Masukkan identitas (opsional)">
                         @error('identitas')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">ID Anggota (Otomatis)</label>
-                        <div class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700">
-                            <span class="text-sm font-medium">{{ $id_anggota_auto ?? '-' }}</span>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">ID Anggota akan dibuat otomatis saat simpan</p>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ID Anggota</label>
+                        <input type="text" name="no_ktp" id="no_ktp" value="{{ old('no_ktp') }}" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('no_ktp') border-red-500 @enderror"
+                               placeholder="Kosongkan untuk auto-generate">
+                        <p class="text-xs text-gray-500 mt-1">Kosongkan untuk auto-generate ID, atau isi manual</p>
+                        @error('no_ktp')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <div>
@@ -62,9 +65,9 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Tempat Lahir</label>
-                        <input type="text" name="tmp_lahir" value="{{ old('tmp_lahir') }}" required
+                        <input type="text" name="tmp_lahir" value="{{ old('tmp_lahir') }}"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('tmp_lahir') border-red-500 @enderror"
-                            placeholder="Masukkan tempat lahir">
+                            placeholder="Masukkan tempat lahir (opsional)">
                         @error('tmp_lahir')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
@@ -72,7 +75,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Lahir</label>
-                        <input type="date" name="tgl_lahir" value="{{ old('tgl_lahir') }}" required
+                        <input type="date" name="tgl_lahir" value="{{ old('tgl_lahir') }}"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('tgl_lahir') border-red-500 @enderror">
                         @error('tgl_lahir')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -81,9 +84,9 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                        <select name="status" required
+                        <select name="status"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('status') border-red-500 @enderror">
-                            <option value="">Pilih Status</option>
+                            <option value="">Pilih Status (opsional)</option>
                             <option value="Lajang" {{ old('status') == 'Lajang' ? 'selected' : '' }}>Lajang</option>
                             <option value="Menikah" {{ old('status') == 'Menikah' ? 'selected' : '' }}>Menikah</option>
                             <option value="Cerai" {{ old('status') == 'Cerai' ? 'selected' : '' }}>Cerai</option>
@@ -95,9 +98,9 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Agama</label>
-                        <select name="agama" required
+                        <select name="agama"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('agama') border-red-500 @enderror">
-                            <option value="">Pilih Agama</option>
+                            <option value="">Pilih Agama (opsional)</option>
                             <option value="Islam" {{ old('agama') == 'Islam' ? 'selected' : '' }}>Islam</option>
                             <option value="Kristen" {{ old('agama') == 'Kristen' ? 'selected' : '' }}>Kristen</option>
                             <option value="Katolik" {{ old('agama') == 'Katolik' ? 'selected' : '' }}>Katolik</option>
@@ -128,7 +131,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Departemen</label>
-                        <input type="text" name="departement" value="{{ old('departement') }}" required
+                        <input type="text" name="departement" value="{{ old('departement') }}" nullable | string | max:255  
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('departement') border-red-500 @enderror"
                             placeholder="Masukkan departemen">
                         @error('departement')
@@ -138,7 +141,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Pekerjaan</label>
-                        <input type="text" name="pekerjaan" value="{{ old('pekerjaan') }}" required
+                        <input type="text" name="pekerjaan" value="{{ old('pekerjaan') }}" nullable | string | max:255      
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('pekerjaan') border-red-500 @enderror"
                             placeholder="Masukkan pekerjaan">
                         @error('pekerjaan')
@@ -154,7 +157,7 @@
                 <div class="grid grid-cols-3 gap-4">
                     <div class="col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Alamat</label>
-                        <textarea name="alamat" required
+                        <textarea name="alamat" nullable | string
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('alamat') border-red-500 @enderror"
                             rows="3" placeholder="Masukkan alamat lengkap">{{ old('alamat') }}</textarea>
                         @error('alamat')
@@ -164,7 +167,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Kota</label>
-                        <input type="text" name="kota" value="{{ old('kota') }}" required
+                        <input type="text" name="kota" value="{{ old('kota') }}" nullable | string | max:255
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('kota') border-red-500 @enderror"
                             placeholder="Masukkan kota">
                         @error('kota')
@@ -174,7 +177,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">No. Telepon</label>
-                        <input type="text" name="notelp" value="{{ old('notelp') }}" required
+                        <input type="text" name="notelp" value="{{ old('notelp') }}" nullable | string | max:20
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('notelp') border-red-500 @enderror"
                             placeholder="Masukkan nomor telepon">
                         @error('notelp')
@@ -190,7 +193,7 @@
                 <div class="grid grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Nama Bank</label>
-                        <input type="text" name="bank" value="{{ old('bank') }}" required
+                        <input type="text" name="bank" value="{{ old('bank') }}" nullable | string | max:255
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('bank') border-red-500 @enderror"
                             placeholder="Masukkan nama bank">
                         @error('bank')
@@ -201,7 +204,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Nama Pemilik Rekening</label>
                         <input type="text" name="nama_pemilik_rekening" value="{{ old('nama_pemilik_rekening') }}"
-                            required
+                            nullable | string | max:255
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('nama_pemilik_rekening') border-red-500 @enderror"
                             placeholder="Masukkan nama pemilik rekening">
                         @error('nama_pemilik_rekening')
@@ -211,7 +214,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">No. Rekening</label>
-                        <input type="text" name="no_rekening" value="{{ old('no_rekening') }}" required
+                        <input type="text" name="no_rekening" value="{{ old('no_rekening') }}" nullable | string | max:255
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 @error('no_rekening') border-red-500 @enderror"
                             placeholder="Masukkan nomor rekening">
                         @error('no_rekening')

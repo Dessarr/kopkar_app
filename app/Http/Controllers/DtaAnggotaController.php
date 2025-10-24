@@ -112,22 +112,24 @@ class DtaAnggotaController extends Controller
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
             'jk' => 'required|in:L,P',
-            'tmp_lahir' => 'required|string|max:255',
-            'tgl_lahir' => 'required|date',
-            'status' => 'required|string|max:255',
-            'agama' => 'required|string|max:255',
-            'departement' => 'required|string|max:255',
-            'pekerjaan' => 'required|string|max:255',
-            'alamat' => 'required|string',
-            'kota' => 'required|string|max:255',
-            'notelp' => 'required|string|max:20',
+            'identitas' => 'nullable|string|max:255',
+            'tmp_lahir' => 'nullable|string|max:255',
+            'tgl_lahir' => 'nullable|date',
+            'status' => 'nullable|string|max:255',
+            'agama' => 'nullable|string|max:255',
+            'departement' => 'nullable|string|max:255',
+            'pekerjaan' => 'nullable|string|max:255',
+            'alamat' => 'nullable|string',
+            'kota' => 'nullable|string|max:255',
+            'notelp' => 'nullable|string|max:20',
             'file_pic' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'bank' => 'required|string|max:255',
             'nama_pemilik_rekening' => 'required|string|max:255',
             'no_rekening' => 'required|string|max:255',
             'simpanan_wajib' => 'required|string',
             'simpanan_sukarela' => 'required|string',
-            'simpanan_khusus_2' => 'required|string'
+            'simpanan_khusus_2' => 'required|string',
+            'no_ktp' => 'nullable|string|max:255|unique:tbl_anggota,no_ktp'
         ]);
 
         // Clean and convert simpanan values
@@ -135,27 +137,30 @@ class DtaAnggotaController extends Controller
         $validated['simpanan_sukarela'] = (int) str_replace([',', '.'], '', $request->simpanan_sukarela);
         $validated['simpanan_khusus_2'] = (int) str_replace([',', '.'], '', $request->simpanan_khusus_2);
 
-        // Generate ID Koperasi otomatis
-        $currentYear = date('Y');
-        $currentMonth = date('m');
-        $yearMonth = $currentYear . $currentMonth;
-        
-        // Cari nomor urut terakhir untuk bulan ini
-        $lastAnggota = data_anggota::where('no_ktp', 'like', $yearMonth . '%')
-            ->orderBy('no_ktp', 'desc')
-            ->first();
-        
-        if ($lastAnggota) {
-            $lastNumber = (int) substr($lastAnggota->no_ktp, -4);
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
+        // Handle ID Anggota - manual input atau auto-generate
+        if (empty($validated['no_ktp'])) {
+            // Generate ID Koperasi otomatis jika tidak diisi manual
+            $currentYear = date('Y');
+            $currentMonth = date('m');
+            $yearMonth = $currentYear . $currentMonth;
+            
+            // Cari nomor urut terakhir untuk bulan ini
+            $lastAnggota = data_anggota::where('no_ktp', 'like', $yearMonth . '%')
+                ->orderBy('no_ktp', 'desc')
+                ->first();
+            
+            if ($lastAnggota) {
+                $lastNumber = (int) substr($lastAnggota->no_ktp, -4);
+                $newNumber = $lastNumber + 1;
+            } else {
+                $newNumber = 1;
+            }
+            
+            $validated['no_ktp'] = $yearMonth . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
         }
-        
-        $validated['no_ktp'] = $yearMonth . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
 
         // Set nilai yang tidak diinput
-        $validated['identitas'] = $validated['nama'];
+        $validated['identitas'] = $validated['identitas'] ?? $validated['nama'];
         $validated['tgl_daftar'] = date('Y-m-d');
         $validated['jabatan_id'] = 2;
         $validated['aktif'] = 'Y';
@@ -196,35 +201,42 @@ class DtaAnggotaController extends Controller
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
             'jk' => 'required|in:L,P',
-            'tmp_lahir' => 'required|string|max:255',
-            'tgl_lahir' => 'required|date',
-            'status' => 'required|string|max:255',
-            'agama' => 'required|string|max:255',
-            'departement' => 'required|string|max:255',
-            'pekerjaan' => 'required|string|max:255',
-            'alamat' => 'required|string',
-            'kota' => 'required|string|max:255',
-            'notelp' => 'required|string|max:20',
+            'identitas' => 'nullable|string|max:255',
+            'tmp_lahir' => 'nullable|string|max:255',
+            'tgl_lahir' => 'nullable|date',
+            'status' => 'nullable|string|max:255',
+            'agama' => 'nullable|string|max:255',
+            'departement' => 'nullable|string|max:255',
+            'pekerjaan' => 'nullable|string|max:255',
+            'alamat' => 'nullable|string',
+            'kota' => 'nullable|string|max:255',
+            'notelp' => 'nullable|string|max:20',
             'file_pic' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'bank' => 'required|string|max:255',
-            'nama_pemilik_rekening' => 'required|string|max:255',
-            'no_rekening' => 'required|string|max:255',
+            'bank' => 'nullable|string|max:255',
+            'nama_pemilik_rekening' => 'nullable|string|max:255',
+            'no_rekening' => 'nullable|string|max:255',
             'simpanan_wajib' => 'required|string',
             'simpanan_sukarela' => 'required|string',
             'simpanan_khusus_2' => 'required|string',
-            'aktif' => 'required|in:1,0',
+            'aktif' => 'required|in:Y,N',
+            'pass_word' => 'nullable|string|min:6',
         ]);
-
-        // Konversi nilai aktif menjadi 'Y' atau 'N'
-        $validated['aktif'] = $request->aktif == '1' ? 'Y' : 'N';
 
         // Clean and convert simpanan values - remove thousand separators and convert to integer
         $validated['simpanan_wajib'] = (int) str_replace([',', '.'], '', $request->simpanan_wajib);
         $validated['simpanan_sukarela'] = (int) str_replace([',', '.'], '', $request->simpanan_sukarela);
         $validated['simpanan_khusus_2'] = (int) str_replace([',', '.'], '', $request->simpanan_khusus_2);
 
+        // Handle password - hash if provided, otherwise keep existing
+        if (!empty($validated['pass_word'])) {
+            $validated['pass_word'] = bcrypt($validated['pass_word']);
+        } else {
+            // Remove from validated array if empty to keep existing password
+            unset($validated['pass_word']);
+        }
+
         // Set nilai yang tidak diinput
-        $validated['identitas'] = $validated['nama'];
+        $validated['identitas'] = $validated['identitas'] ?? $validated['nama'];
 
         if($request->hasFile('file_pic')) {
             // Hapus file lama jika ada
