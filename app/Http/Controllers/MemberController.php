@@ -2136,6 +2136,86 @@ class MemberController extends Controller
         }
     }
 
+    public function editProfile()
+    {
+        $member = auth()->guard('member')->user();
+        $anggota = $this->getAuthenticatedMember();
+        
+        return view('member.edit_profile', compact('anggota', 'member'));
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $member = auth()->guard('member')->user();
+        
+        // Validasi data yang boleh diedit
+        $request->validate([
+            'tmp_lahir' => 'nullable|string|max:100',
+            'tgl_lahir' => 'nullable|date',
+            'status' => 'nullable|string|max:50',
+            'agama' => 'nullable|string|max:50',
+            'alamat' => 'nullable|string|max:255',
+            'kota' => 'nullable|string|max:100',
+            'notelp' => 'nullable|string|max:20',
+            'departement' => 'nullable|string|max:100',
+            'jabatan_id' => 'nullable|string|max:50',
+            'bank' => 'nullable|string|max:50',
+            'no_rekening' => 'nullable|string|max:50',
+            'nama_pemilik_rekening' => 'nullable|string|max:100',
+        ], [
+            'tmp_lahir.max' => 'Tempat lahir maksimal 100 karakter.',
+            'tgl_lahir.date' => 'Tanggal lahir harus format tanggal yang valid.',
+            'status.max' => 'Status maksimal 50 karakter.',
+            'agama.max' => 'Agama maksimal 50 karakter.',
+            'alamat.max' => 'Alamat maksimal 255 karakter.',
+            'kota.max' => 'Kota maksimal 100 karakter.',
+            'notelp.max' => 'No. Telepon maksimal 20 karakter.',
+            'departement.max' => 'Departemen maksimal 100 karakter.',
+            'jabatan_id.max' => 'Jabatan maksimal 50 karakter.',
+            'bank.max' => 'Bank maksimal 50 karakter.',
+            'no_rekening.max' => 'No. Rekening maksimal 50 karakter.',
+            'nama_pemilik_rekening.max' => 'Nama Pemilik Rekening maksimal 100 karakter.',
+        ]);
+
+        try {
+            // Update hanya field yang diperbolehkan (tidak termasuk nama, no_ktp, jk, dan data simpanan)
+            $updateData = [
+                'tmp_lahir' => $request->tmp_lahir,
+                'tgl_lahir' => $request->tgl_lahir,
+                'status' => $request->status,
+                'agama' => $request->agama,
+                'alamat' => $request->alamat,
+                'kota' => $request->kota,
+                'notelp' => $request->notelp,
+                'departement' => $request->departement,
+                'jabatan_id' => $request->jabatan_id,
+                'bank' => $request->bank,
+                'no_rekening' => $request->no_rekening,
+                'nama_pemilik_rekening' => $request->nama_pemilik_rekening,
+            ];
+
+            // Hapus nilai null dari array
+            $updateData = array_filter($updateData, function($value) {
+                return $value !== null && $value !== '';
+            });
+
+            // Update data anggota
+            Member::where('id', $member->id)->update($updateData);
+
+            // Log activity
+            Log::info('Anggota memperbarui profil', [
+                'member_id' => $member->id,
+                'no_ktp' => $member->no_ktp,
+            ]);
+
+            return redirect()->route('member.dashboard')->with('success', 'Data profil berhasil diperbarui.');
+            
+        } catch (\Exception $e) {
+            Log::error('Error updating profile: ' . $e->getMessage());
+            return redirect()->route('member.edit.profile')->with('error', 'Terjadi kesalahan saat memperbarui profil: ' . $e->getMessage())->withInput();
+        }
+    }
+
 
     /**
      * Get comprehensive member loan data with proper accounting logic

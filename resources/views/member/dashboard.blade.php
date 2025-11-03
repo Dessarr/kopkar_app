@@ -163,6 +163,17 @@
                             class="text-gray-800">{{ $anggota->jk == 'L' ? 'Laki-Laki' : ($anggota->jk == 'P' ? 'Perempuan' : 'Laki-Laki') }}</span>
                     </div>
                 </div>
+                
+                <!-- Edit Button -->
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <a href="{{ route('member.edit.profile') }}" 
+                       class="w-full bg-green-500 hover:bg-green-600 text-white text-center py-2 px-4 rounded text-sm transition-colors duration-200 flex items-center justify-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                        Edit Data
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -505,22 +516,22 @@
                 <div class="flex justify-between">
                     <span class="text-gray-600">Tanggal:</span>
                     <span
-                        class="font-semibold">{{ \Carbon\Carbon::parse($pengajuanPenarikan->tgl_input)->format('d/m/Y') }}</span>
+                        class="font-semibold">{{ $pengajuanPenarikan->tgl_input ? \Carbon\Carbon::parse($pengajuanPenarikan->tgl_input)->format('d/m/Y') : '-' }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-600">Jumlah:</span>
                     <span class="font-semibold">Rp
-                        {{ number_format($pengajuanPenarikan->nominal, 0, ',', '.') }}</span>
+                        {{ number_format($pengajuanPenarikan->nominal ?? 0, 0, ',', '.') }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-600">Jenis:</span>
-                    <span class="font-semibold">{{ $pengajuanPenarikan->jenis }}</span>
+                    <span class="font-semibold">{{ $pengajuanPenarikan->jenis ?? '-' }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-600">Status:</span>
                     <span
-                        class="px-2 py-1 text-xs rounded border {{ $pengajuanPenarikan->status == 0 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ($pengajuanPenarikan->status == 1 ? 'bg-green-100 text-green-800 border-green-300' : ($pengajuanPenarikan->status == 2 ? 'bg-red-100 text-red-800 border-red-300' : ($pengajuanPenarikan->status == 3 ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-gray-100 text-gray-800 border-gray-300'))) }}">
-                        {{ $pengajuanPenarikan->status == 0 ? 'Menunggu Konfirmasi' : ($pengajuanPinjaman->status == 1 ? 'Disetujui' : ($pengajuanPinjaman->status == 2 ? 'Ditolak' : ($pengajuanPinjaman->status == 3 ? 'Sudah Terlaksana' : 'Batal'))) }}
+                        class="px-2 py-1 text-xs rounded border {{ ($pengajuanPenarikan->status ?? null) == 0 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : (($pengajuanPenarikan->status ?? null) == 1 ? 'bg-green-100 text-green-800 border-green-300' : (($pengajuanPenarikan->status ?? null) == 2 ? 'bg-red-100 text-red-800 border-red-300' : (($pengajuanPenarikan->status ?? null) == 3 ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-gray-100 text-gray-800 border-gray-300'))) }}">
+                        {{ ($pengajuanPenarikan->status ?? null) == 0 ? 'Menunggu Konfirmasi' : (($pengajuanPenarikan->status ?? null) == 1 ? 'Disetujui' : (($pengajuanPenarikan->status ?? null) == 2 ? 'Ditolak' : (($pengajuanPenarikan->status ?? null) == 3 ? 'Sudah Terlaksana' : 'Batal'))) }}
                     </span>
                 </div>
             </div>

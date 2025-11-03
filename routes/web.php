@@ -142,6 +142,10 @@ Route::middleware(['auth:member'])->group(function () {
     Route::get('/member/ubah-password', [MemberController::class, 'ubahPassword'])->name('member.ubah.password');
     Route::post('/member/update-password', [MemberController::class, 'updatePassword'])->name('member.update.password');
     
+    // Profile Edit Routes
+    Route::get('/member/edit-profile', [MemberController::class, 'editProfile'])->name('member.edit.profile');
+    Route::post('/member/update-profile', [MemberController::class, 'updateProfile'])->name('member.update.profile');
+    
 });
 
 // Anggota Routes (Member)
