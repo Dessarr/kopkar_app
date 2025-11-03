@@ -33,25 +33,37 @@
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
                             <span class="text-gray-600">ID Koperasi:</span>
-                            <span class="font-semibold">{{ $anggota->no_ktp ?? '1234567890123456' }}</span>
+                            <span class="font-semibold">{{ $anggota->no_ktp ?? '-' }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Tempat, Tgl Lahir:</span>
-                            <span class="font-semibold">{{ $anggota->tmp_lahir ?? 'Jakarta' }},
-                                {{ $anggota->tgl_lahir ?? '2000-01-01' }}</span>
+                            <span class="font-semibold">
+                                @if($anggota->tmp_lahir || $anggota->tgl_lahir)
+                                    {{ $anggota->tmp_lahir ?? '-' }}, {{ $anggota->tgl_lahir ? \Carbon\Carbon::parse($anggota->tgl_lahir)->format('d/m/Y') : '-' }}
+                                @else
+                                    -
+                                @endif
+                            </span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Jenis Kelamin:</span>
-                            <span
-                                class="font-semibold">{{ $anggota->jk == 'L' ? 'Laki-laki' : ($anggota->jk == 'P' ? 'Perempuan' : 'Laki-laki') }}</span>
+                            <span class="font-semibold">
+                                @if($anggota->jk == 'L')
+                                    Laki-laki
+                                @elseif($anggota->jk == 'P')
+                                    Perempuan
+                                @else
+                                    -
+                                @endif
+                            </span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Status:</span>
-                            <span class="font-semibold">{{ $anggota->status ?? 'Belum Menikah' }}</span>
+                            <span class="font-semibold">{{ $anggota->status ?? '-' }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Agama:</span>
-                            <span class="font-semibold">{{ $anggota->agama ?? 'Islam' }}</span>
+                            <span class="font-semibold">{{ $anggota->agama ?? '-' }}</span>
                         </div>
                     </div>
                 </div>
@@ -63,23 +75,23 @@
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
                             <span class="text-gray-600">Alamat:</span>
-                            <span class="font-semibold">{{ $anggota->alamat ?? 'Jl. Contoh No.1' }}</span>
+                            <span class="font-semibold">{{ $anggota->alamat ?? '-' }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Kota:</span>
-                            <span class="font-semibold">{{ $anggota->kota ?? 'Jakarta' }}</span>
+                            <span class="font-semibold">{{ $anggota->kota ?? '-' }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">No. Telp:</span>
-                            <span class="font-semibold">{{ $anggota->notelp ?? '08123456789' }}</span>
+                            <span class="font-semibold">{{ $anggota->notelp ?? '-' }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Departemen:</span>
-                            <span class="font-semibold">{{ $anggota->departement ?? 'IT' }}</span>
+                            <span class="font-semibold">{{ $anggota->departement ?? '-' }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Jabatan:</span>
-                            <span class="font-semibold">{{ $anggota->jabatan_id ?? '1' }}</span>
+                            <span class="font-semibold">{{ $anggota->jabatan_id ?? '-' }}</span>
                         </div>
                     </div>
                 </div>
@@ -91,15 +103,15 @@
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
                             <span class="text-gray-600">Bank:</span>
-                            <span class="font-semibold">{{ $anggota->bank ?? 'BCA' }}</span>
+                            <span class="font-semibold">{{ $anggota->bank ?? '-' }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">No. Rekening:</span>
-                            <span class="font-semibold">{{ $anggota->no_rekening ?? '1234567890' }}</span>
+                            <span class="font-semibold">{{ $anggota->no_rekening ?? '-' }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Nama Pemilik Rekening:</span>
-                            <span class="font-semibold">{{ $anggota->nama_pemilik_rekening ?? 'prakerinmember' }}</span>
+                            <span class="font-semibold">{{ $anggota->nama_pemilik_rekening ?? '-' }}</span>
                         </div>
                     </div>
                 </div>
@@ -111,11 +123,25 @@
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
                             <span class="text-gray-600">Tanggal Daftar:</span>
-                            <span class="font-semibold">{{ $anggota->tgl_daftar ?? '2025-07-11' }}</span>
+                            <span class="font-semibold">
+                                @if($anggota->tgl_daftar)
+                                    {{ \Carbon\Carbon::parse($anggota->tgl_daftar)->format('d/m/Y') }}
+                                @else
+                                    -
+                                @endif
+                            </span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Status Aktif:</span>
-                            <span class="font-semibold">{{ $anggota->aktif == 'Y' ? 'Aktif' : 'Tidak Aktif' }}</span>
+                            <span class="font-semibold">
+                                @if($anggota->aktif == 'Y')
+                                    Aktif
+                                @elseif($anggota->aktif == 'N')
+                                    Tidak Aktif
+                                @else
+                                    -
+                                @endif
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -143,7 +169,7 @@
                     </div>
 
                     <!-- Name and Status -->
-                    <h2 class="text-xl font-bold text-gray-800 mb-1">{{ $anggota->nama ?? 'prakerinmember' }}</h2>
+                    <h2 class="text-xl font-bold text-gray-800 mb-1">{{ $anggota->nama ?? '-' }}</h2>
                     <p class="text-green-700 font-semibold text-sm">Anggota</p>
                 </div>
 
@@ -151,16 +177,23 @@
                 <div class="space-y-2 text-sm">
                     <div class="flex border-b border-gray-200 pb-2">
                         <span class="font-semibold text-gray-600 w-24">ID Anggota:</span>
-                        <span class="text-gray-800">{{ $anggota->no_ktp ?? '1234567890123456' }}</span>
+                        <span class="text-gray-800">{{ $anggota->no_ktp ?? '-' }}</span>
                     </div>
                     <div class="flex border-b border-gray-200 pb-2">
                         <span class="font-semibold text-gray-600 w-24">Nama:</span>
-                        <span class="text-gray-800 font-bold">{{ $anggota->nama ?? 'prakerinmember' }}</span>
+                        <span class="text-gray-800 font-bold">{{ $anggota->nama ?? '-' }}</span>
                     </div>
                     <div class="flex border-b border-gray-200 pb-2">
                         <span class="font-semibold text-gray-600 w-24">Jenis Kelamin:</span>
-                        <span
-                            class="text-gray-800">{{ $anggota->jk == 'L' ? 'Laki-Laki' : ($anggota->jk == 'P' ? 'Perempuan' : 'Laki-Laki') }}</span>
+                        <span class="text-gray-800">
+                            @if($anggota->jk == 'L')
+                                Laki-Laki
+                            @elseif($anggota->jk == 'P')
+                                Perempuan
+                            @else
+                                -
+                            @endif
+                        </span>
                     </div>
                 </div>
                 
@@ -298,8 +331,12 @@
             </div>
             <div class="flex justify-between items-center">
                 <span>Pembayaran:</span>
+                @if($keteranganPinjaman->status_pembayaran ?? null)
                 <span
-                    class="bg-white px-1 py-0.5 rounded text-xs font-bold border {{ $keteranganPinjaman->status_pembayaran == 'Lancar' ? 'text-green-500 border-green-500' : 'text-red-500 border-red-500' }}">{{ $keteranganPinjaman->status_pembayaran ?? 'Lancar' }}</span>
+                    class="bg-white px-1 py-0.5 rounded text-xs font-bold border {{ $keteranganPinjaman->status_pembayaran == 'Lancar' ? 'text-green-500 border-green-500' : 'text-red-500 border-red-500' }}">{{ $keteranganPinjaman->status_pembayaran }}</span>
+                @else
+                <span class="bg-white px-1 py-0.5 rounded text-xs font-bold border text-gray-500 border-gray-300">-</span>
+                @endif
             </div>
             <div class="flex justify-between">
                 <span>Tanggal Tempo:</span>
