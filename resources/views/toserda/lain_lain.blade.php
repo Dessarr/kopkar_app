@@ -157,9 +157,13 @@
                 </button>
                 
                 <div class="bg-orange-50 border border-orange-200 rounded-lg p-6">
-                    <p class="text-base text-orange-700 flex items-center">
+                    <p class="text-base text-orange-700 flex items-center mb-2">
                         <i class="fas fa-lightbulb mr-3 text-lg"></i>
-                        Proses ini akan menghitung total belanja per anggota dan memperbarui data billing
+                        Proses ini akan menghitung total belanja per anggota dan memperbarui status billing menjadi "Sudah Billing"
+                    </p>
+                    <p class="text-sm text-orange-600 flex items-center">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Setelah proses selesai, data akan langsung masuk ke Billing Utama dan Anda akan diarahkan ke halaman tersebut
                     </p>
                 </div>
             </form>

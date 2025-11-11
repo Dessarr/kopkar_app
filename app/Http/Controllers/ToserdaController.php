@@ -222,7 +222,10 @@ class ToserdaController extends Controller
                 if ($billingStatus === 'billed') {
                     $query->where('t.status_billing', 'Y');
                 } elseif ($billingStatus === 'unbilled') {
-                    $query->where('t.status_billing', '!=', 'Y');
+                    $query->where(function($q) {
+                        $q->whereNull('t.status_billing')
+                          ->orWhere('t.status_billing', '!=', 'Y');
+                    });
                 }
             }
 
@@ -854,16 +857,241 @@ class ToserdaController extends Controller
     
     public function processMonthlyBilling(Request $request)
     {
+        // Log semua request data untuk debugging
+        Log::info('=== PROCESS MONTHLY BILLING START ===');
+        Log::info('Request all:', $request->all());
+        Log::info('Request bulan:', ['bulan' => $request->bulan, 'type' => gettype($request->bulan)]);
+        Log::info('Request tahun:', ['tahun' => $request->tahun, 'type' => gettype($request->tahun)]);
+        
         try {
-            $bulan = $request->bulan;
-            $tahun = $request->tahun;
+            // Validasi input - lebih fleksibel
+            $request->validate([
+                'bulan' => 'required',
+                'tahun' => 'required|numeric'
+            ]);
 
-            // Process billing logic here
-            // This would typically involve calculating totals and creating billing records
+            $bulan = str_pad($request->bulan, 2, '0', STR_PAD_LEFT); // Pastikan format 01-12
+            $tahun = (string)$request->tahun;
+            
+            Log::info('After validation - Bulan:', ['bulan' => $bulan, 'tahun' => $tahun]);
 
-            return redirect()->back()->with('success', 'Billing bulanan berhasil diproses');
+            // Validasi bulan valid (01-12)
+            if (!isset($this->bulanList[$bulan])) {
+                return redirect()->back()->with('error', 'Bulan tidak valid');
+            }
+
+            // Validasi tahun valid (minimal 2000, maksimal 2100)
+            $tahunInt = (int)$tahun;
+            if ($tahunInt < 2000 || $tahunInt > 2100) {
+                return redirect()->back()->with('error', 'Tahun tidak valid');
+            }
+
+            Log::info("Processing monthly billing for toserda - Bulan: {$bulan}, Tahun: {$tahun}");
+
+            // Mulai transaction
+            DB::beginTransaction();
+
+            // Cek dulu apakah ada data untuk periode ini (tanpa filter status_billing)
+            // Gunakan format tanggal yang lebih fleksibel
+            $startDate = Carbon::createFromDate($tahun, $bulan, 1)->startOfMonth();
+            $endDate = Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth();
+            
+            Log::info("Date range: {$startDate->format('Y-m-d')} to {$endDate->format('Y-m-d')}");
+
+            // Cek total data untuk periode ini dengan berbagai metode
+            $totalDataPeriode1 = DB::table('tbl_trans_toserda')
+                ->whereMonth('tgl_transaksi', $bulan)
+                ->whereYear('tgl_transaksi', $tahun)
+                ->count();
+            
+            $totalDataPeriode2 = DB::table('tbl_trans_toserda')
+                ->whereBetween('tgl_transaksi', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->count();
+            
+            Log::info("Total data untuk periode {$bulan}-{$tahun} (whereMonth/Year): {$totalDataPeriode1}");
+            Log::info("Total data untuk periode {$bulan}-{$tahun} (whereBetween): {$totalDataPeriode2}");
+
+            // Ambil sample data untuk debugging
+            $sampleData = DB::table('tbl_trans_toserda')
+                ->whereBetween('tgl_transaksi', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->limit(3)
+                ->get(['id', 'tgl_transaksi', 'no_ktp', 'jumlah', 'status_billing']);
+            
+            Log::info("Sample data untuk periode ini:", $sampleData->toArray());
+            
+            // Cek juga dengan query raw untuk memastikan
+            $rawQuery = "SELECT COUNT(*) as count FROM tbl_trans_toserda 
+                        WHERE DATE(tgl_transaksi) >= '{$startDate->format('Y-m-d')}' 
+                        AND DATE(tgl_transaksi) <= '{$endDate->format('Y-m-d')}'";
+            $rawCount = DB::select($rawQuery);
+            Log::info("Raw query count:", ['count' => $rawCount[0]->count ?? 0]);
+
+            // Query dengan kondisi status_billing yang lebih sederhana
+            // Karena status_billing adalah enum('Y','N') dengan default 'N', 
+            // kita hanya perlu cek yang bukan 'Y'
+            $transaksiBelumBilling = DB::table('tbl_trans_toserda')
+                ->where(function($query) {
+                    $query->where('status_billing', '!=', 'Y')
+                          ->orWhereNull('status_billing');
+                })
+                ->whereRaw("DATE(tgl_transaksi) >= ? AND DATE(tgl_transaksi) <= ?", [
+                    $startDate->format('Y-m-d'),
+                    $endDate->format('Y-m-d')
+                ])
+                ->get();
+            
+            Log::info("Query result count: " . $transaksiBelumBilling->count());
+            
+            // Log sample data yang ditemukan
+            if ($transaksiBelumBilling->count() > 0) {
+                Log::info("Sample transaksi yang akan diproses:", [
+                    'first' => [
+                        'id' => $transaksiBelumBilling->first()->id ?? null,
+                        'tgl_transaksi' => $transaksiBelumBilling->first()->tgl_transaksi ?? null,
+                        'no_ktp' => $transaksiBelumBilling->first()->no_ktp ?? null,
+                        'status_billing' => $transaksiBelumBilling->first()->status_billing ?? null,
+                        'jumlah' => $transaksiBelumBilling->first()->jumlah ?? null,
+                    ]
+                ]);
+            }
+
+            if ($transaksiBelumBilling->isEmpty()) {
+                DB::rollBack();
+                
+                // Cek apakah semua data sudah di-billing
+                $sudahBilling = DB::table('tbl_trans_toserda')
+                    ->where('status_billing', 'Y')
+                    ->whereBetween('tgl_transaksi', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                    ->count();
+                
+                if ($sudahBilling > 0) {
+                    return redirect()->back()->with('info', "Semua transaksi untuk periode {$this->bulanList[$bulan]} {$tahun} sudah di-billing ({$sudahBilling} transaksi)");
+                }
+                
+                return redirect()->back()->with('warning', "Tidak ada transaksi toserda untuk periode {$this->bulanList[$bulan]} {$tahun}. Total data di database (whereMonth/Year): {$totalDataPeriode1}, (whereBetween): {$totalDataPeriode2}");
+            }
+
+            Log::info("Found " . $transaksiBelumBilling->count() . " transactions to process");
+
+            // Hitung total per anggota (group by no_ktp)
+            $totalPerAnggota = DB::table('tbl_trans_toserda')
+                ->select('no_ktp', DB::raw('SUM(jumlah) as total'))
+                ->where(function($query) {
+                    $query->where('status_billing', '!=', 'Y')
+                          ->orWhereNull('status_billing');
+                })
+                ->whereRaw("DATE(tgl_transaksi) >= ? AND DATE(tgl_transaksi) <= ?", [
+                    $startDate->format('Y-m-d'),
+                    $endDate->format('Y-m-d')
+                ])
+                ->groupBy('no_ktp')
+                ->get();
+
+            Log::info("Total per anggota: " . $totalPerAnggota->count() . " members");
+
+            // Update status_billing menjadi 'Y' untuk semua transaksi yang sudah diproses
+            // Pastikan update dilakukan dengan benar untuk semua kondisi status_billing
+            $updatedCount = DB::table('tbl_trans_toserda')
+                ->where(function($query) {
+                    $query->whereNull('status_billing')
+                          ->orWhere('status_billing', '!=', 'Y')
+                          ->orWhere('status_billing', '=', 'N');
+                })
+                ->whereBetween('tgl_transaksi', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->update([
+                    'status_billing' => 'Y',
+                    'update_data' => now()
+                ]);
+
+            Log::info("Updated {$updatedCount} transactions with status_billing = 'Y' for period {$bulan}-{$tahun}");
+            
+            // Verifikasi update berhasil
+            $verifyCount = DB::table('tbl_trans_toserda')
+                ->where('status_billing', 'Y')
+                ->whereBetween('tgl_transaksi', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->count();
+            
+            Log::info("Verified: {$verifyCount} transactions now have status_billing = 'Y' for period {$bulan}-{$tahun}");
+
+            // Langsung proses ke billing utama (tbl_trans_sp_bayar_temp)
+            // Ambil total tagihan per anggota yang sudah di-billing
+            $rows = DB::table('tbl_trans_toserda')
+                ->select('no_ktp', DB::raw('SUM(jumlah) as total'))
+                ->where('status_billing', 'Y')
+                ->whereNull('tgl_bayar')
+                ->whereBetween('tgl_transaksi', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->groupBy('no_ktp')
+                ->get();
+
+            Log::info("Processing {$rows->count()} members to billing utama");
+
+            foreach ($rows as $r) {
+                // Get anggota_id from tbl_anggota
+                $anggota = DB::table('tbl_anggota')
+                    ->where('no_ktp', $r->no_ktp)
+                    ->where('aktif', 'Y')
+                    ->first();
+                
+                if (!$anggota) {
+                    Log::warning("Anggota dengan No KTP {$r->no_ktp} tidak ditemukan atau tidak aktif");
+                    continue;
+                }
+                
+                $anggotaId = $anggota->id;
+                
+                // Update or insert into main billing table
+                DB::table('tbl_trans_sp_bayar_temp')->updateOrInsert(
+                    [
+                        'tgl_transaksi' => $endDate->toDateString(),
+                        'no_ktp' => $r->no_ktp,
+                    ],
+                    [
+                        'anggota_id' => $anggotaId,
+                        'jumlah' => DB::raw('COALESCE(jumlah, 0)'),
+                        'keterangan' => 'Billing Toserda ' . $this->bulanList[$bulan] . ' ' . $tahun,
+                        'tagihan_simpanan_wajib' => DB::raw('COALESCE(tagihan_simpanan_wajib, 0)'),
+                        'tagihan_simpanan_sukarela' => DB::raw('COALESCE(tagihan_simpanan_sukarela, 0)'),
+                        'tagihan_simpanan_khusus_2' => DB::raw('COALESCE(tagihan_simpanan_khusus_2, 0)'),
+                        'tagihan_simpanan_pokok' => DB::raw('COALESCE(tagihan_simpanan_pokok, 0)'),
+                        'tagihan_pinjaman' => DB::raw('COALESCE(tagihan_pinjaman, 0)'),
+                        'tagihan_pinjaman_jasa' => DB::raw('COALESCE(tagihan_pinjaman_jasa, 0)'),
+                        'tagihan_toserda' => DB::raw('COALESCE(tagihan_toserda, 0) + ' . ($r->total ?? 0)),
+                        'total_tagihan_simpanan' => DB::raw('COALESCE(total_tagihan_simpanan, 0)'),
+                        'selisih' => DB::raw('COALESCE(selisih, 0)'),
+                        'saldo_simpanan_sukarela' => DB::raw('COALESCE(saldo_simpanan_sukarela, 0)'),
+                        'saldo_akhir_simpanan_sukarela' => DB::raw('COALESCE(saldo_akhir_simpanan_sukarela, 0)')
+                    ]
+                );
+            }
+
+            Log::info("Successfully processed {$rows->count()} members to billing utama");
+
+            // Commit transaction
+            DB::commit();
+
+            $bulanNama = $this->bulanList[$bulan];
+            $totalAnggota = $totalPerAnggota->count();
+            $totalTransaksi = $transaksiBelumBilling->count();
+            $totalNilai = $totalPerAnggota->sum('total');
+
+            // Redirect ke halaman billing utama dengan parameter bulan dan tahun
+            return redirect()->route('billing.utama', [
+                'bulan' => $bulan,
+                'tahun' => $tahun
+            ])->with('success', 
+                "Billing bulanan berhasil diproses untuk {$bulanNama} {$tahun}. " .
+                "Total: {$totalTransaksi} transaksi dari {$totalAnggota} anggota dengan nilai Rp " . 
+                number_format($totalNilai, 0, ',', '.') . 
+                " Data sudah masuk ke Billing Utama."
+            );
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Error in process billing: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return redirect()->back()->with('error', 'Terjadi kesalahan saat memproses billing: ' . $e->getMessage());
         }
     }
