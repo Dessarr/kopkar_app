@@ -112,7 +112,6 @@ Route::middleware(['auth:member'])->group(function () {
     
     // Report Routes
     Route::prefix('member/laporan')->group(function () {
-        Route::get('/simpanan', [MemberController::class, 'laporanSimpanan'])->name('member.laporan.simpanan');
         Route::get('/pinjaman', [MemberController::class, 'laporanPinjaman'])->name('member.laporan.pinjaman');
         Route::get('/pembayaran', [MemberController::class, 'laporanPembayaran'])->name('member.laporan.pembayaran');
         Route::get('/transaksi', [MemberController::class, 'laporanTransaksi'])->name('member.laporan.transaksi');
@@ -124,10 +123,6 @@ Route::middleware(['auth:member'])->group(function () {
         // Payment report export routes
         Route::get('/pembayaran/export/pdf', [MemberController::class, 'exportPaymentReportPdf'])->name('member.laporan.pembayaran.export.pdf');
         Route::get('/pembayaran/export/excel', [MemberController::class, 'exportPaymentReportExcel'])->name('member.laporan.pembayaran.export.excel');
-        
-        // Savings report export routes
-        Route::get('/simpanan/export/pdf', [MemberController::class, 'exportSavingsReportPdf'])->name('member.laporan.simpanan.export.pdf');
-        Route::get('/simpanan/export/excel', [MemberController::class, 'exportSavingsReportExcel'])->name('member.laporan.simpanan.export.excel');
     });
     
     // Loan detail route

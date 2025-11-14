@@ -170,8 +170,6 @@
                                     class="dropdown-item block px-4 py-2 text-sm text-gray-700 whitespace-nowrap">Pinjaman</a>
                                 <a href="{{ route('member.laporan.pembayaran') }}"
                                     class="dropdown-item block px-4 py-2 text-sm text-gray-700 whitespace-nowrap">Pembayaran Pinjaman</a>
-                                <a href="{{ route('member.laporan.simpanan') }}"
-                                    class="dropdown-item block px-4 py-2 text-sm text-gray-700 whitespace-nowrap">Simpanan - Toserda</a>
                             </div>
                         </div>
 
@@ -243,10 +241,6 @@
                 <a href="{{ route('member.laporan.pembayaran') }}"
                     class="nav-item block px-3 py-2 rounded-md text-base font-medium text-white {{ request()->routeIs('member.laporan.*') ? 'active' : '' }}">
                     Laporan Pembayaran
-                </a>
-                <a href="{{ route('member.laporan.simpanan') }}"
-                    class="nav-item block px-3 py-2 rounded-md text-base font-medium text-white {{ request()->routeIs('member.laporan.*') ? 'active' : '' }}">
-                    Laporan Simpanan
                 </a>
                 <form action="{{ route('member.logout') }}" method="POST">
                     @csrf
