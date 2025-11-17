@@ -7,6 +7,7 @@ use App\Models\data_pengajuan_penarikan;
 use App\Models\TblTransSp;
 use App\Models\data_anggota;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Services\ActivityLogService;
 
@@ -216,92 +217,173 @@ class DtaPengajuanPenarikanController extends Controller
 
     public function approve($id, Request $request)
     {
-        try {
-            $pengajuan = data_pengajuan_penarikan::with(['anggota'])->findOrFail($id);
-            
-            if ($pengajuan->status !== 0) {
-                ActivityLogService::logFailed(
+        // Use database transaction to ensure atomicity
+        return DB::transaction(function () use ($id, $request) {
+            try {
+                $pengajuan = data_pengajuan_penarikan::with(['anggota'])->findOrFail($id);
+                
+                // Validate that pengajuan is pending
+                if ($pengajuan->status !== 0) {
+                    ActivityLogService::logFailed(
+                        'approve',
+                        'pengajuan_penarikan',
+                        'Admin mencoba menyetujui pengajuan dengan status tidak valid',
+                        'Pengajuan tidak dapat disetujui karena status bukan pending',
+                        $pengajuan->toArray(),
+                        null,
+                        $pengajuan->id,
+                        'data_pengajuan_penarikan'
+                    );
+                    
+                    return redirect()->back()->with('error', 'Pengajuan tidak dapat disetujui.');
+                }
+
+                // Check if transaction already exists for this pengajuan
+                $existingTransaksi = TblTransSp::where('no_ktp', $pengajuan->anggota->no_ktp)
+                    ->where('jenis_id', $pengajuan->jenis)
+                    ->where('dk', 'K')
+                    ->where('akun', 'Penarikan')
+                    ->where('jumlah', $pengajuan->nominal)
+                    ->where('tgl_transaksi', $request->tgl_cair ?? now())
+                    ->first();
+
+                if ($existingTransaksi) {
+                    Log::warning('Transaksi penarikan sudah ada untuk pengajuan ini', [
+                        'pengajuan_id' => $pengajuan->id,
+                        'ajuan_id' => $pengajuan->ajuan_id,
+                        'existing_transaksi_id' => $existingTransaksi->id
+                    ]);
+                    
+                    // If transaction exists but pengajuan status is still pending, update status only
+                    if ($pengajuan->status == 0) {
+                        $pengajuan->status = 3;
+                        $pengajuan->alasan = $request->alasan ?? '';
+                        $pengajuan->tgl_cair = $request->tgl_cair ?? now();
+                        $pengajuan->tgl_update = now();
+                        $pengajuan->save();
+                        
+                        return redirect()->route('admin.pengajuan.penarikan.index')
+                            ->with('success', 'Pengajuan penarikan berhasil disetujui (transaksi sudah ada sebelumnya)');
+                    }
+                    
+                    return redirect()->back()->with('error', 'Transaksi penarikan sudah pernah dibuat untuk pengajuan ini.');
+                }
+
+                // Validate anggota exists
+                if (!$pengajuan->anggota) {
+                    throw new \Exception('Data anggota tidak ditemukan');
+                }
+
+                // Log before approval and processing
+                ActivityLogService::logPending(
                     'approve',
                     'pengajuan_penarikan',
-                    'Admin mencoba menyetujui pengajuan dengan status tidak valid',
-                    'Pengajuan tidak dapat disetujui karena status bukan pending',
+                    'Admin memulai proses persetujuan dan penarikan simpanan',
                     $pengajuan->toArray(),
-                    null,
+                    $request->all(),
                     $pengajuan->id,
                     'data_pengajuan_penarikan'
                 );
+
+                // Store old values for logging
+                $oldValues = $pengajuan->toArray();
+
+                // Create transaction record for withdrawal (Kredit/Penarikan)
+                $transaksi = new TblTransSp();
+                $transaksi->tgl_transaksi = $request->tgl_cair ?? now();
+                $transaksi->no_ktp = $pengajuan->anggota->no_ktp;
+                $transaksi->anggota_id = $pengajuan->anggota_id;
+                $transaksi->jenis_id = $pengajuan->jenis; // jenis_id from pengajuan
+                $transaksi->jumlah = $pengajuan->nominal;
+                $transaksi->keterangan = $pengajuan->keterangan ?? 'Penarikan Simpanan - ' . ($pengajuan->ajuan_id ?? '');
+                $transaksi->akun = 'Penarikan';
+                $transaksi->dk = 'K'; // Kredit untuk penarikan (mengurangi saldo)
+                $transaksi->kas_id = $pengajuan->id_cabang ?? 1; // Use cabang id or default to 1
+                $transaksi->update_data = now();
+                $transaksi->user_name = auth()->user()->name ?? 'admin';
+                $transaksi->nama_penyetor = $pengajuan->anggota->nama;
+                $transaksi->no_identitas = $pengajuan->anggota->no_ktp;
+                $transaksi->alamat = $pengajuan->anggota->alamat ?? '';
+                $transaksi->id_cabang = $pengajuan->id_cabang ?? null;
                 
-                return redirect()->back()->with('error', 'Pengajuan tidak dapat disetujui.');
+                // Save transaction
+                if (!$transaksi->save()) {
+                    throw new \Exception('Gagal menyimpan transaksi penarikan');
+                }
+
+                // Log transaction creation
+                Log::info('Transaksi penarikan simpanan berhasil dibuat', [
+                    'transaksi_id' => $transaksi->id,
+                    'pengajuan_id' => $pengajuan->id,
+                    'ajuan_id' => $pengajuan->ajuan_id,
+                    'no_ktp' => $pengajuan->anggota->no_ktp,
+                    'jenis_id' => $pengajuan->jenis,
+                    'nominal' => $pengajuan->nominal,
+                    'dk' => $transaksi->dk,
+                    'tgl_transaksi' => $transaksi->tgl_transaksi
+                ]);
+
+                // Update pengajuan status to Terlaksana (3)
+                $pengajuan->status = 3; // Terlaksana (langsung diproses)
+                $pengajuan->alasan = $request->alasan ?? '';
+                $pengajuan->tgl_cair = $request->tgl_cair ?? now();
+                $pengajuan->tgl_update = now();
+                
+                if (!$pengajuan->save()) {
+                    throw new \Exception('Gagal memperbarui status pengajuan');
+                }
+
+                // Verify transaction was saved correctly
+                $savedTransaksi = TblTransSp::find($transaksi->id);
+                if (!$savedTransaksi) {
+                    throw new \Exception('Transaksi tidak ditemukan setelah disimpan');
+                }
+
+                // Log successful approval and processing
+                ActivityLogService::logSuccess(
+                    'approve',
+                    'pengajuan_penarikan',
+                    "Berhasil menyetujui dan memproses pengajuan penarikan - Ajuan ID: {$pengajuan->ajuan_id}, Nominal: Rp " . number_format($pengajuan->nominal, 0, ',', '.'),
+                    $oldValues,
+                    $pengajuan->toArray(),
+                    $pengajuan->id,
+                    'data_pengajuan_penarikan'
+                );
+
+                Log::info('Pengajuan penarikan berhasil disetujui dan diproses', [
+                    'pengajuan_id' => $pengajuan->id,
+                    'ajuan_id' => $pengajuan->ajuan_id,
+                    'transaksi_id' => $transaksi->id,
+                    'no_ktp' => $pengajuan->anggota->no_ktp,
+                    'jenis_id' => $pengajuan->jenis,
+                    'nominal' => $pengajuan->nominal
+                ]);
+
+                return redirect()->route('admin.pengajuan.penarikan.index')
+                    ->with('success', 'Pengajuan penarikan berhasil disetujui dan diproses. Saldo simpanan akan terpotong.');
+            } catch (\Exception $e) {
+                Log::error('Gagal menyetujui pengajuan penarikan', [
+                    'pengajuan_id' => $id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'request' => $request->all()
+                ]);
+
+                // Log error
+                ActivityLogService::logFailed(
+                    'approve',
+                    'pengajuan_penarikan',
+                    'Gagal menyetujui dan memproses pengajuan penarikan - Error sistem',
+                    $e->getMessage(),
+                    null,
+                    $request->all(),
+                    $id,
+                    'data_pengajuan_penarikan'
+                );
+                
+                return redirect()->back()->with('error', 'Gagal menyetujui pengajuan: ' . $e->getMessage());
             }
-
-            // Log before approval and processing
-            ActivityLogService::logPending(
-                'approve',
-                'pengajuan_penarikan',
-                'Admin memulai proses persetujuan dan penarikan simpanan',
-                $pengajuan->toArray(),
-                $request->all(),
-                $pengajuan->id,
-                'data_pengajuan_penarikan'
-            );
-
-            // Store old values for logging
-            $oldValues = $pengajuan->toArray();
-
-            // Create transaction record for withdrawal (Kredit/Penarikan)
-            $transaksi = new TblTransSp();
-            $transaksi->tgl_transaksi = $request->tgl_cair ?? now();
-            $transaksi->no_ktp = $pengajuan->anggota->no_ktp;
-            $transaksi->anggota_id = $pengajuan->anggota_id;
-            $transaksi->jenis_id = $pengajuan->jenis;
-            $transaksi->jumlah = $pengajuan->nominal;
-            $transaksi->keterangan = $pengajuan->keterangan;
-            $transaksi->akun = 'Penarikan';
-            $transaksi->dk = 'K'; // Kredit untuk penarikan (mengurangi saldo)
-            $transaksi->kas_id = 1; // Default kas
-            $transaksi->update_data = now();
-            $transaksi->user_name = auth()->user()->name ?? 'admin';
-            $transaksi->nama_penyetor = $pengajuan->anggota->nama;
-            $transaksi->no_identitas = $pengajuan->anggota->no_ktp;
-            $transaksi->alamat = $pengajuan->anggota->alamat;
-            $transaksi->id_cabang = $pengajuan->id_cabang;
-            $transaksi->save();
-
-            // Update pengajuan status to Terlaksana (3)
-            $pengajuan->status = 3; // Terlaksana (langsung diproses)
-            $pengajuan->alasan = $request->alasan ?? '';
-            $pengajuan->tgl_cair = $request->tgl_cair ?? now();
-            $pengajuan->tgl_update = now();
-            $pengajuan->save();
-
-            // Log successful approval and processing
-            ActivityLogService::logSuccess(
-                'approve',
-                'pengajuan_penarikan',
-                "Berhasil menyetujui dan memproses pengajuan penarikan - Ajuan ID: {$pengajuan->ajuan_id}, Nominal: Rp " . number_format($pengajuan->nominal, 0, ',', '.'),
-                $oldValues,
-                $pengajuan->toArray(),
-                $pengajuan->id,
-                'data_pengajuan_penarikan'
-            );
-
-            return redirect()->route('admin.pengajuan.penarikan.index')
-                ->with('success', 'Pengajuan penarikan berhasil disetujui dan diproses');
-        } catch (\Exception $e) {
-            // Log error
-            ActivityLogService::logFailed(
-                'approve',
-                'pengajuan_penarikan',
-                'Gagal menyetujui dan memproses pengajuan penarikan - Error sistem',
-                $e->getMessage(),
-                null,
-                $request->all(),
-                $id,
-                'data_pengajuan_penarikan'
-            );
-            
-            return redirect()->back()->with('error', 'Gagal menyetujui pengajuan: ' . $e->getMessage());
-        }
+        });
     }
 
     public function reject($id, Request $request)
