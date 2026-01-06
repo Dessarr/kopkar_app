@@ -34,6 +34,9 @@
     @endif
 
     <!-- Statistics Cards -->
+    @php
+        $allTransaksi = $allTransaksi ?? collect([]);
+    @endphp
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
             <div class="flex items-center">
@@ -42,7 +45,7 @@
                 </div>
                 <div class="ml-4">
                     <p class="text-sm font-medium text-gray-600">Total Upload</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ $transaksi->total() ?? 0 }}</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $allTransaksi->count() ?? 0 }}</p>
                 </div>
             </div>
         </div>
@@ -54,7 +57,7 @@
                 </div>
                 <div class="ml-4">
                     <p class="text-sm font-medium text-gray-600">Sudah Billing</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ $transaksi->where('status_billing', 'Y')->count() ?? 0 }}</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $allTransaksi->where('status_billing', 'Y')->count() ?? 0 }}</p>
                 </div>
             </div>
         </div>
@@ -66,7 +69,7 @@
                 </div>
                 <div class="ml-4">
                     <p class="text-sm font-medium text-gray-600">Belum Billing</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ $transaksi->where('status_billing', '!=', 'Y')->count() ?? 0 }}</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $allTransaksi->where('status_billing', '!=', 'Y')->count() ?? 0 }}</p>
                 </div>
             </div>
         </div>
@@ -78,7 +81,7 @@
                 </div>
                 <div class="ml-4">
                     <p class="text-sm font-medium text-gray-600">Total Nilai</p>
-                    <p class="text-2xl font-semibold text-gray-900">Rp{{ number_format($transaksi->sum('jumlah') ?? 0, 0, ',', '.') }}</p>
+                    <p class="text-2xl font-semibold text-gray-900">Rp{{ number_format($allTransaksi->sum('jumlah') ?? 0, 0, ',', '.') }}</p>
                 </div>
             </div>
         </div>

@@ -199,12 +199,16 @@ class ToserdaController extends Controller
             $search = $request->get('search');
             $billingStatus = $request->get('billing_status');
 
-            // Simple query first - just get basic data
+            // Query untuk statistik card - TIDAK difilter bulan/tahun agar menampilkan semua data
+            $statQuery = DB::table('tbl_trans_toserda as t')
+                ->select('t.*');
+
+            // Query untuk tabel - dengan filter bulan/tahun
             $query = DB::table('tbl_trans_toserda as t')
                 ->select('t.*')
                 ->orderBy('t.tgl_transaksi', 'desc');
 
-            // Filter by month and year
+            // Filter by month and year (hanya untuk tabel, bukan statistik)
             if ($bulan && $tahun) {
                 $query->whereYear('t.tgl_transaksi', $tahun)
                       ->whereMonth('t.tgl_transaksi', $bulan);
@@ -231,16 +235,20 @@ class ToserdaController extends Controller
 
             $transaksi = $query->paginate(15);
 
+            // Ambil semua data untuk statistik card (tanpa filter bulan/tahun)
+            $allTransaksi = $statQuery->get();
+
             // Debug: Log the query and data
             Log::info('Toserda Lain-lain Query: ' . $query->toSql());
             Log::info('Toserda Lain-lain Data Count: ' . $transaksi->count());
+            Log::info('Toserda Lain-lain All Data Count: ' . $allTransaksi->count());
 
             // Test: Check if data exists
             if ($transaksi->count() == 0) {
                 Log::warning('No data found in tbl_trans_toserda');
             }
 
-            return view('toserda.lain_lain', compact('transaksi', 'bulanList'));
+            return view('toserda.lain_lain', compact('transaksi', 'allTransaksi', 'bulanList'));
         } catch (\Exception $e) {
             Log::error('Error in lain lain: ' . $e->getMessage());
             Log::error('Error Stack: ' . $e->getTraceAsString());
@@ -249,6 +257,7 @@ class ToserdaController extends Controller
             $emptyPaginator = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15);
             return view('toserda.lain_lain', [
                 'transaksi' => $emptyPaginator,
+                'allTransaksi' => collect([]),
                 'bulanList' => $bulanList,
                 'error' => 'Terjadi kesalahan: ' . $e->getMessage()
             ]);
