@@ -16,9 +16,11 @@ use Carbon\Carbon;
 use App\Imports\ToserdaImport;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\TblTransToserda;
 
 class ToserdaController extends Controller
 {
@@ -203,9 +205,10 @@ class ToserdaController extends Controller
             $statQuery = DB::table('tbl_trans_toserda as t')
                 ->select('t.*');
 
-            // Query untuk tabel - dengan filter bulan/tahun
+            // Query untuk tabel - dengan filter bulan/tahun, join data_anggota untuk nama
             $query = DB::table('tbl_trans_toserda as t')
-                ->select('t.*')
+                ->leftJoin('tbl_anggota as a', 't.no_ktp', '=', 'a.no_ktp')
+                ->select('t.*', 'a.nama as nama_anggota')
                 ->orderBy('t.tgl_transaksi', 'desc');
 
             // Filter by month and year (hanya untuk tabel, bukan statistik)
@@ -214,10 +217,12 @@ class ToserdaController extends Controller
                       ->whereMonth('t.tgl_transaksi', $bulan);
             }
 
-            // Filter by search
+            // Filter by search (no_ktp atau nama anggota)
             if ($search) {
-                $query->where(function($q) use ($search) {
-                    $q->where('t.no_ktp', 'like', "%{$search}%");
+                $searchTerm = trim($search);
+                $query->where(function($q) use ($searchTerm) {
+                    $q->where('t.no_ktp', 'like', "%{$searchTerm}%")
+                      ->orWhere('a.nama', 'like', "%{$searchTerm}%");
                 });
             }
 
@@ -264,7 +269,156 @@ class ToserdaController extends Controller
         }
     }
 
+    public function editLainLain($id)
+    {
+        try {
+            $transaksi = TblTransToserda::findOrFail($id);
+            if ($transaksi->status_billing === 'Y') {
+                return response()->json(['success' => false, 'message' => 'Transaksi yang sudah billing tidak dapat diedit'], 403);
+            }
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $transaksi->id,
+                    'tgl_transaksi' => $transaksi->tgl_transaksi ? $transaksi->tgl_transaksi->format('Y-m-d') : null,
+                    'no_ktp' => $transaksi->no_ktp,
+                    'jumlah' => $transaksi->jumlah,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in editLainLain: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
+        }
+    }
 
+    public function updateLainLain(Request $request, $id)
+    {
+        try {
+            $transaksi = TblTransToserda::findOrFail($id);
+            if ($transaksi->status_billing === 'Y') {
+                return redirect()->back()->with('error', 'Transaksi yang sudah billing tidak dapat diedit');
+            }
+            $request->validate([
+                'tgl_transaksi' => 'required|date',
+                'no_ktp' => 'required|string',
+                'jumlah' => 'required|numeric|min:0',
+            ]);
+            $transaksi->update([
+                'tgl_transaksi' => $request->tgl_transaksi,
+                'no_ktp' => $request->no_ktp,
+                'jumlah' => $request->jumlah,
+            ]);
+            return redirect()->back()->with('success', 'Data transaksi berhasil diperbarui');
+        } catch (\Exception $e) {
+            Log::error('Error in updateLainLain: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    public function destroyLainLain($id)
+    {
+        try {
+            $transaksi = TblTransToserda::findOrFail($id);
+            if ($transaksi->status_billing === 'Y') {
+                return response()->json(['success' => false, 'message' => 'Transaksi yang sudah billing tidak dapat dihapus'], 403);
+            }
+            $transaksi->delete();
+            return response()->json(['success' => true, 'message' => 'Data transaksi berhasil dihapus']);
+        } catch (\Exception $e) {
+            Log::error('Error in destroyLainLain: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
+        }
+    }
+
+    private function getLainLainQuery(Request $request)
+    {
+        $bulan = $request->get('bulan', date('m'));
+        $tahun = $request->get('tahun', date('Y'));
+        $search = $request->get('search');
+        $billingStatus = $request->get('billing_status');
+
+        $query = DB::table('tbl_trans_toserda as t')
+            ->leftJoin('tbl_anggota as a', 't.no_ktp', '=', 'a.no_ktp')
+            ->select('t.*', 'a.nama as nama_anggota')
+            ->orderBy('t.tgl_transaksi', 'desc');
+
+        if ($bulan && $tahun) {
+            $query->whereYear('t.tgl_transaksi', $tahun)->whereMonth('t.tgl_transaksi', $bulan);
+        }
+        if ($search) {
+            $searchTerm = trim($search);
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('t.no_ktp', 'like', "%{$searchTerm}%")
+                  ->orWhere('a.nama', 'like', "%{$searchTerm}%");
+            });
+        }
+        if ($billingStatus) {
+            if ($billingStatus === 'billed') {
+                $query->where('t.status_billing', 'Y');
+            } elseif ($billingStatus === 'unbilled') {
+                $query->where(function($q) {
+                    $q->whereNull('t.status_billing')->orWhere('t.status_billing', '!=', 'Y');
+                });
+            }
+        }
+        return $query;
+    }
+
+    public function exportLainLain(Request $request)
+    {
+        try {
+            $data = $this->getLainLainQuery($request)->get();
+
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setCellValue('A1', 'Tanggal');
+            $sheet->setCellValue('B1', 'No KTP');
+            $sheet->setCellValue('C1', 'Nama Anggota');
+            $sheet->setCellValue('D1', 'Jumlah');
+            $sheet->setCellValue('E1', 'Status Billing');
+
+            $row = 2;
+            foreach ($data as $item) {
+                $tgl = $item->tgl_transaksi;
+                if (is_object($tgl)) {
+                    $tgl = \Carbon\Carbon::parse($tgl)->format('d/m/Y');
+                } elseif (is_string($tgl)) {
+                    $tgl = \Carbon\Carbon::parse($tgl)->format('d/m/Y');
+                }
+                $sheet->setCellValue('A' . $row, $tgl ?? '-');
+                $sheet->setCellValue('B' . $row, $item->no_ktp ?? '-');
+                $sheet->setCellValue('C' . $row, $item->nama_anggota ?? '-');
+                $sheet->setCellValue('D' . $row, $item->jumlah ?? 0);
+                $sheet->setCellValue('E' . $row, ($item->status_billing ?? '') === 'Y' ? 'Sudah Billing' : 'Belum Billing');
+                $row++;
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $filename = 'toserda_lain_lain_' . date('Y-m-d_H-i-s') . '.xlsx';
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+            $writer->save('php://output');
+            exit;
+        } catch (\Exception $e) {
+            Log::error('Error in export Lain-lain: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat export: ' . $e->getMessage());
+        }
+    }
+
+    public function exportLainLainPdf(Request $request)
+    {
+        try {
+            $data = $this->getLainLainQuery($request)->get();
+            $totalNilai = collect($data)->sum('jumlah');
+            $pdf = Pdf::loadView('toserda.pdf.lain_lain', compact('data', 'totalNilai'));
+            $pdf->setPaper('A4', 'landscape');
+            return $pdf->download('laporan_toserda_lain_lain_' . date('Ymd') . '.pdf');
+        } catch (\Exception $e) {
+            Log::error('Error in export Lain-lain PDF: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat export PDF: ' . $e->getMessage());
+        }
+    }
 
     // Export methods
     public function exportPenjualan(Request $request)
@@ -855,13 +1009,109 @@ class ToserdaController extends Controller
                 'file' => 'required|file|mimes:xlsx,xls'
             ]);
 
-            Excel::import(new ToserdaImport, $request->file('file'));
+            $periods = $this->extractUploadPeriods($request->file('file'));
+            if (empty($periods)) {
+                return redirect()->back()->with('error', 'File tidak memiliki periode valid (kolom tgl_transaksi tidak ditemukan/invalid).');
+            }
 
-            return redirect()->back()->with('success', 'Data berhasil diupload');
+            DB::beginTransaction();
+
+            $deletedTotal = 0;
+            foreach ($periods as $period) {
+                [$year, $month] = explode('-', $period);
+                $deleted = DB::table('tbl_trans_toserda')
+                    ->whereYear('tgl_transaksi', $year)
+                    ->whereMonth('tgl_transaksi', $month)
+                    ->delete();
+                $deletedTotal += $deleted;
+            }
+
+            $import = new ToserdaImport();
+            Excel::import($import, $request->file('file'));
+
+            $successCount = $import->getSuccessCount();
+            $failures = $import->getFailures();
+            $failCount = count($failures);
+
+            // Jika tidak ada satupun data valid yang berhasil diimport, rollback agar data lama tidak hilang.
+            if ($successCount === 0) {
+                $firstFailure = $failCount > 0 ? ($failures[0]->errors()[0] ?? 'Data tidak valid') : 'Tidak ada data valid untuk diimport';
+                throw new \Exception('Upload dibatalkan: ' . $firstFailure);
+            }
+
+            DB::commit();
+
+            $periodLabels = collect($periods)
+                ->map(function ($period) {
+                    [$year, $month] = explode('-', $period);
+                    $monthKey = str_pad($month, 2, '0', STR_PAD_LEFT);
+                    return ($this->bulanList[$monthKey] ?? $monthKey) . ' ' . $year;
+                })
+                ->implode(', ');
+
+            $msg = "Replace upload berhasil untuk periode: {$periodLabels}. ";
+            $msg .= "Data lama terhapus: {$deletedTotal} baris. ";
+            $msg .= "Data baru terimport: {$successCount} baris.";
+            if ($failCount > 0) {
+                $msg .= " {$failCount} baris gagal validasi.";
+            }
+
+            return redirect()->back()->with('success', $msg);
         } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
             Log::error('Error in upload toserda: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan saat upload: ' . $e->getMessage());
         }
+    }
+
+    private function extractUploadPeriods($file): array
+    {
+        $spreadsheet = IOFactory::load($file->getRealPath());
+        $sheet = $spreadsheet->getActiveSheet();
+        $rows = $sheet->toArray(null, true, true, true);
+
+        if (count($rows) < 2) {
+            return [];
+        }
+
+        $headerRow = $rows[1] ?? [];
+        $dateCol = null;
+        foreach ($headerRow as $col => $header) {
+            if (strtolower(trim((string) $header)) === 'tgl_transaksi') {
+                $dateCol = $col;
+                break;
+            }
+        }
+
+        if (!$dateCol) {
+            return [];
+        }
+
+        $periods = [];
+        for ($i = 2; $i <= count($rows); $i++) {
+            $row = $rows[$i] ?? [];
+            $hasAnyValue = collect($row)->filter(function ($val) {
+                return trim((string) $val) !== '';
+            })->isNotEmpty();
+
+            if (!$hasAnyValue) {
+                continue;
+            }
+
+            $rawDate = $row[$dateCol] ?? null;
+            try {
+                $date = ToserdaImport::parseDateValue($rawDate);
+                $periods[$date->format('Y-m')] = true;
+            } catch (\Exception $e) {
+                // Skip invalid date rows here; row-level validation tetap ditangani saat import.
+            }
+        }
+
+        $keys = array_keys($periods);
+        sort($keys);
+        return $keys;
     }
     
     public function processMonthlyBilling(Request $request)

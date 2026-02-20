@@ -260,6 +260,7 @@ Route::middleware(['auth:admin'])->group(function () {
 
     // Billing Utama (ambil dari tbl_trans_sp_bayar_temp)
     Route::get('/billing-utama', [\App\Http\Controllers\BillingUtamaController::class, 'index'])->name('billing.utama');
+    Route::delete('/billing-utama/delete-all', [\App\Http\Controllers\BillingUtamaController::class, 'destroyAll'])->name('billing.utama.destroy_all');
     Route::get('/billing-utama/{id}', [\App\Http\Controllers\BillingUtamaController::class, 'show'])->name('billing.utama.show');
     Route::put('/billing-utama/{id}', [\App\Http\Controllers\BillingUtamaController::class, 'update'])->name('billing.utama.update');
     Route::delete('/billing-utama/{id}', [\App\Http\Controllers\BillingUtamaController::class, 'destroy'])->name('billing.utama.destroy');
@@ -484,6 +485,13 @@ Route::prefix('toserda')->group(function () {
     Route::post('/upload', [ToserdaController::class, 'storeUploadToserda'])->name('toserda.upload.store');
     Route::post('/billing/process', [ToserdaController::class, 'processMonthlyBilling'])->name('toserda.billing.process');
     Route::get('/template/download', [ToserdaController::class, 'downloadTemplate'])->name('toserda.template.download');
+
+    // Lain-lain CRUD & Export
+    Route::get('/lain-lain/edit/{id}', [ToserdaController::class, 'editLainLain'])->name('toserda.lain-lain.edit');
+    Route::put('/lain-lain/{id}', [ToserdaController::class, 'updateLainLain'])->name('toserda.lain-lain.update');
+    Route::delete('/lain-lain/{id}', [ToserdaController::class, 'destroyLainLain'])->name('toserda.lain-lain.destroy');
+    Route::get('/lain-lain/export', [ToserdaController::class, 'exportLainLain'])->name('toserda.lain-lain.export');
+    Route::get('/lain-lain/export/pdf', [ToserdaController::class, 'exportLainLainPdf'])->name('toserda.lain-lain.export.pdf');
     
     // Export routes
     Route::get('/penjualan/export', [ToserdaController::class, 'exportPenjualan'])->name('toserda.penjualan.export');

@@ -113,6 +113,10 @@
                         <i class="fas fa-info-circle mr-2"></i>
                         Format yang didukung: .xlsx, .xls
                     </p>
+                    <p class="text-sm text-orange-600 mt-2 flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Upload ulang periode yang sama akan otomatis mengganti (menghapus data lama lalu mengisi data baru).
+                    </p>
                 </div>
                 
                 <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-5 px-8 rounded-xl text-lg font-semibold hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:scale-105 transition-all duration-200 shadow-lg">
@@ -134,7 +138,7 @@
                 </div>
             </div>
             
-            <form action="{{ route('toserda.billing.process') }}" method="POST" class="space-y-8">
+            <form action="{{ route('toserda.billing.process') }}" method="POST" id="billingForm" class="space-y-8">
                 @csrf
                 <div class="grid grid-cols-2 gap-6">
                     <div>
@@ -154,7 +158,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-5 px-8 rounded-xl text-lg font-semibold hover:from-orange-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transform hover:scale-105 transition-all duration-200 shadow-lg">
+                <button type="button" onclick="confirmBilling()" class="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-5 px-8 rounded-xl text-lg font-semibold hover:from-orange-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transform hover:scale-105 transition-all duration-200 shadow-lg">
                     <i class="fas fa-cogs mr-3 text-xl"></i>
                     Proses Billing
                 </button>
@@ -197,6 +201,19 @@
 
         <!-- Filter Section -->
         <div class="bg-gray-50 px-8 py-6 border-b border-gray-200">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-semibold text-gray-700">Filter & Export</h3>
+                <div class="flex space-x-2">
+                    <a href="{{ route('toserda.lain-lain.export') }}?{{ http_build_query(request()->query()) }}"
+                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium">
+                        <i class="fas fa-file-excel mr-1"></i>Export Excel
+                    </a>
+                    <a href="{{ route('toserda.lain-lain.export.pdf') }}?{{ http_build_query(request()->query()) }}"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">
+                        <i class="fas fa-file-pdf mr-1"></i>Export PDF
+                    </a>
+                </div>
+            </div>
             <form action="{{ route('toserda.lain-lain') }}" method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
                     <label for="filter_bulan" class="block text-sm font-semibold text-gray-700 mb-2">Bulan</label>
@@ -257,6 +274,9 @@
                             <i class="fas fa-id-card mr-2"></i>No KTP
                         </th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <i class="fas fa-user mr-2"></i>Nama Anggota
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                             <i class="fas fa-money-bill-wave mr-2"></i>Jumlah
                         </th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -264,6 +284,9 @@
                         </th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                             <i class="fas fa-credit-card mr-2"></i>Status Pembayaran
+                        </th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <i class="fas fa-cog mr-2"></i>Aksi
                         </th>
                     </tr>
                 </thead>
@@ -290,6 +313,9 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">{{ $tr->no_ktp ?? 'N/A' }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ $tr->nama_anggota ?? '-' }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-bold text-green-600">
@@ -327,10 +353,26 @@
                             </span>
                             @endif
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            @if(!isset($tr->status_billing) || $tr->status_billing != 'Y')
+                            <div class="flex items-center justify-center space-x-2">
+                                <button type="button" onclick="openEditModal({{ $tr->id }})"
+                                    class="inline-flex items-center px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs">
+                                    <i class="fas fa-edit mr-1"></i>Edit
+                                </button>
+                                <button type="button" onclick="confirmDelete({{ $tr->id }})"
+                                    class="inline-flex items-center px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs">
+                                    <i class="fas fa-trash mr-1"></i>Hapus
+                                </button>
+                            </div>
+                            @else
+                            <span class="text-gray-400 text-xs">-</span>
+                            @endif
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center">
+                        <td colspan="7" class="px-6 py-12 text-center">
                             <div class="flex flex-col items-center">
                                 <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                                     <i class="fas fa-inbox text-gray-400 text-2xl"></i>
@@ -366,6 +408,47 @@
     </div>
 </div>
 
+<!-- Edit Modal -->
+<div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+        <div class="flex items-center justify-between p-4 border-b">
+            <h3 class="text-lg font-semibold">Edit Transaksi Toserda</h3>
+            <button type="button" onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="editForm" method="POST" class="p-4">
+            @csrf
+            @method('PUT')
+            <input type="hidden" name="id" id="edit_id">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Transaksi</label>
+                    <input type="date" name="tgl_transaksi" id="edit_tgl_transaksi" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">No KTP</label>
+                    <input type="text" name="no_ktp" id="edit_no_ktp" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
+                    <input type="number" name="jumlah" id="edit_jumlah" min="0" step="1" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeEditModal()"
+                    class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Batal</button>
+                <button type="submit" class="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
+                    <i class="fas fa-save mr-1"></i>Update
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Custom CSS untuk animasi -->
 <style>
     .hover\:scale-105:hover {
@@ -384,4 +467,68 @@
         transform: translateZ(0);
     }
 </style>
+
+<script>
+const editUrlBase = '{{ url("toserda/lain-lain/edit") }}';
+const updateUrlBase = '{{ url("toserda/lain-lain") }}';
+
+function openEditModal(id) {
+    fetch(`${editUrlBase}/${id}`, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            const d = res.data;
+            document.getElementById('edit_id').value = d.id;
+            document.getElementById('edit_tgl_transaksi').value = d.tgl_transaksi || '';
+            document.getElementById('edit_no_ktp').value = d.no_ktp || '';
+            document.getElementById('edit_jumlah').value = d.jumlah || '';
+            document.getElementById('editForm').action = `${updateUrlBase}/${d.id}`;
+            document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editModal').classList.add('flex');
+        } else {
+            alert(res.message || 'Gagal memuat data');
+        }
+    })
+    .catch(() => alert('Terjadi kesalahan'));
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.add('hidden');
+    document.getElementById('editModal').classList.remove('flex');
+}
+
+function confirmDelete(id) {
+    if (!confirm('Yakin ingin menghapus transaksi ini?')) return;
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+    fetch(`${updateUrlBase}/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            window.location.reload();
+        } else {
+            alert(res.message || 'Gagal menghapus data');
+        }
+    })
+    .catch(() => alert('Terjadi kesalahan'));
+}
+
+function confirmBilling() {
+    const bulan = document.getElementById('billing_bulan');
+    const tahun = document.getElementById('billing_tahun');
+    const bulanText = bulan.options[bulan.selectedIndex].text;
+    if (confirm(`Proses billing untuk ${bulanText} ${tahun.value}?\n\nProses ini akan menghitung total belanja per anggota dan memperbarui status billing.`)) {
+        document.getElementById('billingForm').submit();
+    }
+}
+</script>
 @endsection

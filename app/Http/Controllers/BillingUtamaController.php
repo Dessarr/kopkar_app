@@ -9,15 +9,20 @@ use Illuminate\Support\Facades\Auth;
 
 class BillingUtamaController extends Controller
 {
-    public function index(Request $request)
+    private function getTotalTagihanExpression(): string
     {
-        $bulan = $request->input('bulan', date('m'));
-        $tahun = $request->input('tahun', date('Y'));
-        $search = $request->input('search');
+        return '(COALESCE(t.tagihan_simpanan_wajib, 0) + COALESCE(t.tagihan_simpanan_sukarela, 0) + COALESCE(t.tagihan_simpanan_khusus_2, 0) + COALESCE(t.tagihan_simpanan_pokok, 0) + COALESCE(t.tagihan_pinjaman, 0) + COALESCE(t.tagihan_toserda, 0))';
+    }
 
-        // HAPUS: Generate billing pinjaman otomatis
-        // Data pinjaman harus di-generate manual via halaman Pinjaman -> Process All
-        // $this->generateBillingPinjamanOtomatis($bulan, $tahun);
+    private function getSelisihExpression(): string
+    {
+        return '(COALESCE(SUM(u.jumlah), 0) - ' . $this->getTotalTagihanExpression() . ')';
+    }
+
+    private function buildBillingUtamaQuery($bulan, $tahun, $search = null)
+    {
+        $totalTagihanExpr = $this->getTotalTagihanExpression();
+        $selisihExpr = $this->getSelisihExpression();
 
         $query = DB::table('tbl_trans_sp_bayar_temp as t')
             ->join('tbl_anggota as a', 't.no_ktp', '=', 'a.no_ktp')
@@ -39,17 +44,16 @@ class BillingUtamaController extends Controller
                 't.jumlah',
                 't.keterangan',
                 'a.nama',
-                DB::raw('(COALESCE(t.tagihan_simpanan_wajib, 0) + COALESCE(t.tagihan_simpanan_sukarela, 0) + COALESCE(t.tagihan_simpanan_khusus_2, 0) + COALESCE(t.tagihan_simpanan_pokok, 0) + COALESCE(t.tagihan_pinjaman, 0) + COALESCE(t.tagihan_toserda, 0)) as total_tagihan'),
+                DB::raw("{$totalTagihanExpr} as total_tagihan"),
                 DB::raw('COALESCE(SUM(u.jumlah), 0) as tagihan_upload'),
-                DB::raw('(COALESCE(SUM(u.jumlah), 0) - (COALESCE(t.tagihan_simpanan_wajib, 0) + COALESCE(t.tagihan_simpanan_sukarela, 0) + COALESCE(t.tagihan_simpanan_khusus_2, 0) + COALESCE(t.tagihan_simpanan_pokok, 0) + COALESCE(t.tagihan_pinjaman, 0) + COALESCE(t.tagihan_toserda, 0))) as selisih_calculated')
+                DB::raw("{$selisihExpr} as selisih_calculated")
             )
-            // HAPUS FILTER status_lunas agar semua data tetap ditampilkan
             ->groupBy('t.id', 't.no_ktp', 't.tgl_transaksi', 't.tagihan_simpanan_wajib', 't.tagihan_simpanan_sukarela', 't.tagihan_simpanan_khusus_2', 't.tagihan_simpanan_pokok', 't.tagihan_pinjaman', 't.tagihan_toserda', 't.jumlah', 't.keterangan', 'a.nama', 'u.bulan', 'u.tahun');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('a.nama', 'like', '%'.$search.'%')
-                  ->orWhere('t.no_ktp', 'like', '%'.$search.'%');
+                $q->where('a.nama', 'like', '%' . $search . '%')
+                  ->orWhere('t.no_ktp', 'like', '%' . $search . '%');
             });
         }
 
@@ -58,7 +62,39 @@ class BillingUtamaController extends Controller
                   ->whereYear('t.tgl_transaksi', $tahun);
         }
 
-        $data = $query->paginate(10);
+        return $query;
+    }
+
+    private function getSelisihMismatchMembers($bulan, $tahun): array
+    {
+        $selisihExpr = $this->getSelisihExpression();
+
+        $rows = $this->buildBillingUtamaQuery($bulan, $tahun)
+            ->havingRaw("{$selisihExpr} <> 0")
+            ->orderBy('a.nama')
+            ->get();
+
+        return $rows->map(function ($row) {
+            return [
+                'id' => $row->id,
+                'no_ktp' => $row->no_ktp,
+                'nama' => $row->nama,
+                'selisih' => (float) ($row->selisih_calculated ?? 0),
+            ];
+        })->values()->all();
+    }
+
+    public function index(Request $request)
+    {
+        $bulan = $request->input('bulan', date('m'));
+        $tahun = $request->input('tahun', date('Y'));
+        $search = $request->input('search');
+
+        // HAPUS: Generate billing pinjaman otomatis
+        // Data pinjaman harus di-generate manual via halaman Pinjaman -> Process All
+        // $this->generateBillingPinjamanOtomatis($bulan, $tahun);
+
+        $data = $this->buildBillingUtamaQuery($bulan, $tahun, $search)->paginate(10);
 
         // Get period summary data
         $periodData = $this->getPeriodSummaryData($bulan, $tahun);
@@ -86,6 +122,17 @@ class BillingUtamaController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Bulan dan tahun harus diisi'
+                ]);
+            }
+
+            // Guard utama: proceed hanya boleh jika semua selisih = 0
+            $mismatchMembers = $this->getSelisihMismatchMembers($bulan, $tahun);
+            if (count($mismatchMembers) > 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'code' => 'VALIDATION_SELISIH',
+                    'message' => 'Proceed diblokir: masih ada anggota dengan selisih yang belum 0.',
+                    'mismatch_members' => $mismatchMembers,
                 ]);
             }
 
@@ -629,6 +676,60 @@ class BillingUtamaController extends Controller
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage()
             ]);
+        }
+    }
+
+    /**
+     * Delete all billing utama data by selected period
+     */
+    public function destroyAll(Request $request)
+    {
+        try {
+            $bulan = $request->input('bulan');
+            $tahun = $request->input('tahun');
+
+            if (!$bulan || !$tahun) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bulan dan tahun wajib diisi'
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            $deletedBillingUtama = DB::table('tbl_trans_sp_bayar_temp')
+                ->whereMonth('tgl_transaksi', $bulan)
+                ->whereYear('tgl_transaksi', $tahun)
+                ->delete();
+
+            $deletedUpload = DB::table('billing_upload_temp')
+                ->where('bulan', str_pad((string) $bulan, 2, '0', STR_PAD_LEFT))
+                ->where('tahun', (string) $tahun)
+                ->delete();
+
+            DB::commit();
+
+            Log::info('Delete all billing utama by period completed', [
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+                'deleted_billing_utama' => $deletedBillingUtama,
+                'deleted_upload' => $deletedUpload,
+                'user' => Auth::user()->name ?? 'admin',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Berhasil menghapus data Billing Utama periode {$bulan}-{$tahun}.",
+                'deleted_billing_utama' => $deletedBillingUtama,
+                'deleted_upload' => $deletedUpload,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error deleting all billing utama: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menghapus semua data: ' . $e->getMessage()
+            ], 500);
         }
     }
 

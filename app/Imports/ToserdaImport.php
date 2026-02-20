@@ -15,12 +15,12 @@ use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 use Maatwebsite\Excel\Validators\Failure;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ToserdaImport implements ToModel, WithHeadingRow, WithValidation, WithBatchInserts, SkipsOnFailure, SkipsEmptyRows, WithCalculatedFormulas
 {
     protected $rowCount = 0;
+    protected $successCount = 0;
     protected $failures = [];
 
     public function __construct()
@@ -69,31 +69,21 @@ class ToserdaImport implements ToModel, WithHeadingRow, WithValidation, WithBatc
             $row['jns_trans'] = '155'; // Default toserda
         }
 
+        // Validasi No KTP harus terdaftar di data anggota
+        $noKtp = trim((string) $row['no_ktp']);
+        if (!data_anggota::where('no_ktp', $noKtp)->exists()) {
+            $this->failures[] = new Failure(
+                $this->rowCount,
+                'no_ktp',
+                ['No KTP tidak terdaftar sebagai anggota. Pastikan No KTP ada di data anggota.'],
+                $row
+            );
+            return null;
+        }
+
         // Format date
-        $tanggal = null;
         try {
-            $rawDate = $row['tgl_transaksi'];
-            if ($rawDate instanceof \DateTime) {
-                $tanggal = Carbon::instance($rawDate);
-            } else if (is_numeric($rawDate)) {
-                $tanggal = Carbon::instance(\PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($rawDate));
-            } else if (is_string($rawDate)) {
-                $formats = ['Y-m-d', 'd/m/Y', 'm/d/Y', 'd-m-Y', 'Y/m/d'];
-                foreach ($formats as $format) {
-                    try {
-                        $tanggal = Carbon::createFromFormat($format, trim($rawDate));
-                        if ($tanggal) break;
-                    } catch (\Exception $e) {
-                        continue;
-                    }
-                }
-                if (!$tanggal) {
-                    $tanggal = Carbon::parse(trim($rawDate));
-                }
-            }
-            if (!$tanggal) {
-                throw new \Exception("Format tanggal tidak valid");
-            }
+            $tanggal = self::parseDateValue($row['tgl_transaksi']);
         } catch (\Exception $e) {
             $this->failures[] = new Failure(
                 $this->rowCount,
@@ -104,14 +94,51 @@ class ToserdaImport implements ToModel, WithHeadingRow, WithValidation, WithBatc
             return null;
         }
 
+        $this->successCount++;
         return new TblTransToserda([
             'tgl_transaksi' => $tanggal,
-            'no_ktp' => $row['no_ktp'],
+            'no_ktp' => $noKtp,
             'jumlah' => $row['jumlah'],
             'jns_trans' => $row['jns_trans'],
             'dk' => 'D', // default debit
             'user_name' => auth()->check() ? auth()->user()->name : 'system',
         ]);
+    }
+
+    public static function parseDateValue($rawDate): Carbon
+    {
+        if ($rawDate instanceof \DateTime) {
+            return Carbon::instance($rawDate);
+        }
+
+        if (is_numeric($rawDate)) {
+            return Carbon::instance(\PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($rawDate));
+        }
+
+        if (is_string($rawDate)) {
+            $value = trim($rawDate);
+            if ($value === '') {
+                throw new \Exception('Format tanggal tidak valid');
+            }
+
+            $formats = ['Y-m-d', 'd/m/Y', 'm/d/Y', 'd-m-Y', 'Y/m/d'];
+            foreach ($formats as $format) {
+                try {
+                    return Carbon::createFromFormat($format, $value);
+                } catch (\Exception $e) {
+                    // continue trying next format
+                }
+            }
+
+            return Carbon::parse($value);
+        }
+
+        throw new \Exception('Format tanggal tidak valid');
+    }
+
+    public function getSuccessCount(): int
+    {
+        return $this->successCount;
     }
 
     public function rules(): array

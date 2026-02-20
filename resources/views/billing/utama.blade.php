@@ -96,7 +96,7 @@
 
 
                 <!-- Proceed Button -->
-                <button type="button" onclick="proceedBilling()"
+                <button type="button" onclick="proceedBilling(this)"
                     class="inline-flex items-center gap-2 bg-purple-50 border border-purple-400 text-purple-900 font-medium px-5 py-2 rounded-lg transition hover:bg-purple-100 hover:border-purple-500">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
@@ -127,6 +127,22 @@
                     <i class="fas fa-trash"></i>
                     <span>Hapus</span>
                 </button>
+                <button onclick="deleteAllData()"
+                    class="bg-red-800 hover:bg-red-900 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-trash-alt"></i>
+                    <span>Hapus Semua</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="selisihValidationAlert"
+            class="hidden mx-4 mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-800">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p class="font-semibold">Proceed diblokir: masih ada selisih yang belum 0</p>
+                    <p id="selisihValidationText" class="text-sm mt-1"></p>
+                </div>
+                <button type="button" onclick="hideSelisihValidationAlert()" class="text-red-700 hover:text-red-900 text-lg leading-none">&times;</button>
             </div>
         </div>
 
@@ -151,7 +167,7 @@
                 </thead>
                 <tbody class="divide-y">
                     @forelse($data as $index => $row)
-                    <tr class="text-sm align-middle hover:bg-gray-50 cursor-pointer row-selectable {{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}"
+                    <tr class="text-sm align-middle hover:bg-gray-50 cursor-pointer row-selectable js-billing-row {{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }} {{ ((float)($row->selisih_calculated ?? 0) != 0.0) ? 'billing-row-mismatch' : '' }}"
                         data-id="{{ $row->id ?? '' }}" data-no-ktp="{{ $row->no_ktp }}" data-nama="{{ $row->nama }}"
                         data-tgl-transaksi="{{ $row->tgl_transaksi }}"
                         data-tagihan-toserda="{{ $row->tagihan_toserda ?? 0 }}"
@@ -160,6 +176,7 @@
                         data-tagihan-simpanan-khusus-2="{{ $row->tagihan_simpanan_khusus_2 ?? 0 }}"
                         data-tagihan-simpanan-pokok="{{ $row->tagihan_simpanan_pokok ?? 0 }}"
                         data-tagihan-pinjaman="{{ $row->tagihan_pinjaman ?? 0 }}"
+                        data-selisih="{{ $row->selisih_calculated ?? 0 }}"
                         data-total-tagihan="{{ $row->total_tagihan ?? 0 }}"
                         data-keterangan="{{ $row->keterangan ?? '' }}">
                         <td class="px-4 py-3 text-center text-sm">{{ $index + 1 }}</td>
@@ -203,6 +220,36 @@
         </div>
     </div>
 </div>
+</div>
+
+<!-- Modal Daftar Selisih -->
+<div id="selisihModal" class="fixed inset-0 bg-black bg-opacity-40 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h3 class="text-lg font-semibold text-gray-900">Daftar Anggota dengan Selisih</h3>
+                <button type="button" onclick="closeSelisihModal()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+            </div>
+            <div class="p-4">
+                <p class="text-sm text-gray-600 mb-3">Perbaiki data anggota berikut hingga kolom selisih menjadi 0 sebelum melakukan proceed.</p>
+                <div class="max-h-80 overflow-y-auto border rounded-lg">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left">No KTP</th>
+                                <th class="px-3 py-2 text-left">Nama</th>
+                                <th class="px-3 py-2 text-right">Selisih</th>
+                            </tr>
+                        </thead>
+                        <tbody id="selisihModalBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="flex justify-end p-4 border-t">
+                <button type="button" onclick="closeSelisihModal()" class="px-4 py-2 bg-gray-100 border rounded-lg hover:bg-gray-200">Tutup</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Upload Excel -->
@@ -338,9 +385,69 @@
     </div>
 </div>
 
+<style>
+.billing-row-mismatch {
+    background-color: #fef2f2 !important;
+    border-left: 4px solid #ef4444;
+}
+</style>
+
 <script>
 // Global variable untuk menyimpan data row yang dipilih
 let selectedRowData = null;
+let currentMismatchMembers = [];
+
+function hideSelisihValidationAlert() {
+    const alertBox = document.getElementById('selisihValidationAlert');
+    if (alertBox) alertBox.classList.add('hidden');
+}
+
+function clearMismatchHighlights() {
+    document.querySelectorAll('.js-billing-row').forEach(row => {
+        row.classList.remove('billing-row-mismatch');
+    });
+}
+
+function applyMismatchHighlights(members) {
+    clearMismatchHighlights();
+    const mismatchSet = new Set((members || []).map(item => String(item.no_ktp)));
+    document.querySelectorAll('.js-billing-row').forEach(row => {
+        if (mismatchSet.has(String(row.dataset.noKtp))) {
+            row.classList.add('billing-row-mismatch');
+        }
+    });
+}
+
+function openSelisihModal(members) {
+    const body = document.getElementById('selisihModalBody');
+    if (!body) return;
+    body.innerHTML = '';
+    (members || []).forEach(item => {
+        const tr = document.createElement('tr');
+        const selisih = Number(item.selisih || 0);
+        tr.innerHTML = `
+            <td class="px-3 py-2 border-t">${item.no_ktp || '-'}</td>
+            <td class="px-3 py-2 border-t">${item.nama || '-'}</td>
+            <td class="px-3 py-2 border-t text-right font-semibold ${selisih < 0 ? 'text-red-600' : 'text-orange-600'}">${new Intl.NumberFormat('id-ID').format(selisih)}</td>
+        `;
+        body.appendChild(tr);
+    });
+    document.getElementById('selisihModal').classList.remove('hidden');
+}
+
+function closeSelisihModal() {
+    const modal = document.getElementById('selisihModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function showSelisihValidationAlert(members) {
+    const alertBox = document.getElementById('selisihValidationAlert');
+    const text = document.getElementById('selisihValidationText');
+    if (!alertBox || !text) return;
+    const count = members?.length || 0;
+    text.textContent = `Ditemukan ${count} anggota dengan selisih tidak sama dengan 0. Klik Proceed setelah data diperbaiki.`;
+    alertBox.classList.remove('hidden');
+}
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -481,6 +588,49 @@ function deleteData() {
                 alert('Terjadi kesalahan saat menghapus data');
             });
     }
+}
+
+function deleteAllData() {
+    const bulan = document.getElementById('bulan')?.value;
+    const tahun = document.getElementById('tahun')?.value;
+
+    if (!bulan || !tahun) {
+        alert('Bulan dan tahun harus dipilih terlebih dahulu.');
+        return;
+    }
+
+    const rowCount = document.querySelectorAll('.js-billing-row').length;
+    if (rowCount === 0) {
+        alert('Tidak ada data Billing Utama untuk dihapus pada periode ini.');
+        return;
+    }
+
+    if (!confirm(`Apakah Anda yakin ingin menghapus SEMUA data Billing Utama periode ${bulan}-${tahun}?\n\nTindakan ini tidak dapat dibatalkan.`)) {
+        return;
+    }
+
+    fetch(`{{ route('billing.utama.destroy_all') }}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({ bulan, tahun })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`${data.message}\n\nData billing utama terhapus: ${data.deleted_billing_utama}\nData upload terhapus: ${data.deleted_upload}`);
+            window.location.reload();
+        } else {
+            alert('Gagal menghapus semua data: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Delete all error:', error);
+        alert('Terjadi kesalahan saat menghapus semua data.');
+    });
 }
 
 // Form submission untuk edit data
@@ -932,9 +1082,12 @@ function debugPeriodData() {
 
 
 // Proceed function to process billing data
-function proceedBilling() {
+function proceedBilling(buttonEl) {
     const bulan = document.getElementById('bulan').value;
     const tahun = document.getElementById('tahun').value;
+    hideSelisihValidationAlert();
+    closeSelisihModal();
+    currentMismatchMembers = [];
 
     console.log('🚀 === PROCEED BILLING STARTED ===');
     console.log(`📅 Period: ${bulan}-${tahun}`);
@@ -949,7 +1102,7 @@ function proceedBilling() {
     }
 
     // Show loading state
-    const proceedButton = event.target.closest('button');
+    const proceedButton = buttonEl;
     const originalText = proceedButton.innerHTML;
     proceedButton.innerHTML = `
         <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -987,7 +1140,15 @@ function proceedBilling() {
                 window.location.reload();
             } else {
                 console.error('❌ Proceed billing failed:', data.message);
-                alert('Error: ' + data.message);
+                if (data.code === 'VALIDATION_SELISIH' && Array.isArray(data.mismatch_members)) {
+                    currentMismatchMembers = data.mismatch_members;
+                    applyMismatchHighlights(currentMismatchMembers);
+                    showSelisihValidationAlert(currentMismatchMembers);
+                    openSelisihModal(currentMismatchMembers);
+                    alert((data.message || 'Proceed diblokir karena selisih belum 0') + `\nJumlah anggota bermasalah: ${currentMismatchMembers.length}`);
+                } else {
+                    alert('Error: ' + data.message);
+                }
             }
         })
         .catch(error => {
